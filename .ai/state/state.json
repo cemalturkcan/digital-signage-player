@@ -1,0 +1,58 @@
+{
+  "project": {
+    "name": "digital-signage-player",
+    "type": "smart-tv-digital-signage",
+    "version": "0.1.0",
+    "status": "scaffolding-complete"
+  },
+  "platforms": {
+    "tizen": {
+      "version": "9.0",
+      "supported": true
+    },
+    "webos": {
+      "version": "25",
+      "supported": true
+    }
+  },
+  "stack": {
+    "language": "TypeScript",
+    "buildTool": "Vite",
+    "frontend": {
+      "framework": "Vue 3",
+      "stateManagement": "module-level instances"
+    },
+    "http": {
+      "library": "Axios",
+      "pattern": "service classes with module-level instances"
+    },
+    "messaging": {
+      "library": "MQTT.js",
+      "protocol": "MQTT 5.0",
+      "qos": 1
+    },
+    "storage": {
+      "type": "IndexedDB",
+      "offlineSupport": true
+    },
+    "architecture": "Clean Architecture with Layered Modules",
+    "monorepo": {
+      "tool": "pnpm workspaces",
+      "packages": ["apps/backend", "apps/player-tizen", "packages/contracts", "packages/config"]
+    }
+  },
+  "quality": {
+    "lint": "passing",
+    "typecheck": "passing",
+    "scope": "workspace-level"
+  },
+  "context": {
+    "currentTaskId": "DSP-009",
+    "currentPhase": "architecture-alignment",
+    "lastSession": "2026-02-26",
+    "activeBranch": null,
+    "implementationStarted": false
+  },
+  "initializedAt": "2024-02-25T21:20:00Z",
+  "updatedAt": "2026-02-26T00:00:00Z"
+}

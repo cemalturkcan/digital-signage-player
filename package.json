@@ -1,0 +1,29 @@
+{
+  "name": "digital-signage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Digital Signage Player - Monorepo for Tizen/WebOS players and backend",
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^2.6.4",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "turbo": "^1.11.3",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.1"
+}

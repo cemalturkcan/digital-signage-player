@@ -1,0 +1,55 @@
+{
+  "tasks": [
+    {
+      "id": "DSP-001",
+      "title": "Project Initialization",
+      "status": "completed",
+      "priority": "high",
+      "completedAt": "2025-02-25T22:00:00Z"
+    },
+    { "id": "DSP-002", "title": "Core Domain Entities", "status": "pending", "priority": "high" },
+    {
+      "id": "DSP-003",
+      "title": "Storage and Offline-First",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "DSP-004",
+      "title": "MQTT Layer and Commands",
+      "status": "pending",
+      "priority": "high"
+    },
+    { "id": "DSP-005", "title": "Platform Abstraction", "status": "pending", "priority": "high" },
+    {
+      "id": "DSP-006",
+      "title": "Player Engine and UI",
+      "status": "in-progress",
+      "priority": "high",
+      "notes": "Foundation with Vue + Axios patterns established"
+    },
+    {
+      "id": "DSP-007",
+      "title": "Build and Test",
+      "status": "completed",
+      "priority": "medium",
+      "completedAt": "2025-02-26T00:00:00Z",
+      "notes": "Lint and typecheck passing at workspace level"
+    },
+    {
+      "id": "DSP-008",
+      "title": "Documentation and CI/CD",
+      "status": "pending",
+      "priority": "medium"
+    },
+    {
+      "id": "DSP-009",
+      "title": "Architecture Alignment",
+      "status": "in-progress",
+      "priority": "high",
+      "notes": "Aligning foundational structure before implementation phase"
+    }
+  ],
+  "nextId": 10,
+  "lastUpdated": "2026-02-26T00:00:00Z"
+}

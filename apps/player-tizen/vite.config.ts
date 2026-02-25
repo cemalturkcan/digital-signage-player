@@ -1,0 +1,32 @@
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
+
+export default defineConfig(({ mode }) => {
+  const isTizen = mode === 'tizen'
+
+  return {
+    plugins: [vue()],
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, './src'),
+      },
+    },
+    build: {
+      target: isTizen ? 'es2015' : 'es2020',
+      outDir: 'dist',
+      sourcemap: true,
+    },
+    define: {
+      __VUE_OPTIONS_API__: false,
+      __VUE_PROD_DEVTOOLS__: false,
+    },
+    server: {
+      port: 3000,
+      host: true,
+    },
+    preview: {
+      port: 4173,
+    },
+  }
+})

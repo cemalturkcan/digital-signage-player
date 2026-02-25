@@ -1,0 +1,41 @@
+# Docker Compose Stack
+
+version: '3.8'
+
+services:
+  # MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"     # MQTT
+      - "9001:9001"     # WebSocket
+    volumes:
+      - ./docker/mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+    networks:
+      - signage-network
+
+  # Backend API (placeholder)
+  # Uncomment when backend Dockerfile is ready
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/backend/Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - MQTT_BROKER_URL=mqtt://mosquitto:1883
+  #   depends_on:
+  #     - mosquitto
+  #   networks:
+  #     - signage-network
+
+volumes:
+  mosquitto_data:
+  mosquitto_logs:
+
+networks:
+  signage-network:
+    driver: bridge
