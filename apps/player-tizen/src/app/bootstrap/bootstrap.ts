@@ -1,8 +1,14 @@
-import type { PlayerConfig } from '@signage/config'
-import type { RegistrationResponse } from '@signage/contracts'
+import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
+import { useDeviceStore } from '@/app/stores/device/store'
+import { postRegister } from '@/app/request/requests/register'
+import { mqttClientService } from '@/app/mqtt/client'
+
+export interface BootstrapConfig {
+  deviceId: string
+}
 
 export interface Bootstrap {
-  config: PlayerConfig
+  config: BootstrapConfig
   registration: RegistrationResponse | null
   state: BootstrapState
 }
@@ -15,14 +21,69 @@ export type BootstrapState =
   | 'connected'
   | 'error'
 
-export async function bootstrap(): Promise<Bootstrap> {
-  throw new Error('Not implemented: bootstrap')
+export interface BootstrapOptions {
+  onStateChange?: (state: BootstrapState) => void
+  onError?: (error: Error) => void
 }
 
-export async function registerWithBackend(): Promise<RegistrationResponse> {
-  throw new Error('Not implemented: registerWithBackend')
+function buildRegistrationPayload(deviceId: string): RegistrationRequest {
+  return {
+    deviceId,
+  }
 }
 
-export function initializeMqtt(): unknown {
-  throw new Error('Not implemented: initializeMqtt')
+export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> {
+  const deviceStore = useDeviceStore()
+
+  let state: BootstrapState = 'idle'
+  const setState = (newState: BootstrapState): void => {
+    state = newState
+    options?.onStateChange?.(newState)
+  }
+
+  const deviceId = deviceStore.getDeviceId()
+  let registration: RegistrationResponse | null = null
+
+  try {
+    setState('registering')
+    const payload = buildRegistrationPayload(deviceId)
+    registration = await postRegister({ payload })
+    deviceStore.setRegistration(registration)
+
+    setState('registered')
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error))
+    options?.onError?.(err)
+    setState('error')
+    return {
+      config: {} as BootstrapConfig,
+      registration: null,
+      state: 'error',
+    }
+  }
+
+  try {
+    setState('connecting_mqtt')
+    await mqttClientService.connect(registration)
+    setState('connected')
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error))
+    options?.onError?.(err)
+    setState('error')
+    return {
+      config: {} as BootstrapConfig,
+      registration,
+      state: 'error',
+    }
+  }
+
+  const config: BootstrapConfig = {
+    deviceId,
+  }
+
+  return {
+    config,
+    registration,
+    state,
+  }
 }

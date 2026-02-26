@@ -1,9 +1,9 @@
 import type { MqttClient } from 'mqtt'
 import type { CommandResultEnvelope, EventEnvelope } from '@signage/contracts'
-import { MQTT_HOST, MQTT_PASSWORD, MQTT_PORT, MQTT_PROTOCOL, MQTT_USERNAME } from '@/config.js'
+import { mqttClient, connectMqtt, disconnectMqtt } from './base-service.js'
 
 export interface MqttService {
-  client: MqttClient | null
+  client: MqttClient
   connect: () => Promise<void>
   disconnect: () => Promise<void>
   subscribeToCommands: (deviceId: string) => Promise<void>
@@ -12,41 +12,50 @@ export interface MqttService {
   publishEvent: (deviceId: string, event: EventEnvelope) => Promise<void>
 }
 
-export const MQTT_BROKER_URL = `${MQTT_PROTOCOL}://${MQTT_HOST}:${MQTT_PORT}`
-export const MQTT_CREDENTIALS = { username: MQTT_USERNAME, password: MQTT_PASSWORD }
+export { MQTT_BROKER_URL, MQTT_CREDENTIALS } from './base-service.js'
+
+const COMMANDS_TOPIC = (deviceId: string) => `devices/${deviceId}/commands`
+const RESPONSES_TOPIC = (deviceId: string) => `devices/${deviceId}/responses`
+const EVENTS_TOPIC = (deviceId: string) => `devices/${deviceId}/events`
+
+async function subscribe(topic: string, qos: 0 | 1 | 2 = 0): Promise<void> {
+  await mqttClient.subscribe(topic, { qos })
+}
+
+async function unsubscribe(topic: string): Promise<void> {
+  await mqttClient.unsubscribe(topic)
+}
+
+async function publish(topic: string, payload: string, qos: 0 | 1 | 2 = 0): Promise<void> {
+  await mqttClient.publish(topic, payload, { qos })
+}
 
 export const mqttService: MqttService = {
-  client: null,
+  get client(): MqttClient {
+    return mqttClient
+  },
 
   async connect(): Promise<void> {
-    void MQTT_BROKER_URL
-    void MQTT_CREDENTIALS
-    throw new Error('Not implemented: connect')
+    return connectMqtt()
   },
 
   async disconnect(): Promise<void> {
-    throw new Error('Not implemented: disconnect')
+    return disconnectMqtt()
   },
 
   async subscribeToCommands(deviceId: string): Promise<void> {
-    void deviceId
-    throw new Error('Not implemented: subscribeToCommands')
+    return subscribe(COMMANDS_TOPIC(deviceId), 1)
   },
 
   async unsubscribeFromCommands(deviceId: string): Promise<void> {
-    void deviceId
-    throw new Error('Not implemented: unsubscribeFromCommands')
+    return unsubscribe(COMMANDS_TOPIC(deviceId))
   },
 
   async publishResult(deviceId: string, result: CommandResultEnvelope): Promise<void> {
-    void deviceId
-    void result
-    throw new Error('Not implemented: publishResult')
+    return publish(RESPONSES_TOPIC(deviceId), JSON.stringify(result), 1)
   },
 
   async publishEvent(deviceId: string, event: EventEnvelope): Promise<void> {
-    void deviceId
-    void event
-    throw new Error('Not implemented: publishEvent')
+    return publish(EVENTS_TOPIC(deviceId), JSON.stringify(event), 0)
   },
 }

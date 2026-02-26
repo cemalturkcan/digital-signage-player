@@ -1,16 +1,11 @@
-import type { HealthStatus, ReadinessStatus } from '@/routes/health/model.js'
+import type { HealthStatus } from '@/routes/health/model.js'
 
 export interface HealthRepository {
   getHealth: () => Promise<HealthStatus>
-  getReadiness: () => Promise<ReadinessStatus>
 }
 
 export const healthRepository: HealthRepository = {
   async getHealth(): Promise<HealthStatus> {
-    throw new Error('Not implemented: getHealth')
-  },
-
-  async getReadiness(): Promise<ReadinessStatus> {
-    throw new Error('Not implemented: getReadiness')
+    return { status: 'ok' }
   },
 }

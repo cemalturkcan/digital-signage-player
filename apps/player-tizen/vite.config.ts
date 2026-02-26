@@ -21,12 +21,5 @@ export default defineConfig(({ mode }) => {
       __VUE_OPTIONS_API__: false,
       __VUE_PROD_DEVTOOLS__: false,
     },
-    server: {
-      port: 3000,
-      host: true,
-    },
-    preview: {
-      port: 4173,
-    },
   }
 })

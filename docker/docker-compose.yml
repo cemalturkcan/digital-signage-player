@@ -1,4 +1,19 @@
 services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-postgres}
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   mosquitto:
     image: eclipse-mosquitto:2
     ports:
@@ -6,20 +21,22 @@ services:
       - '9001:9001'
     volumes:
       - ./mosquitto/config:/mosquitto/config
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_logs:/mosquitto/log
     environment:
-      - MQTT_USERNAME=${MQTT_USERNAME}
-      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MOSQUITTO_DYNSEC_PASSWORD=${MQTT_DYNSEC_PASSWORD:-admin1234567}
     command: >
       sh -c '
-        rm -f /mosquitto/config/passwd &&
-        mosquitto_passwd -b -c /mosquitto/config/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD" &&
         exec mosquitto -c /mosquitto/config/mosquitto.conf
       '
-    networks:
-      - signage-network
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mosquitto_pub -h localhost -p 1883 -u admin -P $${MOSQUITTO_DYNSEC_PASSWORD:-admin1234567} -t healthcheck -m ok',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -39,15 +56,8 @@ services:
     env_file:
       - ./.env
     depends_on:
-      - mosquitto
-    networks:
-      - signage-network
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
     restart: unless-stopped
-
-volumes:
-  mosquitto_data:
-  mosquitto_logs:
-
-networks:
-  signage-network:
-    driver: bridge

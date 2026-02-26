@@ -15,6 +15,7 @@ COPY packages/config/src packages/config/src
 COPY packages/config/tsconfig.json packages/config/
 COPY apps/backend/src apps/backend/src
 COPY apps/backend/tsconfig.json apps/backend/
+COPY apps/backend/migrations apps/backend/migrations
 
 # Copy root tsconfig for extends
 COPY tsconfig.json .
@@ -43,6 +44,7 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 COPY --from=builder --chown=nodejs:nodejs /prod/backend/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /prod/backend/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /prod/backend/package.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/apps/backend/migrations ./migrations
 
 USER nodejs
 EXPOSE 3000

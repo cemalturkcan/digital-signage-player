@@ -10,15 +10,6 @@ async function postRegister(c: {
   return Response.json(response)
 }
 
-async function postUnregister(c: {
-  req: { json: () => Promise<{ deviceId: string }> }
-}): Promise<Response> {
-  const { deviceId } = await c.req.json()
-  await registerService.unregister(deviceId)
-  return new Response(null, { status: 204 })
-}
-
 export function registerRegisterRoutes(api: Hono): void {
   api.post('/register', postRegister)
-  api.post('/unregister', postUnregister)
 }

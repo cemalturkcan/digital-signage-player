@@ -1,30 +1,48 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
+import { registerRepository } from '@/routes/register/repository.js'
+import type { DeviceRecord } from '@/routes/register/model.js'
+import { MQTT_CLIENT_HOST, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
+import { mqttProvisioningService } from '@/app/mqtt/provisioning-service.js'
+
+function buildMqttConfig(device: DeviceRecord): RegistrationResponse['mqtt'] {
+  return {
+    host: MQTT_CLIENT_HOST,
+    port: MQTT_CLIENT_PORT,
+    ssl: MQTT_CLIENT_SSL,
+    clientId: device.deviceId,
+    username: device.mqttUsername,
+    password: device.mqttPassword,
+    keepalive: 60,
+    connectTimeout: 30000,
+    reconnectPeriod: 5000,
+    clean: true,
+  }
+}
+
+function buildRegistrationResponse(device: DeviceRecord): RegistrationResponse {
+  return {
+    mqtt: buildMqttConfig(device),
+  }
+}
 
 export interface RegisterService {
   register: (request: RegistrationRequest) => Promise<RegistrationResponse>
-  unregister: (deviceId: string) => Promise<void>
-  getRegistration: (deviceId: string) => Promise<RegistrationResponse | null>
-  isRegistered: (deviceId: string) => Promise<boolean>
 }
 
 export const registerService: RegisterService = {
   async register(request: RegistrationRequest): Promise<RegistrationResponse> {
-    void request
-    throw new Error('Not implemented: register')
-  },
+    const { device, shouldProvision } = await registerRepository.findOrCreate({
+      deviceId: request.deviceId,
+    })
 
-  async unregister(deviceId: string): Promise<void> {
-    void deviceId
-    throw new Error('Not implemented: unregister')
-  },
+    if (shouldProvision) {
+      await mqttProvisioningService.provisionDevice(
+        device.deviceId,
+        device.mqttUsername,
+        device.mqttPassword
+      )
+    }
 
-  async getRegistration(deviceId: string): Promise<RegistrationResponse | null> {
-    void deviceId
-    throw new Error('Not implemented: getRegistration')
-  },
-
-  async isRegistered(deviceId: string): Promise<boolean> {
-    void deviceId
-    throw new Error('Not implemented: isRegistered')
+    return buildRegistrationResponse(device)
   },
 }
