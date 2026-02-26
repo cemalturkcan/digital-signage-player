@@ -1,5 +1,6 @@
 import type { MqttClient } from 'mqtt'
 import type { CommandResultEnvelope, EventEnvelope } from '@signage/contracts'
+import { MQTT_HOST, MQTT_PASSWORD, MQTT_PORT, MQTT_PROTOCOL, MQTT_USERNAME } from '@/config.js'
 
 export interface MqttService {
   client: MqttClient | null
@@ -11,10 +12,15 @@ export interface MqttService {
   publishEvent: (deviceId: string, event: EventEnvelope) => Promise<void>
 }
 
+export const MQTT_BROKER_URL = `${MQTT_PROTOCOL}://${MQTT_HOST}:${MQTT_PORT}`
+export const MQTT_CREDENTIALS = { username: MQTT_USERNAME, password: MQTT_PASSWORD }
+
 export const mqttService: MqttService = {
   client: null,
 
   async connect(): Promise<void> {
+    void MQTT_BROKER_URL
+    void MQTT_CREDENTIALS
     throw new Error('Not implemented: connect')
   },
 

@@ -1,6 +1,6 @@
 import type { Hono } from 'hono'
 import type { RegistrationRequest } from '@signage/contracts'
-import { registerService } from './service.js'
+import { registerService } from '@/routes/register/service.js'
 
 async function postRegister(c: {
   req: { json: () => Promise<RegistrationRequest> }

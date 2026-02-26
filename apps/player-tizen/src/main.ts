@@ -1,15 +1,11 @@
 import { createApp } from 'vue'
-import App from './App.vue'
-import './infrastructure/mqtt/client.js'
-import './application/storage/service.js'
-import './app/platform/factory.js'
-import './application/playlist/service.js'
-import './application/player/service.js'
-import './application/commands/bus.js'
-import './application/view/manager.js'
+import { createPinia } from 'pinia'
+import App from '@/App.vue'
 
 async function main(): Promise<void> {
   const app = createApp(App)
+  const pinia = createPinia()
+  app.use(pinia)
   app.mount('#app')
 }
 

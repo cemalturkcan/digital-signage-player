@@ -6,6 +6,6 @@ export interface PlayerView {
   clear: () => void
 }
 
-export function createPlayerView(): PlayerView {
-  throw new Error('Not implemented: createPlayerView')
+export function usePlayerView(): PlayerView {
+  throw new Error('Not implemented: usePlayerView')
 }

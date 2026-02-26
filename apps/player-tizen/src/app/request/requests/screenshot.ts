@@ -1,5 +1,5 @@
 import type { ScreenshotMetadata, ScreenshotUploadResponse } from '@signage/contracts'
-import { postRequest } from '../request'
+import { postRequest } from '@/app/request/request'
 
 export async function createScreenshot({
   payload,

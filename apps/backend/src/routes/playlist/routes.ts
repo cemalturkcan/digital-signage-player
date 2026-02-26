@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import { playlistService } from './service.js'
+import { playlistService } from '@/routes/playlist/service.js'
 
 async function getPlaylist(c: {
   req: { query: (name: string) => string | undefined }

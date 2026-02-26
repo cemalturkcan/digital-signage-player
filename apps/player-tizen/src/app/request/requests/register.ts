@@ -1,5 +1,5 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
-import { postRequest, setAuthToken } from '../request'
+import { postRequest, setAuthToken } from '@/app/request/request'
 
 export async function postRegister({
   payload,

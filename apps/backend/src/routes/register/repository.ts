@@ -1,4 +1,4 @@
-import type { DeviceRecord } from './model.js'
+import type { DeviceRecord } from '@/routes/register/model.js'
 
 export interface RegisterRepository {
   save: (device: DeviceRecord) => Promise<void>

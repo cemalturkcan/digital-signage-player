@@ -13,6 +13,13 @@ out/
 .env.local
 .env.*.local
 
+# Allow docker/.env to be tracked (contains safe defaults)
+!docker/.env
+
+# Allow apps .env files with safe defaults
+!apps/backend/.env
+!apps/player-tizen/.env
+
 # IDE
 .idea/
 .vscode/

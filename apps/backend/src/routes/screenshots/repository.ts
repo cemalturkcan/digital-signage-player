@@ -1,4 +1,4 @@
-import type { ScreenshotRecord } from './model.js'
+import type { ScreenshotRecord } from '@/routes/screenshots/model.js'
 
 export interface ScreenshotRepository {
   save: (metadata: ScreenshotRecord) => Promise<void>

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { registerApiRoutes } from '../../routes/router.js'
+import { registerApiRoutes } from '@/routes/router.js'
 
-export function createApp(): Hono {
+export async function createApp(): Promise<Hono> {
   const app = new Hono()
 
   registerApiRoutes(app)

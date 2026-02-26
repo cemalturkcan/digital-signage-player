@@ -1,32 +1,30 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { bootstrap } from './app/bootstrap/bootstrap'
+import { onMounted } from 'vue'
+import { useGlobalStore } from '@/app/stores/global/store'
+import { bootstrap } from '@/app/bootstrap/bootstrap'
 
-type AppState = 'loading' | 'error' | 'ready'
-
-const state = ref<AppState>('loading')
-const errorMessage = ref('')
+const globalStore = useGlobalStore()
 
 onMounted(async () => {
+  globalStore.showLoading('Initializing...')
   try {
     await bootstrap()
-    state.value = 'ready'
+    globalStore.hideLoading()
   }
   catch (error) {
-    state.value = 'error'
-    errorMessage.value = error instanceof Error ? error.message : 'Unknown error'
+    globalStore.showError(error instanceof Error ? error.message : 'Unknown error')
   }
 })
 </script>
 
 <template>
   <div id="app-container">
-    <div v-if="state === 'loading'" id="loading" class="screen">
+    <div v-if="globalStore.loading" id="loading" class="screen">
       <div class="spinner" />
-      <p>Initializing...</p>
+      <p>{{ globalStore.loadingMessage || 'Loading...' }}</p>
     </div>
-    <div v-else-if="state === 'error'" id="error" class="screen">
-      <p>{{ errorMessage }}</p>
+    <div v-else-if="globalStore.error" id="error" class="screen">
+      <p>{{ globalStore.error }}</p>
     </div>
     <div v-else id="player" class="screen">
       <div id="media-container" />

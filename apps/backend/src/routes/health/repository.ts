@@ -1,4 +1,4 @@
-import type { HealthStatus, ReadinessStatus } from './model.js'
+import type { HealthStatus, ReadinessStatus } from '@/routes/health/model.js'
 
 export interface HealthRepository {
   getHealth: () => Promise<HealthStatus>

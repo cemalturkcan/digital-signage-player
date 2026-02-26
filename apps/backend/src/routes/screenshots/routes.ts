@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import { screenshotService } from './service.js'
+import { screenshotService } from '@/routes/screenshots/service.js'
 
 async function postScreenshot(c: {
   req: { json: () => Promise<{ deviceId: string, commandId: string }> }

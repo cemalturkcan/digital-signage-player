@@ -1,4 +1,4 @@
-import type { PlaylistRecord } from './model.js'
+import type { PlaylistRecord } from '@/routes/playlist/model.js'
 
 export interface PlaylistRepository {
   save: (playlist: PlaylistRecord) => Promise<void>

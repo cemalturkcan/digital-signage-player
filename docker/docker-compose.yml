@@ -1,36 +1,48 @@
-# Docker Compose Stack
-
-version: '3.8'
-
 services:
-  # MQTT Broker
   mosquitto:
     image: eclipse-mosquitto:2
     ports:
-      - "1883:1883"     # MQTT
-      - "9001:9001"     # WebSocket
+      - '1883:1883'
+      - '9001:9001'
     volumes:
-      - ./docker/mosquitto/config:/mosquitto/config
+      - ./mosquitto/config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
       - mosquitto_logs:/mosquitto/log
+    environment:
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+    command: >
+      sh -c '
+        rm -f /mosquitto/config/passwd &&
+        mosquitto_passwd -b -c /mosquitto/config/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD" &&
+        exec mosquitto -c /mosquitto/config/mosquitto.conf
+      '
     networks:
       - signage-network
+    restart: unless-stopped
 
-  # Backend API (placeholder)
-  # Uncomment when backend Dockerfile is ready
-  # backend:
-  #   build:
-  #     context: .
-  #     dockerfile: apps/backend/Dockerfile
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - NODE_ENV=production
-  #     - MQTT_BROKER_URL=mqtt://mosquitto:1883
-  #   depends_on:
-  #     - mosquitto
-  #   networks:
-  #     - signage-network
+  backend:
+    build:
+      context: ..
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - HOST=${HOST}
+      - MQTT_PROTOCOL=${MQTT_PROTOCOL}
+      - MQTT_HOST=${MQTT_HOST}
+      - MQTT_PORT=${MQTT_PORT}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+    env_file:
+      - ./.env
+    depends_on:
+      - mosquitto
+    networks:
+      - signage-network
+    restart: unless-stopped
 
 volumes:
   mosquitto_data:
