@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { bootstrap } from './core/bootstrap.js'
+import { bootstrap } from './app/bootstrap/bootstrap'
 
 type AppState = 'loading' | 'error' | 'ready'
 
@@ -9,9 +9,10 @@ const errorMessage = ref('')
 
 onMounted(async () => {
   try {
-    const app = await bootstrap()
+    await bootstrap()
     state.value = 'ready'
-  } catch (error) {
+  }
+  catch (error) {
     state.value = 'error'
     errorMessage.value = error instanceof Error ? error.message : 'Unknown error'
   }

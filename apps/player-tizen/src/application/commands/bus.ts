@@ -10,26 +10,32 @@ export interface CommandBus {
   execute: (command: CommandEnvelope) => Promise<CommandResultEnvelope>
 }
 
-let commandBusInstance: CommandBus | null = null
+const handlers: CommandHandler[] = []
 
-function createCommandBusInternal(): CommandBus {
-  throw new Error('Not implemented: createCommandBus')
+function register(handler: CommandHandler): void {
+  handlers.push(handler)
 }
 
-export function createCommandBus(): CommandBus {
-  if (!commandBusInstance) {
-    commandBusInstance = createCommandBusInternal()
+async function execute(command: CommandEnvelope): Promise<CommandResultEnvelope> {
+  const handler = handlers.find(h => h.supports(command.command))
+  if (!handler) {
+    const now = Date.now()
+    return {
+      type: 'command_result',
+      command: command.command,
+      correlationId: command.commandId,
+      status: 'error',
+      timestamp: now,
+      error: {
+        code: 'NO_HANDLER',
+        message: `No handler registered for command type: ${command.command}`,
+      },
+    }
   }
-  return commandBusInstance
+  return handler.handle(command)
 }
 
-export function getCommandBus(): CommandBus {
-  if (!commandBusInstance) {
-    throw new Error('Not implemented: getCommandBus')
-  }
-  return commandBusInstance
-}
-
-export function resetCommandBus(): void {
-  commandBusInstance = null
+export const commandBus: CommandBus = {
+  register,
+  execute,
 }

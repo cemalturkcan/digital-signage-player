@@ -1,8 +1,7 @@
 import process from 'node:process'
-import type { ServerConfig as _ServerConfig } from '@signage/config'
-import { createApp } from './core/app.js'
-
-export type { _ServerConfig }
+import { createApp } from './app/server/create-app.js'
+import './app/mqtt/service.js'
+import './app/command-processor/service.js'
 
 async function main(): Promise<void> {
   createApp()

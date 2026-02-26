@@ -9,26 +9,28 @@ export interface PlaylistService {
   hasNext: () => boolean
 }
 
-let playlistServiceInstance: PlaylistService | null = null
-
-function createPlaylistServiceInternal(): PlaylistService {
-  throw new Error('Not implemented: createPlaylistService')
+function getCurrentItem(): MediaItem | null {
+  throw new Error('Not implemented: getCurrentItem')
 }
 
-export function createPlaylistService(): PlaylistService {
-  if (!playlistServiceInstance) {
-    playlistServiceInstance = createPlaylistServiceInternal()
-  }
-  return playlistServiceInstance
+async function loadPlaylist(playlist: Playlist): Promise<void> {
+  void playlist
+  throw new Error('Not implemented: loadPlaylist')
 }
 
-export function getPlaylistService(): PlaylistService {
-  if (!playlistServiceInstance) {
-    throw new Error('Not implemented: getPlaylistService')
-  }
-  return playlistServiceInstance
+function next(): MediaItem | null {
+  throw new Error('Not implemented: next')
 }
 
-export function resetPlaylistService(): void {
-  playlistServiceInstance = null
+function hasNext(): boolean {
+  throw new Error('Not implemented: hasNext')
+}
+
+export const playlistService: PlaylistService = {
+  currentPlaylist: null,
+  currentIndex: 0,
+  getCurrentItem,
+  loadPlaylist,
+  next,
+  hasNext,
 }

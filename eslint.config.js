@@ -6,5 +6,6 @@ export default antfu({
   rules: {
     'no-console': 'off',
     'no-unused-vars': 'off',
+    'import/no-mutable-exports': 'off',
   },
 })

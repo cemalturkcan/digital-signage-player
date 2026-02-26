@@ -9,14 +9,17 @@
 ## 1. Project Overview
 
 ### 1.1 Purpose
+
 Production-grade Digital Signage Player for Samsung Tizen and LG WebOS Smart TVs with offline-first architecture and MQTT remote control.
 
 ### 1.2 Target Platforms
+
 - **Primary:** Samsung Tizen 8.0+ (2024+ TVs)
 - **Secondary:** LG WebOS 24+ (2024+ TVs)
 - **Development:** Web browser (Chrome/Firefox)
 
 ### 1.3 Core Capabilities
+
 - Fetch and cache playlist from remote endpoint
 - Sequential media playback (images with duration, videos to completion)
 - Playlist looping
@@ -29,24 +32,27 @@ Production-grade Digital Signage Player for Samsung Tizen and LG WebOS Smart TVs
 ## 2. Technical Standards (For Discussion)
 
 ### 2.1 Language & Build
-| Aspect | Current Proposal | Discussion Points |
-|--------|------------------|-------------------|
-| Language | TypeScript 5.3+ | Strict mode enabled? |
-| Target | ES2015 | Is ES2015 sufficient or need ES2020? |
-| Build Tool | Vite 7.x (latest stable) | Webpack alternative? |
-| Bundler Output | ESM + IIFE | Both formats needed? |
+
+| Aspect         | Current Proposal         | Discussion Points                    |
+| -------------- | ------------------------ | ------------------------------------ |
+| Language       | TypeScript 5.3+          | Strict mode enabled?                 |
+| Target         | ES2015                   | Is ES2015 sufficient or need ES2020? |
+| Build Tool     | Vite 7.x (latest stable) | Webpack alternative?                 |
+| Bundler Output | ESM + IIFE               | Both formats needed?                 |
 
 ### 2.2 Code Quality
-| Tool | Configuration | Discussion |
-|------|--------------|------------|
-| ESLint | `@typescript-eslint/recommended` + custom rules | Which rules strict? |
-| Prettier | Default + 2 spaces, single quotes | Preferences? |
-| Testing | Vitest | Jest alternative? |
-| Coverage Target | 60% | Higher target? |
+
+| Tool            | Configuration                                   | Discussion          |
+| --------------- | ----------------------------------------------- | ------------------- |
+| ESLint          | `@typescript-eslint/recommended` + custom rules | Which rules strict? |
+| Prettier        | Default + 2 spaces, single quotes               | Preferences?        |
+| Testing         | Vitest                                          | Jest alternative?   |
+| Coverage Target | 60%                                             | Higher target?      |
 
 ### 2.3 Architecture Patterns (NEED DECISION)
 
 #### Option A: Clean Architecture (Proposed)
+
 ```
 src/
 ├── core/           # Domain (entities, value objects)
@@ -56,6 +62,7 @@ src/
 ```
 
 #### Option B: Feature-Based
+
 ```
 src/
 ├── playlist/       # Feature module
@@ -65,6 +72,7 @@ src/
 ```
 
 #### Option C: Simple Layered
+
 ```
 src/
 ├── models/         # Data models
@@ -80,50 +88,54 @@ src/
 ## 3. Data Models (For Review)
 
 ### 3.1 Playlist Schema
+
 ```typescript
 interface Playlist {
-  id: string;
-  version: string;           // For cache invalidation
-  loop: boolean;             // Loop playlist?
-  items: MediaItem[];
-  updatedAt: number;         // Unix timestamp
+  id: string
+  version: string // For cache invalidation
+  loop: boolean // Loop playlist?
+  items: MediaItem[]
+  updatedAt: number // Unix timestamp
 }
 
 interface MediaItem {
-  id: string;
-  type: 'image' | 'video';
-  url: string;
-  duration?: number;         // Seconds, required for images
-  order: number;
-  checksum?: string;         // For integrity validation
+  id: string
+  type: 'image' | 'video'
+  url: string
+  duration?: number // Seconds, required for images
+  order: number
+  checksum?: string // For integrity validation
 }
 ```
 
 **Discussion Points:**
+
 - Add `checksum` for media integrity?
 - Support audio files?
 - Support streaming URLs (HLS/DASH)?
 - Need scheduling (play at specific times)?
 
 ### 3.2 Command Schema
+
 ```typescript
 interface Command {
-  commandId: string;         // UUID for deduplication
-  type: CommandType;
-  timestamp: number;
-  params?: Record<string, unknown>;
+  commandId: string // UUID for deduplication
+  type: CommandType
+  timestamp: number
+  params?: Record<string, unknown>
 }
 
-type CommandType = 
+type CommandType =
   | 'reload_playlist'
-  | 'restart_player' 
+  | 'restart_player'
   | 'play'
   | 'pause'
   | 'set_volume'
-  | 'screenshot';
+  | 'screenshot'
 ```
 
 **Discussion Points:**
+
 - Additional commands needed?
 - `seek` command for videos?
 - `update_config` command?
@@ -131,24 +143,26 @@ type CommandType =
 ### 3.3 Response Schema (UPDATED - Screenshot via HTTP)
 
 **Standard Command Response (MQTT):**
+
 ```typescript
 interface CommandResponse {
-  type: 'command_result';
-  command: CommandType;
-  correlationId: string;     // Matches commandId
-  status: 'success' | 'error';
-  timestamp: number;
-  payload?: unknown;
+  type: 'command_result'
+  command: CommandType
+  correlationId: string // Matches commandId
+  status: 'success' | 'error'
+  timestamp: number
+  payload?: unknown
   error?: {
-    code: string;
-    message: string;
-  };
+    code: string
+    message: string
+  }
 }
 ```
 
 **Screenshot Special Case - TWO-STEP:**
 
 Step 1 - MQTT Acknowledgment (Player → Backend):
+
 ```json
 {
   "type": "command_ack",
@@ -161,6 +175,7 @@ Step 1 - MQTT Acknowledgment (Player → Backend):
 ```
 
 Step 2 - HTTP Upload (Player → Backend):
+
 ```http
 POST /api/screenshots HTTP/1.1
 Host: backend:3000
@@ -172,6 +187,7 @@ X-Device-Id: player-001
 ```
 
 **Why Hybrid Approach:**
+
 - MQTT: Acknowledge command received (small, instant)
 - HTTP: Upload binary image (efficient, no base64 overhead)
 - Better architecture than base64 in MQTT
@@ -181,50 +197,55 @@ X-Device-Id: player-001
 ## 4. MQTT Protocol Specification (For Review)
 
 ### 4.1 Topic Structure
+
 ```
 signage/{orgId}/{locationId}/{deviceId}/{category}
 ```
 
 **Examples:**
+
 - Subscribe: `signage/acme/store001/player001/commands`
 - Publish: `signage/acme/store001/player001/responses`
 - Status: `signage/acme/store001/player001/status`
 - Events: `signage/acme/store001/player001/events`
 
 **Discussion Points:**
+
 - Is `orgId` needed or over-engineering?
 - Flat or hierarchical topics preferred?
 - Wildcard subscriptions acceptable?
 
 ### 4.2 QoS Strategy (NEED DECISION)
 
-| Message Type | Proposed QoS | Rationale |
-|--------------|--------------|-----------|
-| Commands | 1 (At least once) | Reliable delivery, idempotent handling |
-| Responses | 1 (At least once) | Acknowledgment needed |
-| Status | 1 + Retained | Last known state for new subscribers |
-| Events | 0 (At most once) | Fire-and-forget logging |
-| Heartbeat | 0 (At most once) | Frequent, loss acceptable |
+| Message Type | Proposed QoS      | Rationale                              |
+| ------------ | ----------------- | -------------------------------------- |
+| Commands     | 1 (At least once) | Reliable delivery, idempotent handling |
+| Responses    | 1 (At least once) | Acknowledgment needed                  |
+| Status       | 1 + Retained      | Last known state for new subscribers   |
+| Events       | 0 (At most once)  | Fire-and-forget logging                |
+| Heartbeat    | 0 (At most once)  | Frequent, loss acceptable              |
 
 **Question:** Agree with QoS levels? Use QoS 2 for critical commands?
 
 ### 4.3 Connection Parameters
+
 ```typescript
 const mqttConfig = {
-  keepalive: 60,              // Seconds
-  connectTimeout: 30000,      // 30 seconds
-  reconnectPeriod: 1000,      // Initial 1s, then exponential backoff
-  clean: false,               // Persistent session
+  keepalive: 60, // Seconds
+  connectTimeout: 30000, // 30 seconds
+  reconnectPeriod: 1000, // Initial 1s, then exponential backoff
+  clean: false, // Persistent session
   will: {
     topic: '{baseTopic}/status',
     payload: JSON.stringify({ state: 'offline' }),
     qos: 1,
-    retain: true
-  }
-};
+    retain: true,
+  },
+}
 ```
 
 **Discussion Points:**
+
 - Keepalive interval? (60s standard, 30s for unstable networks)
 - Max reconnection delay cap? (30s proposed)
 - Clean session false = persistent subscriptions?
@@ -236,12 +257,14 @@ const mqttConfig = {
 ### 5.1 Storage Architecture
 
 #### Option A: IndexedDB Primary (Proposed)
+
 - **IndexedDB:** All data (playlists, media chunks, metadata)
 - **Cache API:** Static assets only (JS/CSS/HTML)
 - **Pros:** Full control, large storage, structured queries
 - **Cons:** More complex implementation
 
 #### Option B: Cache API Primary
+
 - **Cache API:** Static assets + media files
 - **IndexedDB:** Playlist metadata and sync queue
 - **Pros:** Simpler for media, browser optimized
@@ -250,12 +273,14 @@ const mqttConfig = {
 **Question:** Which approach preferred?
 
 ### 5.2 Storage Quotas
+
 - Request persistent storage: `navigator.storage.persist()`
 - Monitor quota: `navigator.storage.estimate()`
 - LRU eviction when approaching limit
 - Minimum reserved space: 500MB?
 
 ### 5.3 Sync Strategy
+
 ```
 ONLINE MODE:
   1. Fetch playlist from remote
@@ -284,23 +309,25 @@ RECONNECTION:
 
 ### 6.1 Platform Capabilities Matrix
 
-| Feature | Tizen | WebOS | Web |
-|---------|-------|-------|-----|
-| Media API | webapis.avplay | HTML5 Video | HTML5 Video |
-| Volume Control | tizen.tvaudiocontrol | LS2 Audio | HTML5 Audio |
-| Screenshot | Limited/None | Limited/None | Canvas/API |
-| Storage | IndexedDB | IndexedDB | IndexedDB |
-| Video Codecs | H.264, HEVC, VP9, AV1 | H.264, HEVC, VP9, AV1 | Depends on browser |
+| Feature        | Tizen                 | WebOS                 | Web                |
+| -------------- | --------------------- | --------------------- | ------------------ |
+| Media API      | webapis.avplay        | HTML5 Video           | HTML5 Video        |
+| Volume Control | tizen.tvaudiocontrol  | LS2 Audio             | HTML5 Audio        |
+| Screenshot     | Limited/None          | Limited/None          | Canvas/API         |
+| Storage        | IndexedDB             | IndexedDB             | IndexedDB          |
+| Video Codecs   | H.264, HEVC, VP9, AV1 | H.264, HEVC, VP9, AV1 | Depends on browser |
 
 ### 6.2 Screenshot Strategy (NEED DECISION)
 
 #### Option A: Platform Native
+
 - Tizen: Try `tizen.systeminfo` or AVPlay capture
 - WebOS: Try Luna service if available
 - **Pros:** Best quality, hardware accelerated
 - **Cons:** May not be available, permissions complex
 
 #### Option B: Canvas-Based (Proposed)
+
 - Render video to canvas: `ctx.drawImage(video, 0, 0)`
 - Convert to blob: `canvas.toBlob()`
 - Base64 encode for MQTT response
@@ -308,6 +335,7 @@ RECONNECTION:
 - **Cons:** DRM content may be black, performance cost
 
 #### Option C: Mock/Fake
+
 - Return placeholder image with metadata
 - Document limitation in README
 - **Pros:** Always works
@@ -320,6 +348,7 @@ RECONNECTION:
 ## 7. Player Behavior Specifications
 
 ### 7.1 Playback Flow
+
 ```
 STARTUP:
   ↓
@@ -338,24 +367,24 @@ Idle State
 
 ### 7.2 Transition Options (NEED DECISION)
 
-| Type | Implementation | Performance |
-|------|---------------|-------------|
-| Cut | Immediate swap | Best |
-| Fade | CSS opacity 0→1 | Good |
-| Slide | CSS transform | Good |
-| Cross-fade | Two elements, overlap | Moderate |
+| Type       | Implementation        | Performance |
+| ---------- | --------------------- | ----------- |
+| Cut        | Immediate swap        | Best        |
+| Fade       | CSS opacity 0→1       | Good        |
+| Slide      | CSS transform         | Good        |
+| Cross-fade | Two elements, overlap | Moderate    |
 
 **Question:** Support transitions or cut only? Configurable?
 
 ### 7.3 Error Handling Strategy
 
-| Error Type | Behavior | Retry |
-|------------|----------|-------|
-| Network fetch | Use cache, retry in background | Exponential backoff |
-| Media load | Skip to next item, log error | Immediate once |
-| Parse error | Use cached version, alert | None |
-| MQTT disconnect | Queue commands, reconnect | Exponential backoff |
-| Storage full | LRU cleanup, log warning | None |
+| Error Type      | Behavior                       | Retry               |
+| --------------- | ------------------------------ | ------------------- |
+| Network fetch   | Use cache, retry in background | Exponential backoff |
+| Media load      | Skip to next item, log error   | Immediate once      |
+| Parse error     | Use cached version, alert      | None                |
+| MQTT disconnect | Queue commands, reconnect      | Exponential backoff |
+| Storage full    | LRU cleanup, log warning       | None                |
 
 ---
 
@@ -363,13 +392,14 @@ Idle State
 
 ### 8.1 Build Targets
 
-| Target | Output | Notes |
-|--------|--------|-------|
-| Tizen | `.wgt` file | Signed for production |
-| WebOS | IPK or hosted | LG Dev Mode or store |
-| Web | Static files | Development/testing |
+| Target | Output        | Notes                 |
+| ------ | ------------- | --------------------- |
+| Tizen  | `.wgt` file   | Signed for production |
+| WebOS  | IPK or hosted | LG Dev Mode or store  |
+| Web    | Static files  | Development/testing   |
 
 ### 8.2 Build Scripts (Proposed)
+
 ```json
 {
   "dev": "vite --host",
@@ -386,6 +416,7 @@ Idle State
 ```
 
 ### 8.3 Tizen WGT Structure
+
 ```
 myapp.wgt
 ├── config.xml          # App manifest
@@ -397,6 +428,7 @@ myapp.wgt
 ```
 
 **Discussion Points:**
+
 - Self-signed certificate for dev?
 - Samsung certificate for production?
 - Build automation in CI/CD?
@@ -407,13 +439,14 @@ myapp.wgt
 
 ### 9.1 Test Levels
 
-| Level | Scope | Tools | Target |
-|-------|-------|-------|--------|
-| Unit | Domain logic, utils | Vitest | >60% coverage |
-| Integration | Repositories, MQTT | Vitest + MSW | Critical paths |
-| E2E | Full playback flow | Manual + Emulator | Smoke tests |
+| Level       | Scope               | Tools             | Target         |
+| ----------- | ------------------- | ----------------- | -------------- |
+| Unit        | Domain logic, utils | Vitest            | >60% coverage  |
+| Integration | Repositories, MQTT  | Vitest + MSW      | Critical paths |
+| E2E         | Full playback flow  | Manual + Emulator | Smoke tests    |
 
 ### 9.2 Critical Test Scenarios
+
 - [ ] Playlist validation (invalid JSON, missing fields)
 - [ ] Cache hit/miss logic
 - [ ] MQTT reconnection with backoff
@@ -427,6 +460,7 @@ myapp.wgt
 ## 10. Documentation Requirements
 
 ### 10.1 Required Documents
+
 1. **README.md** - Quick start, build, run
 2. **ARCHITECTURE.md** - Design decisions, patterns
 3. **MQTT_PROTOCOL.md** - Topic structure, payloads
@@ -434,6 +468,7 @@ myapp.wgt
 5. **TIZEN_SETUP.md** - Studio install, emulator, signing
 
 ### 10.2 Code Documentation
+
 - JSDoc for public APIs
 - Inline comments for complex logic only
 - No redundant comments
@@ -506,6 +541,7 @@ myapp.wgt
 ## 12. MVP vs Full Scope
 
 ### MVP (Minimum Viable Product)
+
 - [ ] Tizen platform only
 - [ ] Images and MP4 videos only
 - [ ] Cut transitions only
@@ -517,6 +553,7 @@ myapp.wgt
 - [ ] README documentation
 
 ### Full Scope
+
 - [ ] WebOS support
 - [ ] HLS/DASH streaming
 - [ ] Configurable transitions
@@ -537,38 +574,40 @@ You're absolutely right - we need backend infrastructure for testing and develop
 
 ### 13.1 Required Infrastructure Components
 
-| Component | Purpose | Implementation |
-|-----------|---------|----------------|
-| **MQTT Broker** | Command/response messaging | Mosquitto in Docker |
-| **Playlist API** | Serve playlist JSON | Express.js mock server |
-| **Media Server** | Serve images/videos | Static file server or CDN |
-| **MQTT Command Tool** | Send test commands | CLI tool or simple UI |
+| Component             | Purpose                    | Implementation            |
+| --------------------- | -------------------------- | ------------------------- |
+| **MQTT Broker**       | Command/response messaging | Mosquitto in Docker       |
+| **Playlist API**      | Serve playlist JSON        | Express.js mock server    |
+| **Media Server**      | Serve images/videos        | Static file server or CDN |
+| **MQTT Command Tool** | Send test commands         | CLI tool or simple UI     |
 
 ### 13.2 Backend Options (NEED DECISION)
 
 #### Option A: Docker Compose Stack (Recommended)
+
 ```yaml
-# docker-compose.yml
+# docker/docker-compose.yml
 services:
   mosquitto:
     image: eclipse-mosquitto:2
-    ports: ["1883:1883", "9001:9001"]
-  
+    ports: ['1883:1883', '9001:9001']
+
   playlist-api:
     image: node:20-alpine
-    volumes: ["./mock-api:/app"]
-    ports: ["3000:3000"]
-  
+    volumes: ['./mock-api:/app']
+    ports: ['3000:3000']
+
   media-server:
     image: nginx:alpine
-    volumes: ["./media:/usr/share/nginx/html"]
-    ports: ["8080:80"]
+    volumes: ['./media:/usr/share/nginx/html']
+    ports: ['8080:80']
 ```
 
 **Pros:** Full control, reproducible, works offline  
 **Cons:** More setup, requires Docker
 
 #### Option B: Static Files + Public MQTT
+
 - Playlist: Static JSON hosted on GitHub Pages/Netlify
 - Media: Public URLs (placeholder images/videos)
 - MQTT: Public broker (broker.hivemq.com, test.mosquitto.org)
@@ -577,6 +616,7 @@ services:
 **Cons:** Requires internet, not private, rate limits
 
 #### Option C: Minimal Express Server
+
 ```javascript
 // Simple Express backend
 const app = express();
@@ -608,6 +648,7 @@ npm run mqtt:send -- --device player-001 --command screenshot
 ```
 
 Or minimal web UI at `http://localhost:3000/admin`:
+
 - Device selector
 - Command buttons (play, pause, reload, screenshot)
 - Response viewer
@@ -622,7 +663,7 @@ Or minimal web UI at `http://localhost:3000/admin`:
 Screenshot command flow (hybrid MQTT + HTTP):
 
 ```
-1. Client (Dashboard) 
+1. Client (Dashboard)
    HTTP POST /api/commands
    → { deviceId: "player-001", command: "screenshot" }
 
@@ -650,6 +691,7 @@ Screenshot command flow (hybrid MQTT + HTTP):
 ```
 
 **Why This is Better:**
+
 - MQTT: Only for commands (small payloads, instant)
 - HTTP: For file uploads (binary, efficient, no base64 overhead)
 - Clean separation of concerns
@@ -684,6 +726,7 @@ For testing, we need:
 ### 13.5 Production Backend Assumptions
 
 The player assumes a production backend provides:
+
 - REST API endpoint: `GET https://api.signage.company/players/{deviceId}/playlist`
 - MQTT Broker: `mqtts://mqtt.signage.company:8883`
 - Authentication: JWT token or client certificates
@@ -704,6 +747,7 @@ For this case study, we build the **player only** with mock backend for testing.
 ---
 
 **Please review and provide feedback on:**
+
 - Architecture choice (Section 2.3)
 - Storage strategy (Section 5.1)
 - Screenshot approach (Section 6.2)
