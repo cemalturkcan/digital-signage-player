@@ -3,7 +3,7 @@
     "name": "digital-signage-player",
     "type": "smart-tv-digital-signage",
     "version": "0.1.0",
-    "status": "architecture-aligned"
+    "status": "backend-refactored"
   },
   "platforms": {
     "tizen": {
@@ -22,6 +22,11 @@
       "framework": "Vue 3",
       "stateManagement": "module-level instances"
     },
+    "backend": {
+      "framework": "Hono",
+      "database": "PostgreSQL with pg",
+      "pattern": "Go-style lazy initialization (let db: Pool | null + connectDb())"
+    },
     "http": {
       "library": "Axios",
       "pattern": "service classes with module-level instances"
@@ -29,7 +34,12 @@
     "messaging": {
       "library": "MQTT.js",
       "protocol": "MQTT 5.0",
-      "qos": 1
+      "qos": 1,
+      "pattern": "shared client with explicit connect()"
+    },
+    "logging": {
+      "library": "pino",
+      "location": "src/app/logger/logger.ts"
     },
     "storage": {
       "type": "IndexedDB",
@@ -46,13 +56,17 @@
     "typecheck": "passing",
     "scope": "workspace-level"
   },
+  "runtime": {
+    "dependencies": ["mosquitto", "postgres"],
+    "status": "external-services-expected"
+  },
   "context": {
     "currentTaskId": null,
-    "currentPhase": "ready-for-implementation",
+    "currentPhase": "backend-stabilized",
     "lastSession": "2026-02-26",
     "activeBranch": null,
-    "implementationStarted": false
+    "implementationStarted": true
   },
   "initializedAt": "2024-02-25T21:20:00Z",
-  "updatedAt": "2026-02-26T12:00:00Z"
+  "updatedAt": "2026-02-26T21:59:36Z"
 }

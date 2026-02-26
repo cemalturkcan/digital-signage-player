@@ -234,3 +234,91 @@
 - Higher standard required for naming conventions
 - New developers may need more time to understand complex logic
 - External API documentation must be maintained separately if needed
+
+---
+
+### ADR-012: Go-Style Database Initialization
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: Use Go-style lazy initialization for database connections: `let db: Pool | null = null` with explicit `connectDb()` function called at startup.
+
+**Rationale**:
+
+- Explicit connection lifecycle prevents race conditions
+- Clear error handling at startup vs runtime
+- Module-level state is mutable but controlled
+- Easier to test with dependency injection
+
+**Consequences**:
+
+- Requires explicit startup sequence
+- Database unavailable until connectDb() completes
+- Must handle connection failures at application startup
+
+---
+
+### ADR-013: Shared MQTT Client with Explicit Connect
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: Use a shared MQTT client instance with explicit `connect()` pattern. Separate client configuration for browser (WebSocket) vs backend (TCP).
+
+**Rationale**:
+
+- Single connection per application instance
+- Explicit lifecycle management (connect/disconnect/reconnect)
+- Browser requires WebSocket (ws://:9001) vs backend TCP
+- Environment-specific client config (MQTT*CLIENT*\* for browser)
+
+**Consequences**:
+
+- Must manage connection state explicitly
+- Reconnection logic required
+- Different protocols for browser vs backend
+
+---
+
+### ADR-014: Pino for Structured Logging
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: Use pino for structured JSON logging. Logger located at `src/app/logger/logger.ts`.
+
+**Rationale**:
+
+- High performance, low overhead
+- Structured JSON output for log aggregation
+- TypeScript support with pino-pretty for development
+- Standard logging interface across backend services
+
+**Consequences**:
+
+- Additional dependency
+- Log format changes require configuration updates
+- Pretty printing only for development
+
+---
+
+### ADR-015: Minimal API Responses
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: API responses should be minimal. Health endpoint returns only `{status: 'ok'}`. Registration returns only essential fields.
+
+**Rationale**:
+
+- Reduces payload size
+- Simplifies client code
+- No unnecessary data exposure
+- Self-documenting through clear endpoint names
+
+**Consequences**:
+
+- Clients cannot rely on verbose responses
+- Additional endpoints needed for detailed status
+- Breaking change if clients expect removed fields

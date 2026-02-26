@@ -17,8 +17,10 @@
     {
       "id": "DSP-004",
       "title": "MQTT Layer and Commands",
-      "status": "pending",
-      "priority": "high"
+      "status": "completed",
+      "priority": "high",
+      "completedAt": "2026-02-26T21:59:36Z",
+      "notes": "Shared client pattern with explicit connect(), browser websocket fixes (ws://:9001, MQTT_CLIENT_* env vars)"
     },
     { "id": "DSP-005", "title": "Platform Abstraction", "status": "pending", "priority": "high" },
     {
@@ -49,8 +51,16 @@
       "priority": "high",
       "completedAt": "2026-02-26T12:00:00Z",
       "notes": "Alias imports, backend layout, env split, no-comments policy established"
+    },
+    {
+      "id": "DSP-010",
+      "title": "Backend Refactoring",
+      "status": "completed",
+      "priority": "high",
+      "completedAt": "2026-02-26T21:59:36Z",
+      "notes": "DB Go-style lazy init, MQTT shared client, pino logging, simplified registration/health, compose cleanup"
     }
   ],
-  "nextId": 10,
-  "lastUpdated": "2026-02-26T12:00:00Z"
+  "nextId": 11,
+  "lastUpdated": "2026-02-26T21:59:36Z"
 }
