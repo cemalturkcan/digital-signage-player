@@ -45,11 +45,12 @@
     {
       "id": "DSP-009",
       "title": "Architecture Alignment",
-      "status": "in-progress",
+      "status": "completed",
       "priority": "high",
-      "notes": "Aligning foundational structure before implementation phase"
+      "completedAt": "2026-02-26T12:00:00Z",
+      "notes": "Alias imports, backend layout, env split, no-comments policy established"
     }
   ],
   "nextId": 10,
-  "lastUpdated": "2026-02-26T00:00:00Z"
+  "lastUpdated": "2026-02-26T12:00:00Z"
 }

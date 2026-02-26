@@ -6,3 +6,5 @@
 {"event":"architectural-shift","timestamp":"2025-02-26T00:00:00Z","details":{"from":"vanilla-ts","to":"vue3-axios","pattern":"module-level-instances"}}
 {"event":"task-created","timestamp":"2026-02-26T00:00:00Z","taskId":"DSP-009","details":{"title":"Architecture Alignment","status":"in-progress"}}
 {"event":"state-updated","timestamp":"2026-02-26T00:00:00Z","details":{"phase":"architecture-alignment","implementationStarted":false}}
+{"event":"task-completed","timestamp":"2026-02-26T12:00:00Z","taskId":"DSP-009","details":{"title":"Architecture Alignment","decisions":["ADR-008: Path Alias Import Policy","ADR-009: Backend App/Routes Layout","ADR-010: Environment Split for MQTT","ADR-011: No Code Comments Policy"]}}
+{"event":"ai-knowledge-updated","timestamp":"2026-02-26T12:00:00Z","details":{"type":"maintenance","filesUpdated":["state.json","current-task.txt","tasks/index.json","decisions.md","events.jsonl"],"phaseTransition":"architecture-aligned -> ready-for-implementation"}}

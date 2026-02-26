@@ -152,3 +152,85 @@
 
 - Requires pnpm installation (not npm/yarn compatible)
 - CI/CD needs pnpm setup
+
+---
+
+### ADR-008: Path Alias Import Policy
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: Use path aliases (`@/`, `#/`) for all cross-module imports. Never use relative imports (`../`) for files outside the same directory.
+
+**Rationale**:
+
+- Consistent import style across the codebase
+- Refactoring is safer (move files without changing imports)
+- Clear module boundaries
+- Works with TypeScript and Vite path resolution
+
+**Consequences**:
+
+- Requires `tsconfig.json` path mappings
+- Build tools must resolve aliases correctly
+
+---
+
+### ADR-009: Backend App/Routes Layout
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: Backend uses `app/` directory for Hono app factory and `routes/` for route definitions. Routes are organized by domain (health, commands, etc.).
+
+**Rationale**:
+
+- Clear separation between app setup and route handlers
+- Domain-based route organization scales with feature growth
+- Hono's factory pattern enables testable app instances
+
+**Consequences**:
+
+- More directory nesting than flat structure
+- Route files must follow naming conventions
+
+---
+
+### ADR-010: Environment Split for MQTT
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: MQTT configuration uses separate env files per environment (`.env.development`, `.env.production`). No runtime environment detection in config files.
+
+**Rationale**:
+
+- Build-time env selection prevents accidental misconfiguration
+- Vite handles env file loading automatically
+- Secrets stay out of source control
+
+**Consequences**:
+
+- Requires separate builds for each environment
+- CI/CD must inject correct env file
+
+---
+
+### ADR-011: No Code Comments Policy
+
+**Status**: Approved
+**Date**: 2026-02-26
+
+**Decision**: Code should be self-documenting. No inline comments or JSDoc. Variable and function names must clearly express intent.
+
+**Rationale**:
+
+- Comments often become outdated and misleading
+- Clear naming is a better investment than documentation maintenance
+- TypeScript types provide sufficient API documentation
+
+**Consequences**:
+
+- Higher standard required for naming conventions
+- New developers may need more time to understand complex logic
+- External API documentation must be maintained separately if needed
