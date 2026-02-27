@@ -24,10 +24,10 @@ async function main(): Promise<void> {
       port: PORT,
     },
     (info) => {
-      const displayHost =
-        info.address === '0.0.0.0' || info.address === '::' ? 'localhost' : info.address
+      const displayHost
+        = info.address === '0.0.0.0' || info.address === '::' ? 'localhost' : info.address
       logger.info(`Server: http://${displayHost}:${info.port}`)
-    }
+    },
   )
 }
 

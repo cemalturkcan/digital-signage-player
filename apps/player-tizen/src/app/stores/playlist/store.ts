@@ -48,7 +48,7 @@ export const usePlaylistStore = defineStore('playlist', {
       if (this.currentIndex < this.currentPlaylist.items.length - 1) {
         this.currentIndex += 1
       }
-      else if (this.currentPlaylist.loop) {
+      else if (this.currentPlaylist.items.length > 0) {
         this.currentIndex = 0
       }
       else {

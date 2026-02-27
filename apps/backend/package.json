@@ -14,18 +14,22 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "^1.2.2",
     "@signage/config": "workspace:*",
     "@signage/contracts": "workspace:*",
     "dotenv": "^16.4.7",
     "hono": "^4.12.3",
     "mqtt": "^5.15.0",
     "pg": "^8.13.3",
-    "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0"
+    "pino": "^9.14.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.3.1",
     "@types/pg": "^8.11.11",
+    "@types/pino": "^7.0.5",
+    "pino-pretty": "^13.1.3",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

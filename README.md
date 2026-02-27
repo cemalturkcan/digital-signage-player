@@ -36,6 +36,13 @@ pnpm dev
 
 Backend runs at http://localhost:3000
 
+#### API Documentation
+
+- OpenAPI JSON: `/openapi.json`
+- Swagger UI: `/docs`
+
+Routes are defined with Hono OpenAPI (`@hono/zod-openapi`) in domain `doc.ts` modules using Zod schemas.
+
 ### 4. Start Player (Development)
 
 ```bash
@@ -119,9 +126,11 @@ pnpm typecheck    # Type check only
 | `play`            | -                    | Resume playback                                                    |
 | `pause`           | -                    | Pause playback                                                     |
 | `set_volume`      | `{ level: number }`  | Set volume (0-100)                                                 |
-| `screenshot`      | -                    | Capture screenshot, returns base64 image in payload                |
+| `screenshot`      | -                    | Capture screenshot, returns base64 image in payload (MQTT only)    |
 | `ping`            | -                    | Health check                                                       |
 | `update_config`   | `{ config: object }` | Update player configuration (defined in contract, not implemented) |
+
+**Note:** There is no REST endpoint for screenshots. Screenshot capture is initiated via MQTT command and the base64 image is returned in the `command_result` response payload.
 
 ### Test Commands (MQTT CLI)
 
@@ -151,7 +160,7 @@ Commands use QoS 1 to ensure delivery during transient network issues. The playe
 
 The player implements a practical offline-first strategy:
 
-1. **Playlist Caching**: Playlist stored in localStorage with version tracking
+1. **Playlist Caching**: Playlist metadata persisted via Pinia store (using persisted-state plugin)
 2. **Media Caching**: Media files cached via Cache API with blob storage
 3. **Offline Playback**: Continues playing from cache when network unavailable
 4. **Auto-Reconnect**: MQTT client reconnects with 5s period, resumes normal operation
@@ -159,7 +168,7 @@ The player implements a practical offline-first strategy:
 
 ### Cache Strategy
 
-- Playlist: localStorage (JSON serialized)
+- Playlist metadata: Pinia store with persisted-state plugin
 - Media: Cache API with key pattern `/media/{id}`
 - Prefetch: Downloads media items proactively when online
 

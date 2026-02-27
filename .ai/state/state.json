@@ -25,7 +25,7 @@
     "backend": {
       "framework": "Hono",
       "database": "PostgreSQL with pg",
-      "pattern": "Go-style lazy initialization (let db: Pool | null + connectDb())"
+      "pattern": "baseapp-style layering (controller/service/repository + modal.ts + doc.ts)"
     },
     "http": {
       "library": "Axios",
@@ -61,12 +61,12 @@
     "status": "external-services-expected"
   },
   "context": {
-    "currentTaskId": "DSP-006",
-    "currentPhase": "player-engine-implementation",
+    "currentTaskId": "DSP-013",
+    "currentPhase": "backend-openapi-refactoring",
     "lastSession": "2026-02-27",
     "activeBranch": null,
     "implementationStarted": true
   },
   "initializedAt": "2024-02-25T21:20:00Z",
-  "updatedAt": "2026-02-27T00:00:00Z"
+  "updatedAt": "2026-02-27T12:00:00Z"
 }

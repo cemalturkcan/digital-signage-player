@@ -1,3 +1,4 @@
+-- Create devices table
 CREATE TABLE IF NOT EXISTS devices (
   id SERIAL PRIMARY KEY,
   device_id VARCHAR(255) UNIQUE NOT NULL,
@@ -7,5 +8,70 @@ CREATE TABLE IF NOT EXISTS devices (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_devices_device_id ON devices(device_id);
-CREATE INDEX idx_devices_mqtt_username ON devices(mqtt_username);
+-- Create playlists table linked to devices
+CREATE TABLE IF NOT EXISTS playlists (
+  id SERIAL PRIMARY KEY,
+  device_id VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_playlists_device_id
+    FOREIGN KEY (device_id)
+    REFERENCES devices(device_id)
+    ON DELETE CASCADE
+);
+
+-- Create playlist_items table linked to playlists
+CREATE TABLE IF NOT EXISTS playlist_items (
+  id SERIAL PRIMARY KEY,
+  playlist_id INTEGER NOT NULL,
+  media_url TEXT NOT NULL,
+  media_type VARCHAR(50) NOT NULL,
+  duration INTEGER DEFAULT 10,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_playlist_items_playlist_id
+    FOREIGN KEY (playlist_id)
+    REFERENCES playlists(id)
+    ON DELETE CASCADE
+);
+
+-- Indexes for devices
+CREATE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id);
+CREATE INDEX IF NOT EXISTS idx_devices_mqtt_username ON devices(mqtt_username);
+
+-- Indexes for playlists
+CREATE INDEX IF NOT EXISTS idx_playlists_device_id ON playlists(device_id);
+
+-- Indexes for playlist_items
+CREATE INDEX IF NOT EXISTS idx_playlist_items_playlist_id ON playlist_items(playlist_id);
+CREATE INDEX IF NOT EXISTS idx_playlist_items_sort_order ON playlist_items(playlist_id, sort_order);
+
+-- Shared trigger function for auto-updating updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggers for auto-updating updated_at on all tables
+DROP TRIGGER IF EXISTS update_devices_updated_at ON devices;
+CREATE TRIGGER update_devices_updated_at
+  BEFORE UPDATE ON devices
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_playlists_updated_at ON playlists;
+CREATE TRIGGER update_playlists_updated_at
+  BEFORE UPDATE ON playlists
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_playlist_items_updated_at ON playlist_items;
+CREATE TRIGGER update_playlist_items_updated_at
+  BEFORE UPDATE ON playlist_items
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

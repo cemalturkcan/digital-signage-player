@@ -1,14 +1,12 @@
-import type { Hono } from 'hono'
-import { registerHealthRoutes } from '@/routes/health/routes.js'
-import { registerPlaylistRoutes } from '@/routes/playlist/routes.js'
-import { registerRegisterRoutes } from '@/routes/register/routes.js'
-import { registerScreenshotRoutes } from '@/routes/screenshots/routes.js'
+import type { OpenAPIHono } from '@hono/zod-openapi'
+import { HealthDoc } from '@/routes/health/doc.js'
+import { PlaylistDoc } from '@/routes/playlist/doc.js'
+import { RegisterDoc } from '@/routes/register/doc.js'
 
-export function registerApiRoutes(app: Hono): void {
+export function registerApiRoutes(app: OpenAPIHono): void {
   const api = app.basePath('/api')
 
-  registerHealthRoutes(api)
-  registerRegisterRoutes(api)
-  registerPlaylistRoutes(api)
-  registerScreenshotRoutes(api)
+  HealthDoc.register(api)
+  RegisterDoc.register(api)
+  PlaylistDoc.register(api)
 }

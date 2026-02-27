@@ -15,8 +15,7 @@ digital-signage/
 │   │   ├── routes/
 │   │   │   ├── health/              # Health check endpoints
 │   │   │   ├── register/            # Device registration
-│   │   │   ├── playlist/            # Playlist fetch endpoint
-│   │   │   └── screenshots/         # Screenshot upload handling
+│   │   │   └── playlist/            # Playlist fetch endpoint
 │   │   ├── db/                      # Database connection (lazy init)
 │   │   └── config.ts                # Environment configuration
 │   └── player-tizen/         # Tizen player application
@@ -45,10 +44,11 @@ digital-signage/
 
 ### Backend Layers
 
-1. **Routes (HTTP)**: Hono handlers for REST endpoints
-2. **Services**: Business logic (registration, playlist, screenshots)
-3. **Repositories**: Data access (in-memory maps for demo)
-4. **MQTT Service**: Async messaging layer
+1. **Routes (HTTP)**: OpenAPIHono handlers for REST endpoints with automatic OpenAPI generation. Routes are registered via `doc.ts` modules using Zod schemas for type-safe request/response validation.
+2. **Controllers**: Request/response handling
+3. **Services**: Business logic (registration, playlist)
+4. **Repositories**: Data access (PostgreSQL relational tables)
+5. **MQTT Service**: Async messaging layer
 
 ### Player Layers
 
@@ -102,27 +102,26 @@ Both backend and player use MQTT.js with explicit `connect()` calls. Backend pro
 
 ### 5. Offline-First Media Storage
 
-- Playlist: localStorage (simple, synchronous)
+- Playlist metadata: Pinia store with persisted-state plugin (survives restarts)
 - Media: Cache API (handles blobs, streaming)
 - No IndexedDB: Cache API sufficient for media blobs
 
 ## Trade-offs
 
-| Decision                  | Pros                   | Cons                    |
-| ------------------------- | ---------------------- | ----------------------- |
-| In-memory repositories    | Simple, fast demo      | Data lost on restart    |
-| localStorage for playlist | Synchronous, simple    | 5MB limit, blocking     |
-| Cache API for media       | Native blob support    | Quota varies by browser |
-| No command queue          | Simpler implementation | Commands lost offline   |
-| QoS 1 for commands        | Reliable delivery      | Potential duplicates    |
-| Single WGT build          | Simpler CI/CD          | No platform variants    |
+| Decision                       | Pros                       | Cons                    |
+| ------------------------------ | -------------------------- | ----------------------- |
+| PostgreSQL repositories        | Persistent, relational     | Requires infrastructure |
+| Pinia persisted-state playlist | Reactive, survives restart | Plugin dependency       |
+| Cache API for media            | Native blob support        | Quota varies by browser |
+| No command queue               | Simpler implementation     | Commands lost offline   |
+| QoS 1 for commands             | Reliable delivery          | Potential duplicates    |
+| Single WGT build               | Simpler CI/CD              | No platform variants    |
 
 ## Scalability Considerations
 
 Current implementation optimized for demonstration:
 
-1. **Backend**: Single instance, in-memory storage. For production:
-   - Replace in-memory maps with PostgreSQL tables
+1. **Backend**: Single instance, PostgreSQL storage. For production:
    - Add Redis for session/command caching
    - Horizontal scaling with sticky sessions or shared MQTT state
 

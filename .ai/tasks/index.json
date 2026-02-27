@@ -89,8 +89,16 @@
       "status": "pending",
       "priority": "high",
       "notes": "One-command demo flow and final acceptance verification before handoff"
+    },
+    {
+      "id": "DSP-013",
+      "title": "Backend OpenAPI Refactoring",
+      "status": "completed",
+      "priority": "high",
+      "completedAt": "2026-02-27T12:00:00Z",
+      "notes": "Refactored backend to baseapp-style patterns: controller/service/repository layering, modal.ts/doc.ts patterns, OpenAPI integration with Hono Zod OpenAPI, Swagger UI, pino HTTP logger"
     }
   ],
-  "nextId": 13,
-  "lastUpdated": "2026-02-27T00:00:00Z"
+  "nextId": 14,
+  "lastUpdated": "2026-02-27T12:00:00Z"
 }

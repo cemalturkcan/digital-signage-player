@@ -1,9 +1,8 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
 import type { ServiceResponse } from '@/app/rest/rest.js'
-import type { DeviceRecord } from '@/routes/register/model.js'
+import type { DeviceRecord } from '@/routes/register/modal.js'
 import { mqttProvisioningService } from '@/app/mqtt/provisioning-service.js'
-import { ErrorCode } from '@/app/rest/codes.js'
-import { fail, ok, unexpected } from '@/app/rest/rest.js'
+import { ok, unexpected } from '@/app/rest/rest.js'
 import { MQTT_CLIENT_HOST, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
 import { registerRepository } from '@/routes/register/repository.js'
 
@@ -34,11 +33,7 @@ export interface RegisterService {
 
 export const registerService: RegisterService = {
   async register(request: RegistrationRequest): Promise<ServiceResponse<RegistrationResponse>> {
-    const deviceId = request.deviceId?.trim()
-
-    if (!deviceId) {
-      return fail(ErrorCode.BAD_REQUEST, 'deviceId required')
-    }
+    const deviceId = request.deviceId.trim()
 
     try {
       const { device, shouldProvision } = await registerRepository.findOrCreate({

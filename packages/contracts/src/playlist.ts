@@ -1,8 +1,7 @@
 export interface Playlist {
   id: string
-  version: string
-  loop: boolean
   items: MediaItem[]
+  createdAt: number
   updatedAt: number
 }
 

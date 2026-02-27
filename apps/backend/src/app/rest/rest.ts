@@ -35,17 +35,21 @@ export function unexpected(error: unknown, message?: string): ServiceResponse<ne
   return fail(ErrorCode.INTERNAL_SERVER_ERROR, message, undefined, originError)
 }
 
-export function toHttpResponse<T>(result: ServiceResponse<T>): Response {
-  if ('data' in result) {
-    return Response.json(result.data)
-  }
-
+export function ErrorRes(error: Err): Response {
   return Response.json(
     {
-      error: result.error.message,
-      code: result.error.code,
-      status: result.error.status,
+      error: error.message,
+      code: error.code,
+      status: error.status,
     },
-    { status: result.error.status },
+    { status: error.status },
   )
+}
+
+export function Res<T>(result: ServiceResponse<T>): Response {
+  if ('error' in result) {
+    return ErrorRes(result.error)
+  }
+
+  return Response.json(result.data)
 }

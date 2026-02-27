@@ -44,10 +44,12 @@ async function applyMigration(version: string, upSql: string): Promise<void> {
     await client.query(INSERT_MIGRATION, [version])
     await client.query(COMMIT)
     logger.info({ version }, 'Applied migration')
-  } catch (err) {
+  }
+  catch (err) {
     await client.query(ROLLBACK)
     throw err
-  } finally {
+  }
+  finally {
     client.release()
   }
 }
@@ -63,7 +65,7 @@ async function runMigrations(): Promise<void> {
   const applied = await getAppliedMigrations()
 
   const files = await readdir(migrationsDir)
-  const upFiles = files.filter((f) => f.endsWith('.up.sql')).sort()
+  const upFiles = files.filter(f => f.endsWith('.up.sql')).sort()
 
   for (const file of upFiles) {
     const version = file.replace('.up.sql', '')
@@ -95,13 +97,16 @@ async function rollbackMigration(version: string): Promise<void> {
       await client.query(DELETE_MIGRATION, [version])
       await client.query(COMMIT)
       logger.info({ version }, 'Rolled back migration')
-    } catch (err) {
+    }
+    catch (err) {
       await client.query(ROLLBACK)
       throw err
-    } finally {
+    }
+    finally {
       client.release()
     }
-  } catch (err) {
+  }
+  catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       throw new Error(`Down migration not found: ${version}`)
     }

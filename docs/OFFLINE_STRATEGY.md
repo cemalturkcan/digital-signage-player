@@ -6,16 +6,21 @@ The player implements a practical offline-first approach with two-tier caching a
 
 ## Storage Architecture
 
-### Playlist Cache (localStorage)
+### Playlist Cache (Pinia + persisted-state)
 
 ```typescript
-const PLAYLIST_KEY = 'signage:playlist'
-// Stores: { id, version, items, loop, updatedAt }
+// Pinia store with persisted-state plugin
+state: {
+  cachedPlaylist: Playlist | null
+}
+persist: {
+  pick: ['cachedPlaylist']
+}
 ```
 
-- Synchronous read/write
-- Survives browser restarts
-- ~5MB limit (sufficient for playlist metadata)
+- Reactive state management
+- Survives browser restarts via persisted-state plugin
+- Playlist shape: { id, items, createdAt, updatedAt }
 
 ### Media Cache (Cache API)
 
@@ -35,15 +40,15 @@ const CACHE_NAME = 'signage-media-cache-v1'
 
 ```
 1. Fetch playlist from /api/playlist
-2. Save to localStorage
-3. Prefetch media items in background
+2. Save to Pinia store (persisted)
+3. Prefetch media items in background (Cache API)
 4. Start playback
 ```
 
 ### Offline Mode
 
 ```
-1. Load playlist from localStorage
+1. Load playlist from Pinia store
 2. Check media availability in Cache API
 3. Use cached blob URLs for playback
 4. Continue with cached content
@@ -123,14 +128,14 @@ If media prefetch fails for an item:
 - Failed item attempted from remote URL on playback
 - If offline, item skipped with error logged
 
-### 4. No Delta Sync
+### 4. Full Playlist Sync
 
 Entire playlist replaced on each `reload_playlist`:
 
-- Inefficient for large playlists
+- Simple implementation
 - All media re-validated on fetch
 
-**Planned**: Add ETag-based conditional fetch and incremental updates.
+**Note**: ETag support is available in the API response for conditional fetching.
 
 ## Error Handling
 
@@ -154,7 +159,6 @@ const PLAYLIST_KEY = 'signage:playlist'
 ## Future Enhancements
 
 1. **Command Queue**: IndexedDB-backed queue for offline commands
-2. **Delta Sync**: Version-based playlist updates
-3. **Smart Eviction**: LRU with size quotas
-4. **Sync Status UI**: Visual indicator for sync state
-5. **Background Sync**: Service Worker for deferred operations
+2. **Smart Eviction**: LRU with size quotas
+3. **Sync Status UI**: Visual indicator for sync state
+4. **Background Sync**: Service Worker for deferred operations

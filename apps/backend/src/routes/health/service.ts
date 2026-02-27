@@ -1,5 +1,5 @@
 import type { ServiceResponse } from '@/app/rest/rest.js'
-import type { HealthStatus } from '@/routes/health/model.js'
+import type { HealthStatus } from '@/routes/health/modal.js'
 import { ok, unexpected } from '@/app/rest/rest.js'
 import { healthRepository } from '@/routes/health/repository.js'
 

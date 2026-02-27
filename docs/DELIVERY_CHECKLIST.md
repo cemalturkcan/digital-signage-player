@@ -29,7 +29,11 @@ pnpm typecheck
 # 2. Start backend
 pnpm dev
 
-# 3. Test health endpoint
+# 3. Open API docs and verify endpoints
+curl http://localhost:3000/docs
+# Expected: Swagger UI with health, register, and playlist endpoints visible
+
+# 4. Test health endpoint
 curl http://localhost:3000/api/health
 # Expected: {"status":"ok"}
 ```
@@ -106,10 +110,14 @@ mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
    - Video plays after image
    - Loop restarts after video ends
 
-### Test 5: Screenshot Command
+### Test 5: Screenshot Command (MQTT Only)
 
 ```bash
-# Send screenshot command (returns base64 image in response)
+# Terminal 1: Subscribe to responses
+mosquitto_sub -h localhost -p 1883 -u admin -P admin1234567 \
+  -t signage/test-device-001/responses
+
+# Terminal 2: Send screenshot command (returns base64 image in response)
 mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
   -t signage/test-device-001/commands \
   -m '{
@@ -119,9 +127,11 @@ mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
     "timestamp": '$(date +%s%3N)'
   }'
 
-# Verify response contains base64 image payload:
-# {"type":"command_result","command":"screenshot","payload":{"base64":"...","mimeType":"image/png"}}
+# Expected in Terminal 1:
+# {"type":"command_result","command":"screenshot","correlationId":"cmd-screenshot-001","status":"success","payload":{"base64":"...","mimeType":"image/png"}}
 ```
+
+**Note:** There is no REST endpoint for screenshots. Screenshot capture is MQTT-only.
 
 ### Test 6: Offline Behavior
 
@@ -186,20 +196,21 @@ tizen install -n digital_signage_player_0.1.0.wgt -t <emulator-name>
 
 ## Checklist Summary
 
-| Test                        | Status | Notes |
-| --------------------------- | ------ | ----- |
-| Backend typecheck           | [ ]    |       |
-| Player typecheck            | [ ]    |       |
-| Device registration         | [ ]    |       |
-| Playlist fetch              | [ ]    |       |
-| MQTT ping command           | [ ]    |       |
-| Playback loop               | [ ]    |       |
-| Screenshot command          | [ ]    |       |
-| Offline playback            | [ ]    |       |
-| Volume command              | [ ]    |       |
-| WGT build                   | [ ]    |       |
-| WGT signed                  | [ ]    |       |
-| Emulator run (if available) | [ ]    |       |
+| Test                        | Status | Notes                                   |
+| --------------------------- | ------ | --------------------------------------- |
+| Backend typecheck           | [ ]    | `pnpm typecheck` in `apps/backend`      |
+| API docs available          | [ ]    | Swagger UI at `/docs` shows endpoints   |
+| Player typecheck            | [ ]    | `pnpm typecheck` in `apps/player-tizen` |
+| Device registration         | [ ]    | POST `/api/register`                    |
+| Playlist fetch              | [ ]    | GET `/api/playlist?deviceId={id}`       |
+| MQTT ping command           | [ ]    | Via mosquitto_pub/sub                   |
+| Playback loop               | [ ]    | Image 10s, then video, then loop        |
+| Screenshot command (MQTT)   | [ ]    | No REST endpoint; use MQTT              |
+| Offline playback            | [ ]    | Disconnect network, verify cache works  |
+| Volume command              | [ ]    | Via MQTT `set_volume`                   |
+| WGT build                   | [ ]    | `pnpm build` in `apps/player-tizen`     |
+| WGT signed                  | [ ]    | Check for `author-signature.xml`        |
+| Emulator run (if available) | [ ]    | `tizen install` to emulator             |
 
 ## Known Issues
 

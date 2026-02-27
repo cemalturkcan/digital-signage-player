@@ -104,7 +104,7 @@ interface ScreenshotResponsePayload {
 }
 ```
 
-**Note:** HTTP upload parameters are not implemented; screenshots are returned directly via MQTT response.
+**Note:** There is no REST endpoint for screenshots. Screenshot capture is initiated via MQTT command and the base64 image is returned in the `command_result` response payload. HTTP upload is not implemented.
 
 ## QoS Strategy
 
