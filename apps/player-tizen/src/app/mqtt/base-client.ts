@@ -43,13 +43,14 @@ async function publishWithCallback(
   client: MqttClient,
   topic: string,
   payload: string,
-  qos: 0 | 1 | 2
+  qos: 0 | 1 | 2,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     client.publish(topic, payload, { qos }, (err) => {
       if (err) {
         reject(err)
-      } else {
+      }
+      else {
         resolve()
       }
     })
@@ -59,19 +60,19 @@ async function publishWithCallback(
 async function subscribeWithCallback(
   client: MqttClient,
   topic: string,
-  qos: 0 | 1 | 2
+  qos: 0 | 1 | 2,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     client.subscribe(topic, { qos }, (err) => {
       if (err) {
         reject(err)
-      } else {
+      }
+      else {
         resolve()
       }
     })
   })
 }
-
 function attachConnectionStateHandlers(client: MqttClient, state: { connected: boolean }): void {
   client.on('connect', () => {
     state.connected = true
@@ -103,7 +104,8 @@ async function connect(brokerUrl: string, options?: mqtt.IClientOptions): Promis
   try {
     await waitForConnect(client)
     mqttBaseClientState.connected = true
-  } catch (err) {
+  }
+  catch (err) {
     mqttBaseClientState.client = null
     mqttBaseClientState.connected = false
     throw err

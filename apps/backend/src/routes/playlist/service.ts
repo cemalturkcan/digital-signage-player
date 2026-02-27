@@ -1,4 +1,7 @@
 import type { CacheInfo, Playlist, PlaylistResponse } from '@signage/contracts'
+import type { ServiceResponse } from '@/app/rest/rest.js'
+import { ErrorCode } from '@/app/rest/codes.js'
+import { fail, ok, unexpected } from '@/app/rest/rest.js'
 
 const playlists = new Map<string, Playlist>()
 const deviceAssignments = new Map<string, string>()
@@ -38,43 +41,101 @@ function createCacheInfo(playlist: Playlist): CacheInfo {
 playlists.set(defaultPlaylist.id, defaultPlaylist)
 
 export interface PlaylistService {
-  getPlaylist: (deviceId: string) => Promise<PlaylistResponse | null>
-  getPlaylistById: (playlistId: string) => Promise<Playlist | null>
-  updatePlaylist: (deviceId: string, playlist: Playlist) => Promise<void>
-  assignPlaylist: (deviceId: string, playlistId: string) => Promise<void>
+  getPlaylist: (deviceId: string) => Promise<ServiceResponse<PlaylistResponse>>
+  getPlaylistById: (playlistId: string) => Promise<ServiceResponse<Playlist>>
+  updatePlaylist: (deviceId: string, playlist: Playlist) => Promise<ServiceResponse<void>>
+  assignPlaylist: (deviceId: string, playlistId: string) => Promise<ServiceResponse<void>>
 }
 
 export const playlistService: PlaylistService = {
-  async getPlaylist(deviceId: string): Promise<PlaylistResponse | null> {
-    const playlistId = deviceAssignments.get(deviceId)
-    let playlist: Playlist | undefined
-    if (!playlistId) {
-      deviceAssignments.set(deviceId, defaultPlaylist.id)
-      playlist = defaultPlaylist
+  async getPlaylist(deviceId: string): Promise<ServiceResponse<PlaylistResponse>> {
+    const normalizedDeviceId = deviceId.trim()
+
+    if (!normalizedDeviceId) {
+      return fail(ErrorCode.BAD_REQUEST, 'deviceId required')
     }
-    else {
-      playlist = playlists.get(playlistId)
+
+    try {
+      const playlistId = deviceAssignments.get(normalizedDeviceId)
+      let playlist: Playlist | undefined
+      if (!playlistId) {
+        deviceAssignments.set(normalizedDeviceId, defaultPlaylist.id)
+        playlist = defaultPlaylist
+      }
+      else {
+        playlist = playlists.get(playlistId)
+      }
+
+      if (!playlist) {
+        return fail(ErrorCode.NOT_FOUND, 'Playlist not found')
+      }
+
+      return ok({
+        playlist,
+        cache: createCacheInfo(playlist),
+      })
     }
-    if (!playlist) {
-      return null
-    }
-    return {
-      playlist,
-      cache: createCacheInfo(playlist),
+    catch (error) {
+      return unexpected(error, 'Failed to get playlist')
     }
   },
 
-  async getPlaylistById(playlistId: string): Promise<Playlist | null> {
-    return playlists.get(playlistId) ?? null
+  async getPlaylistById(playlistId: string): Promise<ServiceResponse<Playlist>> {
+    const normalizedPlaylistId = playlistId.trim()
+
+    if (!normalizedPlaylistId) {
+      return fail(ErrorCode.BAD_REQUEST, 'id required')
+    }
+
+    try {
+      const playlist = playlists.get(normalizedPlaylistId)
+      if (!playlist) {
+        return fail(ErrorCode.NOT_FOUND, 'Playlist not found')
+      }
+
+      return ok(playlist)
+    }
+    catch (error) {
+      return unexpected(error, 'Failed to get playlist by id')
+    }
   },
 
-  async updatePlaylist(deviceId: string, playlist: Playlist): Promise<void> {
-    const playlistId = deviceAssignments.get(deviceId) ?? playlist.id
-    deviceAssignments.set(deviceId, playlistId)
-    playlists.set(playlistId, { ...playlist, updatedAt: Date.now() })
+  async updatePlaylist(deviceId: string, playlist: Playlist): Promise<ServiceResponse<void>> {
+    const normalizedDeviceId = deviceId.trim()
+
+    if (!normalizedDeviceId) {
+      return fail(ErrorCode.BAD_REQUEST, 'deviceId required')
+    }
+
+    try {
+      const playlistId = deviceAssignments.get(normalizedDeviceId) ?? playlist.id
+      deviceAssignments.set(normalizedDeviceId, playlistId)
+      playlists.set(playlistId, { ...playlist, updatedAt: Date.now() })
+      return ok(undefined)
+    }
+    catch (error) {
+      return unexpected(error, 'Failed to update playlist')
+    }
   },
 
-  async assignPlaylist(deviceId: string, playlistId: string): Promise<void> {
-    deviceAssignments.set(deviceId, playlistId)
+  async assignPlaylist(deviceId: string, playlistId: string): Promise<ServiceResponse<void>> {
+    const normalizedDeviceId = deviceId.trim()
+    const normalizedPlaylistId = playlistId.trim()
+
+    if (!normalizedDeviceId) {
+      return fail(ErrorCode.BAD_REQUEST, 'deviceId required')
+    }
+
+    if (!normalizedPlaylistId) {
+      return fail(ErrorCode.BAD_REQUEST, 'id required')
+    }
+
+    try {
+      deviceAssignments.set(normalizedDeviceId, normalizedPlaylistId)
+      return ok(undefined)
+    }
+    catch (error) {
+      return unexpected(error, 'Failed to assign playlist')
+    }
   },
 }

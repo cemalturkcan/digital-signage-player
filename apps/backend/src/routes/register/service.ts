@@ -1,6 +1,9 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
+import type { ServiceResponse } from '@/app/rest/rest.js'
 import type { DeviceRecord } from '@/routes/register/model.js'
 import { mqttProvisioningService } from '@/app/mqtt/provisioning-service.js'
+import { ErrorCode } from '@/app/rest/codes.js'
+import { fail, ok, unexpected } from '@/app/rest/rest.js'
 import { MQTT_CLIENT_HOST, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
 import { registerRepository } from '@/routes/register/repository.js'
 
@@ -26,23 +29,34 @@ function buildRegistrationResponse(device: DeviceRecord): RegistrationResponse {
 }
 
 export interface RegisterService {
-  register: (request: RegistrationRequest) => Promise<RegistrationResponse>
+  register: (request: RegistrationRequest) => Promise<ServiceResponse<RegistrationResponse>>
 }
 
 export const registerService: RegisterService = {
-  async register(request: RegistrationRequest): Promise<RegistrationResponse> {
-    const { device, shouldProvision } = await registerRepository.findOrCreate({
-      deviceId: request.deviceId,
-    })
+  async register(request: RegistrationRequest): Promise<ServiceResponse<RegistrationResponse>> {
+    const deviceId = request.deviceId?.trim()
 
-    if (shouldProvision) {
-      await mqttProvisioningService.provisionDevice(
-        device.deviceId,
-        device.mqttUsername,
-        device.mqttPassword,
-      )
+    if (!deviceId) {
+      return fail(ErrorCode.BAD_REQUEST, 'deviceId required')
     }
 
-    return buildRegistrationResponse(device)
+    try {
+      const { device, shouldProvision } = await registerRepository.findOrCreate({
+        deviceId,
+      })
+
+      if (shouldProvision) {
+        await mqttProvisioningService.provisionDevice(
+          device.deviceId,
+          device.mqttUsername,
+          device.mqttPassword,
+        )
+      }
+
+      return ok(buildRegistrationResponse(device))
+    }
+    catch (error) {
+      return unexpected(error, 'Failed to register device')
+    }
   },
 }
