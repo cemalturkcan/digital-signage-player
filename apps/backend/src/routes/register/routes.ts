@@ -1,5 +1,5 @@
-import type { Hono } from 'hono'
 import type { RegistrationRequest } from '@signage/contracts'
+import type { Hono } from 'hono'
 import { registerService } from '@/routes/register/service.js'
 
 async function postRegister(c: {

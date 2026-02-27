@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { registerApiRoutes } from '@/routes/router.js'
-import { CORS_ORIGINS } from '@/config.js'
 import { logger } from '@/app/logger/logger.js'
+import { CORS_ORIGINS } from '@/config.js'
+import { registerApiRoutes } from '@/routes/router.js'
 
 export async function createApp(): Promise<Hono> {
   const app = new Hono()

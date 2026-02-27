@@ -1,7 +1,7 @@
-import mqtt from 'mqtt'
 import type { MqttClient } from 'mqtt'
-import { MQTT_HOST, MQTT_PASSWORD, MQTT_PORT, MQTT_PROTOCOL, MQTT_USERNAME } from '@/config.js'
+import mqtt from 'mqtt'
 import { logger } from '@/app/logger/logger.js'
+import { MQTT_HOST, MQTT_PASSWORD, MQTT_PORT, MQTT_PROTOCOL, MQTT_USERNAME } from '@/config.js'
 
 export const MQTT_BROKER_URL = `${MQTT_PROTOCOL}://${MQTT_HOST}:${MQTT_PORT}`
 export const MQTT_CREDENTIALS = { username: MQTT_USERNAME, password: MQTT_PASSWORD }
@@ -25,14 +25,14 @@ export async function connectMqtt(): Promise<void> {
   logger.debug({ broker: MQTT_BROKER_URL }, 'Connecting to MQTT broker')
 
   return new Promise((resolve, reject) => {
-    const onConnect = () => {
+    function onConnect() {
       mqttClient.off('error', onError)
       isConnected = true
       logger.info({ broker: MQTT_BROKER_URL }, 'MQTT connected')
       resolve()
     }
 
-    const onError = (err: Error) => {
+    function onError(err: Error) {
       mqttClient.off('connect', onConnect)
       logger.error({ err, broker: MQTT_BROKER_URL }, 'MQTT connection failed')
       reject(err)

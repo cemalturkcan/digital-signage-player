@@ -1,6 +1,6 @@
 import { Pool } from 'pg'
-import { DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD } from '@/config.js'
 import { logger } from '@/app/logger/logger.js'
+import { DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER } from '@/config.js'
 
 export let db: Pool | null = null
 
@@ -25,10 +25,11 @@ export async function connectDb(): Promise<void> {
     })
 
     logger.info({ host: DB_HOST, port: DB_PORT, database: DB_NAME }, 'Database connected')
-  } catch (err) {
+  }
+  catch (err) {
     logger.error(
       { err, host: DB_HOST, port: DB_PORT, database: DB_NAME },
-      'Database connection failed'
+      'Database connection failed',
     )
     throw err
   }

@@ -1,8 +1,8 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
-import { registerRepository } from '@/routes/register/repository.js'
 import type { DeviceRecord } from '@/routes/register/model.js'
-import { MQTT_CLIENT_HOST, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
 import { mqttProvisioningService } from '@/app/mqtt/provisioning-service.js'
+import { MQTT_CLIENT_HOST, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
+import { registerRepository } from '@/routes/register/repository.js'
 
 function buildMqttConfig(device: DeviceRecord): RegistrationResponse['mqtt'] {
   return {
@@ -39,7 +39,7 @@ export const registerService: RegisterService = {
       await mqttProvisioningService.provisionDevice(
         device.deviceId,
         device.mqttUsername,
-        device.mqttPassword
+        device.mqttPassword,
       )
     }
 

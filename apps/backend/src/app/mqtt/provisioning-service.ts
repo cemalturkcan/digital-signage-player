@@ -1,6 +1,7 @@
 import type { MqttClient } from 'mqtt'
-import { mqttClient } from './base-service.js'
+import type { Buffer } from 'node:buffer'
 import { logger } from '@/app/logger/logger.js'
+import { mqttClient } from './base-service.js'
 
 interface DynSecCommand {
   command: string
@@ -9,7 +10,7 @@ interface DynSecCommand {
 }
 
 interface DynSecResponse {
-  responses?: Array<{ command: string; correlationData?: string; error?: string }>
+  responses?: Array<{ command: string, correlationData?: string, error?: string }>
   error?: string
 }
 
@@ -35,13 +36,14 @@ async function publishWithCallback(
   client: MqttClient,
   topic: string,
   payload: string,
-  qos: 0 | 1 | 2 = 1
+  qos: 0 | 1 | 2 = 1,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     client.publish(topic, payload, { qos }, (err) => {
       if (err) {
         reject(err)
-      } else {
+      }
+      else {
         resolve()
       }
     })
@@ -64,7 +66,8 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
   }
 
   private handleMessage = (topic: string, payload: Buffer) => {
-    if (topic !== RESPONSE_TOPIC) return
+    if (topic !== RESPONSE_TOPIC)
+      return
 
     try {
       const response: DynSecResponse = JSON.parse(payload.toString())
@@ -77,7 +80,8 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
           pending.resolve(response)
         }
       }
-    } catch (err) {
+    }
+    catch (err) {
       logger.warn({ err, topic }, 'Failed to handle MQTT response message')
     }
   }
@@ -107,7 +111,8 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
 
     try {
       await publishWithCallback(this.client, CONTROL_TOPIC, payload, 1)
-    } catch (err) {
+    }
+    catch (err) {
       const pending = this.pendingCommands.get(correlationData)
       if (pending) {
         clearTimeout(pending.timeout)
@@ -173,18 +178,18 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
 
     await this.sendCommand({
       command: 'createClient',
-      username: username,
+      username,
     })
 
     await this.sendCommand({
       command: 'setClientPassword',
-      username: username,
-      password: password,
+      username,
+      password,
     })
 
     await this.sendCommand({
       command: 'addClientRole',
-      username: username,
+      username,
       rolename: roleName,
       priority: -1,
     })

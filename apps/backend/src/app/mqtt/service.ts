@@ -1,6 +1,6 @@
-import type { MqttClient } from 'mqtt'
 import type { CommandResultEnvelope, EventEnvelope } from '@signage/contracts'
-import { mqttClient, connectMqtt, disconnectMqtt } from './base-service.js'
+import type { MqttClient } from 'mqtt'
+import { connectMqtt, disconnectMqtt, mqttClient } from './base-service.js'
 
 export interface MqttService {
   client: MqttClient

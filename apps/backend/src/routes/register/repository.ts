@@ -1,6 +1,6 @@
+import type { DeviceRecord } from '@/routes/register/model.js'
 import { randomBytes } from 'node:crypto'
 import { db } from '@/db/db.js'
-import type { DeviceRecord } from '@/routes/register/model.js'
 
 interface DeviceRow {
   device_id: string
@@ -17,7 +17,7 @@ const UPDATE_DEVICE_WITH_CREDS = `UPDATE devices
 const INSERT_DEVICE = `INSERT INTO devices (device_id, mqtt_username, mqtt_password)
        VALUES ($1, $2, $3)`
 
-function generateCredentials(): { username: string; password: string } {
+function generateCredentials(): { username: string, password: string } {
   return {
     username: `device_${randomBytes(8).toString('hex')}`,
     password: randomBytes(32).toString('base64'),
