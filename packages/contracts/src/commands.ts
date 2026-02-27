@@ -6,15 +6,15 @@ export interface CommandEnvelope {
   params?: Record<string, unknown>
 }
 
-export type CommandType =
-  | 'reload_playlist'
-  | 'restart_player'
-  | 'play'
-  | 'pause'
-  | 'set_volume'
-  | 'screenshot'
-  | 'update_config'
-  | 'ping'
+export type CommandType
+  = 'reload_playlist'
+    | 'restart_player'
+    | 'play'
+    | 'pause'
+    | 'set_volume'
+    | 'screenshot'
+    | 'update_config'
+    | 'ping'
 
 export interface ScreenshotCommandParams {
   uploadUrl: string
@@ -59,11 +59,67 @@ export interface EventEnvelope {
   payload?: Record<string, unknown>
 }
 
-export type EventType =
-  | 'playback_started'
-  | 'playback_ended'
-  | 'playback_error'
-  | 'media_loaded'
-  | 'network_status'
-  | 'storage_warning'
-  | 'screenshot_captured'
+export type EventType
+  = 'playback_started'
+    | 'playback_ended'
+    | 'playback_error'
+    | 'media_loaded'
+    | 'network_status'
+    | 'storage_warning'
+    | 'screenshot_captured'
+
+const VALID_COMMANDS: CommandType[] = [
+  'reload_playlist',
+  'restart_player',
+  'play',
+  'pause',
+  'set_volume',
+  'screenshot',
+  'update_config',
+  'ping',
+]
+
+export function isCommandType(value: unknown): value is CommandType {
+  return typeof value === 'string' && VALID_COMMANDS.includes(value as CommandType)
+}
+
+export interface ValidationResult {
+  valid: boolean
+  error?: string
+}
+
+export function validateCommandEnvelope(envelope: unknown): ValidationResult {
+  if (typeof envelope !== 'object' || envelope === null) {
+    return { valid: false, error: 'Envelope must be an object' }
+  }
+
+  const e = envelope as Record<string, unknown>
+
+  if (e.type !== 'command') {
+    return { valid: false, error: 'type must be "command"' }
+  }
+
+  if (typeof e.commandId !== 'string' || e.commandId.length === 0) {
+    return { valid: false, error: 'commandId must be non-empty string' }
+  }
+
+  if (typeof e.timestamp !== 'number' || Number.isNaN(e.timestamp)) {
+    return { valid: false, error: 'timestamp must be a number' }
+  }
+
+  if (!isCommandType(e.command)) {
+    return { valid: false, error: `unknown command: ${e.command}` }
+  }
+
+  if (e.command === 'set_volume') {
+    const params = e.params as Record<string, unknown> | undefined
+    if (typeof params?.level !== 'number') {
+      return { valid: false, error: 'set_volume requires numeric level param' }
+    }
+    if (params.level < 0 || params.level > 100) {
+      return { valid: false, error: 'set_volume level must be in [0,100]' }
+    }
+  }
+
+  return { valid: true }
+}

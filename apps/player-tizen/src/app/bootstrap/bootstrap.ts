@@ -1,7 +1,7 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
-import { useDeviceStore } from '@/app/stores/device/store'
-import { postRegister } from '@/app/request/requests/register'
 import { mqttClientService } from '@/app/mqtt/client'
+import { postRegister } from '@/app/request/requests/register'
+import { useDeviceStore } from '@/app/stores/device/store'
 
 export interface BootstrapConfig {
   deviceId: string
@@ -13,13 +13,13 @@ export interface Bootstrap {
   state: BootstrapState
 }
 
-export type BootstrapState =
-  | 'idle'
-  | 'registering'
-  | 'registered'
-  | 'connecting_mqtt'
-  | 'connected'
-  | 'error'
+export type BootstrapState
+  = | 'idle'
+    | 'registering'
+    | 'registered'
+    | 'connecting_mqtt'
+    | 'connected'
+    | 'error'
 
 export interface BootstrapOptions {
   onStateChange?: (state: BootstrapState) => void
@@ -51,7 +51,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
     deviceStore.setRegistration(registration)
 
     setState('registered')
-  } catch (error) {
+  }
+  catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
     options?.onError?.(err)
     setState('error')
@@ -66,7 +67,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
     setState('connecting_mqtt')
     await mqttClientService.connect(registration)
     setState('connected')
-  } catch (error) {
+  }
+  catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
     options?.onError?.(err)
     setState('error')

@@ -7,12 +7,20 @@
       "priority": "high",
       "completedAt": "2025-02-25T22:00:00Z"
     },
-    { "id": "DSP-002", "title": "Core Domain Entities", "status": "pending", "priority": "high" },
+    {
+      "id": "DSP-002",
+      "title": "Case Contracts and Command Validation",
+      "status": "completed",
+      "priority": "high",
+      "completedAt": "2026-02-27T00:00:00Z",
+      "notes": "Runtime command validation implemented in contracts + backend command processor + player command bus"
+    },
     {
       "id": "DSP-003",
-      "title": "Storage and Offline-First",
+      "title": "Offline-First Minimum (Cache + Reconnect)",
       "status": "pending",
-      "priority": "high"
+      "priority": "high",
+      "notes": "Rescoped to practical minimum: cache playlist/media, offline playback continuity, retry/backoff"
     },
     {
       "id": "DSP-004",
@@ -22,13 +30,19 @@
       "completedAt": "2026-02-26T21:59:36Z",
       "notes": "Shared client pattern with explicit connect(), browser websocket fixes (ws://:9001, MQTT_CLIENT_* env vars)"
     },
-    { "id": "DSP-005", "title": "Platform Abstraction", "status": "pending", "priority": "high" },
+    {
+      "id": "DSP-005",
+      "title": "Platform Adapter (Tizen-first, WebOS-ready)",
+      "status": "pending",
+      "priority": "high",
+      "notes": "Implement Tizen behavior and fallback/mock for unsupported APIs"
+    },
     {
       "id": "DSP-006",
-      "title": "Player Engine and UI",
+      "title": "Player Engine and Command Execution",
       "status": "in-progress",
       "priority": "high",
-      "notes": "Foundation with Vue + Axios patterns established"
+      "notes": "Sequential playback, duration/video-end transitions, loop, required MQTT command handling with idempotency"
     },
     {
       "id": "DSP-007",
@@ -40,9 +54,10 @@
     },
     {
       "id": "DSP-008",
-      "title": "Documentation and CI/CD",
+      "title": "Case Documentation and Delivery",
       "status": "pending",
-      "priority": "medium"
+      "priority": "high",
+      "notes": "README + emulator + MQTT protocol + trade-offs + known limitations"
     },
     {
       "id": "DSP-009",
@@ -67,8 +82,15 @@
       "priority": "high",
       "completedAt": "2026-02-27T08:57:06Z",
       "notes": "player-tizen build now produces signed WGT via env-driven .env.tizen + package-wgt.sh + turbo outputs caching (*.wgt)"
+    },
+    {
+      "id": "DSP-012",
+      "title": "Final Demo Checklist and Submission Validation",
+      "status": "pending",
+      "priority": "high",
+      "notes": "One-command demo flow and final acceptance verification before handoff"
     }
   ],
-  "nextId": 12,
-  "lastUpdated": "2026-02-27T08:57:06Z"
+  "nextId": 13,
+  "lastUpdated": "2026-02-27T00:00:00Z"
 }

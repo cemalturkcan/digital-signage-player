@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia'
 import type { RegistrationResponse } from '@signage/contracts'
+import { defineStore } from 'pinia'
 
 export interface DeviceState {
   deviceId: string | null

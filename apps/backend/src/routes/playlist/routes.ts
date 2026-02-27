@@ -1,3 +1,4 @@
+import type { PlaylistResponse } from '@signage/contracts'
 import type { Hono } from 'hono'
 import { playlistService } from '@/routes/playlist/service.js'
 
@@ -8,8 +9,11 @@ async function getPlaylist(c: {
   if (!deviceId) {
     return Response.json({ error: 'deviceId required' }, { status: 400 })
   }
-  const playlist = await playlistService.getPlaylist(deviceId)
-  return Response.json(playlist)
+  const result = await playlistService.getPlaylist(deviceId)
+  if (!result) {
+    return Response.json({ error: 'Playlist not found' }, { status: 404 })
+  }
+  return Response.json(result satisfies PlaylistResponse)
 }
 
 async function getPlaylistById(c: {
@@ -20,6 +24,9 @@ async function getPlaylistById(c: {
     return Response.json({ error: 'id required' }, { status: 400 })
   }
   const playlist = await playlistService.getPlaylistById(id)
+  if (!playlist) {
+    return Response.json({ error: 'Playlist not found' }, { status: 404 })
+  }
   return Response.json(playlist)
 }
 

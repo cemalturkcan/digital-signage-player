@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia'
 import type { MediaItem, Playlist } from '@signage/contracts'
+import { defineStore } from 'pinia'
 
 export interface PlaylistState {
   currentPlaylist: Playlist | null
@@ -40,6 +40,24 @@ export const usePlaylistStore = defineStore('playlist', {
         this.currentIndex += 1
       }
       return this.currentPlaylist.items[this.currentIndex] ?? null
+    },
+    nextWithLoop(): MediaItem | null {
+      if (!this.currentPlaylist) {
+        return null
+      }
+      if (this.currentIndex < this.currentPlaylist.items.length - 1) {
+        this.currentIndex += 1
+      }
+      else if (this.currentPlaylist.loop) {
+        this.currentIndex = 0
+      }
+      else {
+        return null
+      }
+      return this.currentPlaylist.items[this.currentIndex] ?? null
+    },
+    resetIndex(): void {
+      this.currentIndex = 0
     },
   },
 })

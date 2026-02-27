@@ -3,33 +3,36 @@
 ## Topic Structure
 
 ```
-signage/{orgId}/{locationId}/{deviceId}/{category}
+signage/{deviceId}/{category}
 ```
 
-### Examples
+### Topics
 
-| Purpose  | Topic Pattern                                    |
-|----------|--------------------------------------------------|
-| Commands | `signage/acme/store001/player001/commands`       |
-| Responses| `signgage/acme/store001/player001/responses`     |
-| Status   | `signage/acme/store001/player001/status`         |
-| Events   | `signage/acme/store001/player001/events`         |
+| Purpose   | Topic Pattern                  | Direction        |
+| --------- | ------------------------------ | ---------------- |
+| Commands  | `signage/{deviceId}/commands`  | Backend → Player |
+| Responses | `signage/{deviceId}/responses` | Player → Backend |
+| Events    | `signage/{deviceId}/events`    | Player → Backend |
 
-## Message Types
+## Message Envelopes
 
 ### Command Envelope
+
+Sent by backend to execute actions on player.
 
 ```typescript
 {
   type: 'command',
-  commandId: string,      // UUID for correlation
-  command: CommandType,   // Command to execute
+  commandId: string,      // UUID for idempotency
+  command: CommandType,   // Command name
   timestamp: number,      // Unix ms
   params?: Record<string, unknown>
 }
 ```
 
 ### Command Result Envelope
+
+Sent by player after command execution.
 
 ```typescript
 {
@@ -39,18 +42,22 @@ signage/{orgId}/{locationId}/{deviceId}/{category}
   status: 'success' | 'error',
   timestamp: number,
   payload?: unknown,
-  error?: { code: string, message: string }
+  error?: {
+    code: string,
+    message: string,
+    details?: Record<string, unknown>
+  }
 }
 ```
 
-### Command Acknowledgment
+### Command Acknowledgment (Optional)
 
-Used for long-running operations (e.g., screenshot upload):
+For long-running operations like screenshot:
 
 ```typescript
 {
   type: 'command_ack',
-  command: 'screenshot',
+  command: CommandType,
   correlationId: string,
   status: 'received' | 'processing' | 'uploading',
   message: string,
@@ -58,62 +65,166 @@ Used for long-running operations (e.g., screenshot upload):
 }
 ```
 
-## QoS Strategy
+### Event Envelope
 
-| Message Type | QoS  | Rationale                    |
-|--------------|------|------------------------------|
-| Commands     | 1    | Reliable delivery required   |
-| Responses    | 1    | Acknowledgment needed        |
-| Status       | 1+R  | Last known state for new subs|
-| Events       | 0    | Fire-and-forget logging      |
-| Heartbeat    | 0    | Loss acceptable              |
-
-## Connection Parameters
+Fire-and-forget telemetry from player.
 
 ```typescript
 {
-  keepalive: 60,           // Seconds
-  connectTimeout: 30000,   // 30s
-  reconnectPeriod: 1000,   // 1s initial, exponential backoff
-  clean: false,            // Persistent session
-  will: {
-    topic: '{baseTopic}/status',
-    payload: JSON.stringify({ state: 'offline' }),
-    qos: 1,
-    retain: true
-  }
+  type: 'event',
+  event: EventType,
+  timestamp: number,
+  payload?: Record<string, unknown>
 }
 ```
 
 ## Command Types
 
-| Command         | Description                      | Params                    |
-|-----------------|----------------------------------|---------------------------|
-| reload_playlist | Fetch and load new playlist      | -                         |
-| restart_player  | Restart player application       | -                         |
-| play            | Resume playback                  | -                         |
-| pause           | Pause playback                   | -                         |
-| set_volume      | Set audio volume                 | { level: number }         |
-| screenshot      | Capture and upload screenshot    | -                         |
-| update_config   | Update player configuration      | { config: Partial<Config> }|
-| ping            | Health check / keepalive         | -                         |
+| Command           | Params               | Description                        |
+| ----------------- | -------------------- | ---------------------------------- |
+| `reload_playlist` | -                    | Fetch latest playlist from backend |
+| `restart_player`  | -                    | Reload application                 |
+| `play`            | -                    | Resume playback                    |
+| `pause`           | -                    | Pause playback                     |
+| `set_volume`      | `{ level: number }`  | Volume 0-100                       |
+| `screenshot`      | -                    | Capture screenshot, returns base64 |
+| `update_config`   | `{ config: object }` | Update player config               |
+| `ping`            | -                    | Health check                       |
 
-## Special Cases
+**Note:** `update_config` is defined in the contract but not implemented by the active handler.
 
-### Screenshot Flow
+### Screenshot Response Payload
+
+The screenshot command captures the screen and returns a base64-encoded image in the response payload:
+
+```typescript
+interface ScreenshotResponsePayload {
+  base64: string // Base64-encoded image data
+  mimeType: string // e.g., 'image/png'
+}
+```
+
+**Note:** HTTP upload parameters are not implemented; screenshots are returned directly via MQTT response.
+
+## QoS Strategy
+
+| Message Type | QoS | Rationale                                                    |
+| ------------ | --- | ------------------------------------------------------------ |
+| Commands     | 1   | Reliable delivery required; player deduplicates by commandId |
+| Responses    | 1   | Backend must receive acknowledgment                          |
+| Events       | 0   | Telemetry; loss acceptable                                   |
+
+Commands use QoS 1 (at-least-once) because:
+
+- Network interruptions common in signage deployments
+- Player implements idempotency via commandId tracking
+- Duplicate commands are rejected with error response
+
+## Connection Parameters
+
+```typescript
+{
+  keepalive: 60,           // Seconds between pings
+  connectTimeout: 30000,   // 30s connection timeout
+  reconnectPeriod: 5000,   // 5s between reconnect attempts
+  clean: true,             // Clean session (no offline queue)
+}
+```
+
+## Idempotency Behavior
+
+The player tracks processed `commandId` values and rejects duplicates:
 
 ```
-1. Backend publishes screenshot command
-2. Player ACKs via MQTT (status: received)
-3. Player captures screen
-4. Player ACKs via MQTT (status: uploading)
-5. Player POSTs image to /api/screenshots (HTTP)
-6. Backend returns upload response
+Backend → Player: {commandId: "abc", command: "play"}
+Player → Backend: {correlationId: "abc", status: "success"}
+
+Backend → Player: {commandId: "abc", command: "play"}  // Duplicate
+Player → Backend: {correlationId: "abc", status: "error", error: {code: "DUPLICATE"}}
 ```
 
-## TODO
+Note: Command history is in-memory only; duplicates are not detected across player restarts.
 
-- [ ] Document error handling strategy
-- [ ] Document retry logic
-- [ ] Document rate limiting
-- [ ] Document security (TLS, auth)
+## Example Flows
+
+### Playlist Reload
+
+```
+Backend → signage/player-001/commands
+{
+  "type": "command",
+  "commandId": "cmd-001",
+  "command": "reload_playlist",
+  "timestamp": 1709000000000
+}
+
+Player → signage/player-001/responses
+{
+  "type": "command_result",
+  "command": "reload_playlist",
+  "correlationId": "cmd-001",
+  "status": "success",
+  "timestamp": 1709000000500
+}
+```
+
+### Screenshot
+
+```
+Backend → signage/player-001/commands
+{
+  "type": "command",
+  "commandId": "cmd-002",
+  "command": "screenshot",
+  "timestamp": 1709000000000
+}
+
+Player → signage/player-001/responses
+{
+  "type": "command_result",
+  "command": "screenshot",
+  "correlationId": "cmd-002",
+  "status": "success",
+  "timestamp": 1709000001000,
+  "payload": {
+    "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "mimeType": "image/png"
+  }
+}
+```
+
+### Volume Control
+
+```
+Backend → signage/player-001/commands
+{
+  "type": "command",
+  "commandId": "cmd-003",
+  "command": "set_volume",
+  "timestamp": 1709000000000,
+  "params": { "level": 75 }
+}
+```
+
+## Error Codes
+
+| Code                  | Description                        |
+| --------------------- | ---------------------------------- |
+| `INVALID_PAYLOAD`     | Command envelope failed validation |
+| `UNSUPPORTED_COMMAND` | Unknown command type               |
+| `NO_HANDLER`          | No handler registered for command  |
+| `EXECUTION_FAILED`    | Handler threw exception            |
+| `DUPLICATE`           | Command ID already processed       |
+
+## Testing with mosquitto-cli
+
+```bash
+# Subscribe to responses
+mosquitto_sub -h localhost -p 1883 -u admin -P admin1234567 \
+  -t signage/player-001/responses
+
+# Send command
+mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
+  -t signage/player-001/commands \
+  -m '{"type":"command","commandId":"'$(uuidgen)'","command":"ping","timestamp":'$(date +%s%3N)'}'
+```

@@ -1,6 +1,6 @@
-import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import { createApp } from 'vue'
 import App from '@/App.vue'
 import { bootstrap } from '@/app/bootstrap/bootstrap'
 import { useGlobalStore } from '@/app/stores/global/store'

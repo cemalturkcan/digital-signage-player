@@ -1,112 +1,160 @@
 # Offline-First Strategy
 
-## Overview
+## Current Implementation
 
-The player must operate without network connectivity, using cached content and queuing commands for later sync.
+The player implements a practical offline-first approach with two-tier caching and automatic reconnection.
 
 ## Storage Architecture
 
-### Primary: IndexedDB
+### Playlist Cache (localStorage)
 
-```
-database: signage-player
-├── playlists (objectStore)
-│   └── { id, version, items, updatedAt }
-├── media (objectStore)
-│   └── { id, blob, checksum, cachedAt }
-├── commands (objectStore)
-│   └── { id, command, params, queuedAt }
-└── config (objectStore)
-    └── { key, value }
+```typescript
+const PLAYLIST_KEY = 'signage:playlist'
+// Stores: { id, version, items, loop, updatedAt }
 ```
 
-### Quota Management
+- Synchronous read/write
+- Survives browser restarts
+- ~5MB limit (sufficient for playlist metadata)
 
-- TODO: Implement persistent storage request
-- TODO: Implement quota monitoring
-- TODO: Implement LRU eviction
-- TODO: Define minimum reserved space (500MB?)
+### Media Cache (Cache API)
 
-## Sync Strategy
+```typescript
+const CACHE_NAME = 'signage-media-cache-v1'
+// Stores: Response objects keyed by /media/{id}
+```
+
+- Async, promise-based API
+- Handles Blob storage efficiently
+- Browser-managed quota (typically 50-200MB)
+- Persists across sessions
+
+## Sync Behavior
 
 ### Online Mode
 
 ```
-1. Fetch playlist from remote
-2. Compare version with cache
-3. Download new/modified media
-4. Update cache
-5. Start playback
+1. Fetch playlist from /api/playlist
+2. Save to localStorage
+3. Prefetch media items in background
+4. Start playback
 ```
 
 ### Offline Mode
 
 ```
-1. Load playlist from cache
-2. Validate media availability
-3. Start playback from cache
-4. Queue commands for later sync
-5. Retry connection with backoff
+1. Load playlist from localStorage
+2. Check media availability in Cache API
+3. Use cached blob URLs for playback
+4. Continue with cached content
+5. Attempt MQTT reconnect in background
 ```
 
-### Reconnection
+### Reconnection Flow
 
 ```
-1. Sync queued commands
-2. Check playlist updates
-3. Download new content
-4. Continue playback
+1. Network restored
+2. MQTT client auto-reconnects (5s interval)
+3. Re-subscribes to command topic
+4. Continues normal operation
+5. Next playlist fetch updates cache
 ```
 
-## Command Queue
+## Implementation Details
 
-### Queue Structure
+### Media Prefetch
 
 ```typescript
-interface QueuedCommand {
-  id: string;
-  type: CommandType;
-  params?: Record<string, unknown>;
-  queuedAt: number;
-  retryCount: number;
+async prefetchMedia(items: MediaItem[]): Promise<void> {
+  for (const item of items) {
+    if (await hasMedia(item.id)) continue
+    try {
+      const response = await fetch(item.url, { mode: 'cors' })
+      if (response.ok) {
+        const blob = await response.blob()
+        await saveMedia(item.id, blob)
+      }
+    } catch {
+      // Continue with other items
+    }
+  }
 }
 ```
 
-### Sync Behavior
+### Cached URL Resolution
 
-- TODO: Implement command deduplication
-- TODO: Implement retry with backoff
-- TODO: Handle partial sync failures
-- TODO: Define max queue size
+```typescript
+async getCachedUrl(item: MediaItem): Promise<string> {
+  const blob = await loadMedia(item.id)
+  if (blob) {
+    return URL.createObjectURL(blob)  // Local blob URL
+  }
+  return item.url  // Fallback to remote
+}
+```
 
-## Cache Invalidation
+## Limitations
 
-### Playlist Versioning
+### 1. No Command Queue
 
-- Playlist includes `version` field
-- Compare versions on fetch
-- Only download changed items
+Commands sent while player is offline are **not** queued or retried. The MQTT broker (Mosquitto) is configured with `clean: true`, so:
 
-### Media Validation
+- No offline message buffering
+- Commands sent during disconnection are lost
+- Player only processes commands received while connected
 
-- Check `checksum` against stored blob
-- Re-download if mismatch
-- Remove orphaned media files
+**Workaround**: Backend should implement command retry with exponential backoff for critical commands.
+
+### 2. No Cache Eviction Strategy
+
+Current implementation:
+
+- No LRU or size-based eviction
+- Cache grows until browser quota reached
+- `clear()` method available for manual cleanup
+
+**Planned**: Add quota monitoring and LRU eviction.
+
+### 3. Partial Media Failures
+
+If media prefetch fails for an item:
+
+- Player continues with other items
+- Failed item attempted from remote URL on playback
+- If offline, item skipped with error logged
+
+### 4. No Delta Sync
+
+Entire playlist replaced on each `reload_playlist`:
+
+- Inefficient for large playlists
+- All media re-validated on fetch
+
+**Planned**: Add ETag-based conditional fetch and incremental updates.
 
 ## Error Handling
 
-| Error Type    | Behavior                          |
-|---------------|-----------------------------------|
-| Network fetch | Use cache, retry in background    |
-| Media load    | Skip to next item, log error      |
-| Parse error   | Use cached version, alert         |
-| MQTT disconnect| Queue commands, reconnect        |
-| Storage full  | LRU cleanup, log warning          |
+| Scenario               | Behavior                                 |
+| ---------------------- | ---------------------------------------- |
+| Network fetch fails    | Use cached playlist, retry in background |
+| Media load fails       | Skip to next item, log error             |
+| Cache write fails      | Continue without caching                 |
+| MQTT disconnect        | Queue not implemented; commands lost     |
+| Storage quota exceeded | Cache write fails silently               |
 
-## TODO
+## Configuration
 
-- [ ] Implement storage service
-- [ ] Implement sync scheduler
-- [ ] Implement cache cleanup
-- [ ] Implement offline UI indicators
-- [ ] Document storage quota limits per platform
+No runtime configuration for offline behavior. Constants defined in code:
+
+```typescript
+const CACHE_NAME = 'signage-media-cache-v1'
+const PLAYLIST_KEY = 'signage:playlist'
+```
+
+## Future Enhancements
+
+1. **Command Queue**: IndexedDB-backed queue for offline commands
+2. **Delta Sync**: Version-based playlist updates
+3. **Smart Eviction**: LRU with size quotas
+4. **Sync Status UI**: Visual indicator for sync state
+5. **Background Sync**: Service Worker for deferred operations

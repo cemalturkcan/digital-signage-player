@@ -1,8 +1,8 @@
-import type { MqttClient } from 'mqtt'
 import type { RegistrationResponse } from '@signage/contracts'
+import type { MqttClient } from 'mqtt'
+import type mqtt from 'mqtt'
 import { MQTT_BROKER_URL } from '@/config'
 import { mqttBaseClientService } from './base-client'
-import mqtt from 'mqtt'
 
 export interface MqttClientService {
   client: MqttClient | null
@@ -13,8 +13,13 @@ export interface MqttClientService {
   subscribe: (topic: string) => Promise<void>
 }
 
+const mqttClientState: Pick<MqttClientService, 'client' | 'connected'> = {
+  client: null,
+  connected: false,
+}
+
 async function connect(config: RegistrationResponse): Promise<void> {
-  if (mqttClientService.client?.connected) {
+  if (mqttClientState.client?.connected) {
     return
   }
 
@@ -24,11 +29,13 @@ async function connect(config: RegistrationResponse): Promise<void> {
     let protocol: string
     if (isBrowser) {
       protocol = config.mqtt.ssl ? 'wss' : 'ws'
-    } else {
+    }
+    else {
       protocol = config.mqtt.ssl ? 'mqtts' : 'mqtt'
     }
     brokerUrl = `${protocol}://${config.mqtt.host}:${config.mqtt.port}`
-  } else {
+  }
+  else {
     brokerUrl = MQTT_BROKER_URL
   }
 
@@ -58,15 +65,15 @@ async function connect(config: RegistrationResponse): Promise<void> {
 
   await mqttBaseClientService.connect(brokerUrl, options)
 
-  mqttClientService.client = mqttBaseClientService.client
-  mqttClientService.connected = mqttBaseClientService.connected
+  mqttClientState.client = mqttBaseClientService.client
+  mqttClientState.connected = mqttBaseClientService.connected
 }
 
 async function disconnect(): Promise<void> {
   await mqttBaseClientService.disconnect()
 
-  mqttClientService.client = mqttBaseClientService.client
-  mqttClientService.connected = mqttBaseClientService.connected
+  mqttClientState.client = mqttBaseClientService.client
+  mqttClientState.connected = mqttBaseClientService.connected
 }
 
 async function publish(topic: string, payload: unknown): Promise<void> {
@@ -80,8 +87,18 @@ async function subscribe(topic: string): Promise<void> {
 }
 
 export const mqttClientService: MqttClientService = {
-  client: null,
-  connected: false,
+  get client() {
+    return mqttClientState.client
+  },
+  set client(client) {
+    mqttClientState.client = client
+  },
+  get connected() {
+    return mqttClientState.connected
+  },
+  set connected(connected) {
+    mqttClientState.connected = connected
+  },
   connect,
   disconnect,
   publish,

@@ -6,19 +6,18 @@ export interface ScreenshotRepository {
   findByDevice: (deviceId: string) => Promise<ScreenshotRecord[]>
 }
 
+const store = new Map<string, ScreenshotRecord>()
+
 export const screenshotRepository: ScreenshotRepository = {
   async save(metadata: ScreenshotRecord): Promise<void> {
-    void metadata
-    throw new Error('Not implemented: save')
+    store.set(metadata.id, metadata)
   },
 
   async findById(id: string): Promise<ScreenshotRecord | null> {
-    void id
-    throw new Error('Not implemented: findById')
+    return store.get(id) ?? null
   },
 
   async findByDevice(deviceId: string): Promise<ScreenshotRecord[]> {
-    void deviceId
-    throw new Error('Not implemented: findByDevice')
+    return Array.from(store.values()).filter(r => r.deviceId === deviceId)
   },
 }

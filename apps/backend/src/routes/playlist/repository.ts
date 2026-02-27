@@ -7,23 +7,22 @@ export interface PlaylistRepository {
   delete: (id: string) => Promise<void>
 }
 
+const store = new Map<string, PlaylistRecord>()
+
 export const playlistRepository: PlaylistRepository = {
   async save(playlist: PlaylistRecord): Promise<void> {
-    void playlist
-    throw new Error('Not implemented: save')
+    store.set(playlist.id, playlist)
   },
 
   async findById(id: string): Promise<PlaylistRecord | null> {
-    void id
-    throw new Error('Not implemented: findById')
+    return store.get(id) ?? null
   },
 
   async findAll(): Promise<PlaylistRecord[]> {
-    throw new Error('Not implemented: findAll')
+    return Array.from(store.values())
   },
 
   async delete(id: string): Promise<void> {
-    void id
-    throw new Error('Not implemented: delete')
+    store.delete(id)
   },
 }

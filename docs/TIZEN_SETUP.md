@@ -2,21 +2,50 @@
 
 ## Prerequisites
 
-- [ ] Samsung Tizen Studio installed
-- [ ] Tizen 8.0+ SDK
-- [ ] Samsung certificate for production
+- Tizen Studio 5.0+ with TV extensions
+- Windows 10/11 or WSL2 with Windows host
+- Samsung certificate for device deployment
+
+## Tizen Studio Installation
+
+1. Download from https://developer.tizen.org/
+2. Install with TV Extension (required for TV apps)
+3. Note installation path (e.g., `C:\tizen-studio`)
 
 ## Development Environment
 
-### Tizen Studio Installation
+### 1. Configure Player Environment
 
-TODO: Document installation steps
-TODO: Document required SDK components
+```bash
+cd apps/player-tizen
 
-### Emulator Setup
+# Create player .env
+cat > .env <<EOF
+VITE_API_BASE_URL=http://YOUR_IP:3000
+VITE_MQTT_BROKER_URL=ws://YOUR_IP:9001
+EOF
+```
 
-TODO: Document emulator configuration
-TODO: Document resolution/aspect ratio settings
+Replace `YOUR_IP` with your machine's IP address (not localhost, for emulator/device access).
+
+### 2. Configure Tizen Build Environment
+
+```bash
+# Create .env.tizen
+cat > .env.tizen <<EOF
+TIZEN_CLI=C:/tizen-studio/tools/ide/bin/tizen.bat
+TIZEN_PROFILE=SignageProfile
+TIZEN_AUTHOR_CERT_PASSWORD=yourpassword
+EOF
+```
+
+### WSL/Windows Path Handling
+
+The build script auto-detects WSL and handles path conversion:
+
+- WSL paths converted to Windows format via `wslpath -m`
+- Commands executed through `cmd.exe /c`
+- Works with Tizen Studio installed on Windows host
 
 ## Build Process
 
@@ -27,89 +56,144 @@ cd apps/player-tizen
 pnpm dev
 ```
 
-### Tizen Build
+Runs Vite dev server at http://localhost:5173
+
+### Production Build (WGT Package)
 
 ```bash
-pnpm build:tizen
+cd apps/player-tizen
+pnpm build
 ```
 
-### Packaging WGT
+This script:
+
+1. Reads `.env.tizen` for Tizen CLI path
+2. Runs `vite build --mode tizen`
+3. Creates/uses security profile for signing
+4. Packages signed WGT to `digital_signage_player_0.1.0.wgt`
+
+## Emulator Testing
+
+### Launch Emulator
+
+1. Open Tizen Studio
+2. Tools → Emulator Manager
+3. Create TV emulator (1080p recommended)
+4. Start emulator
+
+### Install WGT on Emulator
 
 ```bash
-TODO: Document WGT packaging
-TODO: Document certificate signing
+# Via Tizen CLI
+tizen install -n digital_signage_player_0.1.0.wgt -t <emulator-name>
+
+# Or drag WGT file to emulator window
 ```
+
+### Debug on Emulator
+
+1. Right-click emulator → Control Panel
+2. Enable "Debug mode"
+3. Open Chrome: `chrome://inspect`
+4. Find emulator device, click "Inspect"
 
 ## Device Deployment
 
-### Developer Mode
+### Enable Developer Mode on TV
 
-TODO: Document TV developer mode activation
-TODO: Document device IP configuration
+1. TV Settings → General → External Device Manager
+2. Device Connect Manager → Access Notification → Off
+3. Device Connect Manager → IP Settings → Enter your PC IP
+4. Restart TV
 
-### Certificate Setup
-
-TODO: Document certificate generation
-TODO: Document certificate manager usage
-
-### Installation
+### Connect to Device
 
 ```bash
-# Via Tizen Studio
-TODO: Document installation steps
+# Connect via SDB
+sdb connect <tv-ip-address>
 
-# Via sdb command line
-TODO: Document sdb commands
+# Verify connection
+sdb devices
+```
+
+### Install on Device
+
+```bash
+# Install WGT
+tizen install -n digital_signage_player_0.1.0.wgt -t <device-id>
+
+# Or via Tizen Studio: right-click project → Run As → Tizen Web Application
 ```
 
 ## Platform Capabilities
 
 ### Supported Features
 
-| Feature        | Tizen Support |
-|----------------|---------------|
-| Video Codecs   | H.264, HEVC, VP9, AV1 |
-| Audio Control  | tizen.tvaudiocontrol |
-| Storage        | IndexedDB |
-| Screenshot     | Limited (canvas-based) |
+| Feature        | Tizen API                      | Fallback               |
+| -------------- | ------------------------------ | ---------------------- |
+| Volume Control | `tizen.tvfw.setVolume()`       | In-memory state        |
+| Device Info    | `tizen.productinfo.getModel()` | Browser user agent     |
+| Screenshot     | `tizen.tvfw.captureScreen()`   | Canvas-based (limited) |
+| Storage        | Cache API + localStorage       | Same                   |
 
 ### Known Limitations
 
-- TODO: Document screenshot limitations
-- TODO: Document DRM content restrictions
-- TODO: Document memory constraints
+1. **Screenshot**: Native Tizen screenshot requires `tvfw` privilege not available to web apps. Implementation falls back to canvas-based capture (viewport only, no video frames).
 
-## Configuration
+2. **Memory**: Large media files may exceed TV memory. Recommendation: optimize videos to <50MB each.
 
-### config.xml
+3. **CORS**: Media URLs must allow CORS for Cache API to work. Use `access origin="*"` in config.xml.
 
-TODO: Document required config.xml settings
-TODO: Document privileges
+## config.xml Reference
 
-### WebAPI Integration
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="com.signage.player"
+        version="0.1.0"
+        viewmodes="maximized">
+    <tizen:application id="SgnPlayer0.DigitalSignage"
+                       package="SgnPlayer0"
+                       required_version="10.0"/>
+    <name>Digital Signage Player</name>
+    <content src="index.html"/>
+    <icon src="icon.png"/>
 
-```html
-<script src="$WEBAPIS/apis/webapis.js" type="text/javascript"></script>
+    <!-- Required privileges -->
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/network.get"/>
+
+    <!-- Settings -->
+    <tizen:setting screen-orientation="landscape"
+                   context-menu="disable"
+                   background-support="enable"
+                   encryption="disable"
+                   install-location="auto"/>
+
+    <!-- CORS access -->
+    <access origin="*" subdomains="true"/>
+</widget>
 ```
 
-## Debugging
+## Troubleshooting
 
-### Chrome DevTools
+### Build Fails: "TIZEN_CLI is not set"
 
-TODO: Document remote debugging setup
+Ensure `.env.tizen` exists and `TIZEN_CLI` points to valid `tizen.bat`.
 
-### Tizen Studio Debugger
+### WSL: "command not found"
 
-TODO: Document debugger usage
+Tizen CLI must be Windows path (e.g., `C:/tizen-studio/...`). WSL path won't work.
 
-## Certification
+### Emulator: Black Screen
 
-TODO: Document Samsung app store submission
-TODO: Document certification requirements
+Check that `VITE_API_BASE_URL` uses your machine IP, not localhost.
 
-## TODO
+### Device: "Certificate error"
 
-- [ ] Complete installation instructions
-- [ ] Add troubleshooting section
-- [ ] Document performance optimization
-- [ ] Add common issues FAQ
+Create Samsung certificate in Tizen Studio Certificate Manager, reference it in `.env.tizen`.
+
+### Install Fails: "Author signature invalid"
+
+Ensure same certificate used for packaging and device. Reset device to factory if certificate changed.

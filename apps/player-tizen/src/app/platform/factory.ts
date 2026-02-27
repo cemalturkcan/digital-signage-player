@@ -1,4 +1,5 @@
 import type { usePlayerStore } from '@/app/stores/player/store'
+import { createTizenAdapter as createTizenAdapterImpl } from './tizen/adapter'
 
 export type PlayerStore = ReturnType<typeof usePlayerStore>
 
@@ -12,5 +13,5 @@ export interface TizenAdapter {
 }
 
 export function createTizenAdapter(): TizenAdapter {
-  throw new Error('Not implemented: createTizenAdapter')
+  return createTizenAdapterImpl()
 }

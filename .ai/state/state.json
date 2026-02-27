@@ -3,7 +3,7 @@
     "name": "digital-signage-player",
     "type": "smart-tv-digital-signage",
     "version": "0.1.0",
-    "status": "wgt-build-automated"
+    "status": "case-plan-active"
   },
   "platforms": {
     "tizen": {
@@ -61,12 +61,12 @@
     "status": "external-services-expected"
   },
   "context": {
-    "currentTaskId": null,
-    "currentPhase": "backend-stabilized",
+    "currentTaskId": "DSP-006",
+    "currentPhase": "player-engine-implementation",
     "lastSession": "2026-02-27",
     "activeBranch": null,
     "implementationStarted": true
   },
   "initializedAt": "2024-02-25T21:20:00Z",
-  "updatedAt": "2026-02-27T08:57:06Z"
+  "updatedAt": "2026-02-27T00:00:00Z"
 }

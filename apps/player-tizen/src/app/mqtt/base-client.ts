@@ -1,5 +1,5 @@
-import mqtt from 'mqtt'
 import type { MqttClient } from 'mqtt'
+import mqtt from 'mqtt'
 
 export interface MqttBaseClientService {
   client: MqttClient | null
@@ -10,16 +10,22 @@ export interface MqttBaseClientService {
   subscribe: (topic: string, qos?: 0 | 1 | 2) => Promise<void>
 }
 
+const mqttBaseClientState: Pick<MqttBaseClientService, 'client' | 'connected'> = {
+  client: null,
+  connected: false,
+}
+
 async function waitForConnect(client: MqttClient): Promise<void> {
   return new Promise((resolve, reject) => {
-    const onConnect = () => {
-      client.off('error', onError)
-      resolve()
-    }
-
-    const onError = (err: Error) => {
+    let onConnect: () => void
+    const onError: (err: Error) => void = (err: Error) => {
       client.off('connect', onConnect)
       reject(err)
+    }
+
+    onConnect = () => {
+      client.off('error', onError)
+      resolve()
     }
 
     client.once('connect', onConnect)
@@ -85,39 +91,39 @@ function attachConnectionStateHandlers(client: MqttClient, state: { connected: b
 }
 
 async function connect(brokerUrl: string, options?: mqtt.IClientOptions): Promise<void> {
-  if (mqttBaseClientService.client?.connected) {
+  if (mqttBaseClientState.client?.connected) {
     return
   }
 
   const client = mqtt.connect(brokerUrl, options)
 
-  mqttBaseClientService.client = client
-  attachConnectionStateHandlers(client, mqttBaseClientService)
+  mqttBaseClientState.client = client
+  attachConnectionStateHandlers(client, mqttBaseClientState)
 
   try {
     await waitForConnect(client)
-    mqttBaseClientService.connected = true
+    mqttBaseClientState.connected = true
   } catch (err) {
-    mqttBaseClientService.client = null
-    mqttBaseClientService.connected = false
+    mqttBaseClientState.client = null
+    mqttBaseClientState.connected = false
     throw err
   }
 }
 
 async function disconnect(): Promise<void> {
-  const client = mqttBaseClientService.client
+  const client = mqttBaseClientState.client
   if (!client) {
     return
   }
 
   await endClient(client)
-  mqttBaseClientService.connected = false
-  mqttBaseClientService.client = null
+  mqttBaseClientState.connected = false
+  mqttBaseClientState.client = null
 }
 
 async function publish(topic: string, payload: string, qos: 0 | 1 | 2 = 1): Promise<void> {
-  const client = mqttBaseClientService.client
-  if (!client || !mqttBaseClientService.connected) {
+  const client = mqttBaseClientState.client
+  if (!client || !mqttBaseClientState.connected) {
     throw new Error('MQTT client not connected')
   }
 
@@ -125,8 +131,8 @@ async function publish(topic: string, payload: string, qos: 0 | 1 | 2 = 1): Prom
 }
 
 async function subscribe(topic: string, qos: 0 | 1 | 2 = 1): Promise<void> {
-  const client = mqttBaseClientService.client
-  if (!client || !mqttBaseClientService.connected) {
+  const client = mqttBaseClientState.client
+  if (!client || !mqttBaseClientState.connected) {
     throw new Error('MQTT client not connected')
   }
 
@@ -134,8 +140,18 @@ async function subscribe(topic: string, qos: 0 | 1 | 2 = 1): Promise<void> {
 }
 
 export const mqttBaseClientService: MqttBaseClientService = {
-  client: null,
-  connected: false,
+  get client() {
+    return mqttBaseClientState.client
+  },
+  set client(client) {
+    mqttBaseClientState.client = client
+  },
+  get connected() {
+    return mqttBaseClientState.connected
+  },
+  set connected(connected) {
+    mqttBaseClientState.connected = connected
+  },
   connect,
   disconnect,
   publish,
