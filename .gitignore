@@ -12,7 +12,6 @@ out/
 .env
 .env.local
 .env.*.local
-.env.tizen
 
 # Allow docker/.env to be tracked (contains safe defaults)
 !docker/.env
