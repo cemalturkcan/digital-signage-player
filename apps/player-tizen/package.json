@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "vite --host",
     "dev:mock": "vite --mode mock",
-    "build": "vue-tsc && vite build",
-    "build:tizen": "vite build --mode tizen",
-    "build:web": "vite build --mode web",
+    "build": "bash scripts/package-wgt.sh",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src",

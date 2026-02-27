@@ -45,6 +45,9 @@ coverage/
 *.wgt
 *.ipk
 
+# Tizen local certs/profile
+.tizen/
+
 # Temporary files
 tmp/
 temp/
