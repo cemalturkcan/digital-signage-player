@@ -59,8 +59,16 @@
       "priority": "high",
       "completedAt": "2026-02-26T21:59:36Z",
       "notes": "DB Go-style lazy init, MQTT shared client, pino logging, simplified registration/health, compose cleanup"
+    },
+    {
+      "id": "DSP-011",
+      "title": "Tizen WGT Build Automation",
+      "status": "completed",
+      "priority": "high",
+      "completedAt": "2026-02-27T08:57:06Z",
+      "notes": "player-tizen build now produces signed WGT via env-driven .env.tizen + package-wgt.sh + turbo outputs caching (*.wgt)"
     }
   ],
-  "nextId": 11,
-  "lastUpdated": "2026-02-26T21:59:36Z"
+  "nextId": 12,
+  "lastUpdated": "2026-02-27T08:57:06Z"
 }

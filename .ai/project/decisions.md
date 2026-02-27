@@ -139,7 +139,9 @@
 **Status**: Approved
 **Date**: 2025-02-25
 
-**Decision**: Use pnpm workspaces for monorepo management with workspace:\* protocol for internal dependencies.
+**Decision**: Use pnpm workspaces for monorepo management with workspace:
+
+- protocol for internal dependencies.
 
 **Rationale**:
 
@@ -322,3 +324,27 @@
 - Clients cannot rely on verbose responses
 - Additional endpoints needed for detailed status
 - Breaking change if clients expect removed fields
+
+---
+
+### ADR-016: Tizen WGT Build Automation
+
+**Status**: Approved
+**Date**: 2026-02-27
+
+**Decision**: player-tizen `build` script produces signed WGT via env-driven `.env.tizen` + `scripts/package-wgt.sh` + Turbo outputs caching (`*.wgt`).
+
+**Rationale**:
+
+- Environment-driven configuration (TIZEN_CLI from env, no hardcoded paths) ensures portability across developer machines and CI
+- `.env.tizen` provides Tizen-specific signing configuration without polluting other environment files
+- Bash script wraps Vite build + Tizen CLI packaging into single operation
+- Turbo caches `*.wgt` outputs to avoid redundant builds in monorepo
+- Output artifact named with version (`digital_signage_player_${version}.wgt`) for traceability
+
+**Consequences**:
+
+- Requires `.env.tizen` file present (build fails fast if missing)
+- Requires `TIZEN_CLI` environment variable set
+- Tizen Studio must be installed and CLI accessible
+- `.gitignore` must exclude `.env.tizen` to prevent credential leakage
