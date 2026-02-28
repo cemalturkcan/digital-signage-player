@@ -6,6 +6,7 @@ import * as process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+const isWindows = process.platform === 'win32'
 
 export const rootDir = path.resolve(scriptDir, '..')
 export const distDir = path.join(rootDir, 'dist')
@@ -14,7 +15,7 @@ function runRaw(command: string, args: string[], options: Record<string, unknown
   const result = spawnSync(command, args, {
     encoding: 'utf8',
     cwd: rootDir,
-    shell: false,
+    shell: isWindows,
     ...options,
   })
 
@@ -55,12 +56,13 @@ export function execCapture(command: string, args: string[], options: Record<str
 }
 
 export function commandExists(command: string): boolean {
-  const result = spawnSync(command, ['--help'], {
+  const lookupCommand = isWindows ? 'where' : 'which'
+  const result = spawnSync(lookupCommand, [command], {
     stdio: 'ignore',
     shell: false,
   })
 
-  return !result.error
+  return !result.error && result.status === 0
 }
 
 export function ensureCommand(command: string, message: string): void {
