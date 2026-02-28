@@ -163,14 +163,18 @@ export function waitForTargetSerial(sdbCommand: string, timeoutSeconds = 45): st
 
 export function updateWidgetVersion(configXmlPath: string, version: string): void {
   const current = fs.readFileSync(configXmlPath, 'utf8')
-  const next = current.replace(
-    /(<widget\s[^>]*\sversion\s*=\s*)(["'])([^"']*)(\2)/,
-    `$1$2${version}$2`,
-  )
+  const versionPattern = /(<widget\s[^>]*\sversion\s*=\s*)(["'])([^"']*)(\2)/
+  const matched = current.match(versionPattern)
 
-  if (next === current) {
+  if (!matched) {
     throw new Error('Could not update widget version in config.xml')
   }
+
+  if (matched[3] === version) {
+    return
+  }
+
+  const next = current.replace(versionPattern, `$1$2${version}$2`)
 
   fs.writeFileSync(configXmlPath, next)
 }
