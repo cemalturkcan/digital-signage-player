@@ -17,6 +17,7 @@ fi
 TIZEN_PROFILE="${TIZEN_PROFILE:-SignageProfile}"
 TIZEN_AUTHOR_CERT_PASSWORD="${TIZEN_AUTHOR_CERT_PASSWORD:-signage1234}"
 TIZEN_AUTHOR_CERT_NAME="${TIZEN_AUTHOR_CERT_NAME:-SignageAuthor}"
+TIZEN_AUTHOR_CERT_PATH="${TIZEN_AUTHOR_CERT_PATH:-}"
 
 if [[ -z "${TIZEN_CLI:-}" ]]; then
   echo "ERROR: TIZEN_CLI is not set in .env.tizen"
@@ -33,6 +34,26 @@ run_tizen() {
   else
     "$@"
   fi
+}
+
+resolve_author_cert_path() {
+  if [[ -n "$TIZEN_AUTHOR_CERT_PATH" && -f "$TIZEN_AUTHOR_CERT_PATH" ]]; then
+    echo "$TIZEN_AUTHOR_CERT_PATH"
+    return
+  fi
+
+  if [[ -f "$ROOT_DIR/$TIZEN_PROFILE.p12" ]]; then
+    echo "$ROOT_DIR/$TIZEN_PROFILE.p12"
+    return
+  fi
+
+  local default_path="$HOME/tizen-studio-data/keystore/author/$TIZEN_PROFILE.p12"
+  if [[ -f "$default_path" ]]; then
+    echo "$default_path"
+    return
+  fi
+
+  echo ""
 }
 
 VERSION="$(grep '"version"' "$ROOT_DIR/package.json" | head -1 | sed 's/.*"version".*"\(.*\)".*/\1/')"
@@ -55,14 +76,38 @@ profile_exists() {
 
 if ! profile_exists; then
   echo "Creating certificate and profile: $TIZEN_PROFILE"
-  run_tizen "$TIZEN_CLI" certificate \
-    -a "$TIZEN_AUTHOR_CERT_NAME" \
-    -p "$TIZEN_AUTHOR_CERT_PASSWORD" \
-    -f "$TIZEN_PROFILE"
-  run_tizen "$TIZEN_CLI" security-profiles add \
+  AUTHOR_CERT_PATH="$(resolve_author_cert_path)"
+
+  if [[ -z "$AUTHOR_CERT_PATH" ]]; then
+    run_tizen "$TIZEN_CLI" certificate \
+      -a "$TIZEN_AUTHOR_CERT_NAME" \
+      -p "$TIZEN_AUTHOR_CERT_PASSWORD" \
+      -f "$TIZEN_PROFILE"
+
+    AUTHOR_CERT_PATH="$(resolve_author_cert_path)"
+  fi
+
+  if [[ -z "$AUTHOR_CERT_PATH" ]]; then
+    echo "ERROR: Could not find author certificate file for profile $TIZEN_PROFILE"
+    exit 1
+  fi
+
+  if is_wsl; then
+    AUTHOR_CERT_ARG="$(wslpath -m "$AUTHOR_CERT_PATH")"
+  else
+    AUTHOR_CERT_ARG="$AUTHOR_CERT_PATH"
+  fi
+
+  if ! run_tizen "$TIZEN_CLI" security-profiles add \
     -n "$TIZEN_PROFILE" \
-    -a "$TIZEN_PROFILE.p12" \
-    -p "$TIZEN_AUTHOR_CERT_PASSWORD"
+    -a "$AUTHOR_CERT_ARG" \
+    -p "$TIZEN_AUTHOR_CERT_PASSWORD"; then
+    if ! profile_exists; then
+      echo "ERROR: Could not create security profile: $TIZEN_PROFILE"
+      exit 1
+    fi
+  fi
+
   echo "Profile created: $TIZEN_PROFILE"
 else
   echo "Profile exists: $TIZEN_PROFILE"
