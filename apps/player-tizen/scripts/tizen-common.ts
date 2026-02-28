@@ -12,10 +12,25 @@ export const rootDir = path.resolve(scriptDir, '..')
 export const distDir = path.join(rootDir, 'dist')
 
 function runRaw(command: string, args: string[], options: Record<string, unknown> = {}) {
+  const isWin = process.platform === 'win32'
+
+  let env = { ...process.env }
+  if (isWin) {
+    const java8Path = 'C:\\Program Files\\Java\\jre1.8.0_471'
+    if (fs.existsSync(java8Path)) {
+      env = {
+        ...process.env,
+        JAVA_HOME: java8Path,
+        PATH: java8Path + '\\bin;' + (process.env.PATH ?? ''),
+      }
+    }
+  }
+
   const result = spawnSync(command, args, {
     encoding: 'utf8',
     cwd: rootDir,
-    shell: isWindows,
+    shell: true,
+    env,
     ...options,
   })
 
@@ -30,7 +45,11 @@ function getCombinedOutput(result: ReturnType<typeof runRaw>) {
   return `${result.stdout ?? ''}${result.stderr ?? ''}`
 }
 
-export function execInherit(command: string, args: string[], options: Record<string, unknown> = {}): void {
+export function execInherit(
+  command: string,
+  args: string[],
+  options: Record<string, unknown> = {}
+): void {
   const result = runRaw(command, args, {
     stdio: 'inherit',
     ...options,
@@ -41,7 +60,11 @@ export function execInherit(command: string, args: string[], options: Record<str
   }
 }
 
-export function execCapture(command: string, args: string[], options: Record<string, unknown> = {}): string {
+export function execCapture(
+  command: string,
+  args: string[],
+  options: Record<string, unknown> = {}
+): string {
   const result = runRaw(command, args, {
     stdio: 'pipe',
     ...options,
@@ -92,8 +115,8 @@ export function loadDotEnvFile(filePath: string): void {
     let value = line.slice(separatorIndex + 1).trim()
 
     if (
-      (value.startsWith('"') && value.endsWith('"'))
-      || (value.startsWith('\'') && value.endsWith('\''))
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1)
     }
@@ -108,9 +131,10 @@ export function resolveSdbCommand(): string {
   }
 
   const homeDir = os.homedir()
-  const fallback = process.platform === 'win32'
-    ? path.join(homeDir, 'tizen-studio', 'tools', 'sdb.exe')
-    : path.join(homeDir, 'tizen-studio', 'tools', 'sdb')
+  const fallback =
+    process.platform === 'win32'
+      ? path.join(homeDir, 'tizen-studio', 'tools', 'sdb.exe')
+      : path.join(homeDir, 'tizen-studio', 'tools', 'sdb')
 
   if (!fs.existsSync(fallback)) {
     throw new Error(`sdb command not found in PATH and fallback path does not exist: ${fallback}`)
@@ -195,11 +219,22 @@ export function getAppPackageId(configXmlPath: string): string {
   return match[1]
 }
 
+export function getAppId(configXmlPath: string): string {
+  const configXml = fs.readFileSync(configXmlPath, 'utf8')
+  const match = configXml.match(/<tizen:application[^>]*\sid\s*=\s*["']([^"']+)["']/)
+
+  if (!match) {
+    throw new Error('Could not resolve app id from config.xml')
+  }
+
+  return match[1]
+}
+
 export function resolveLatestWgt(root: string): string {
   const files = fs
     .readdirSync(root)
-    .filter(name => /^digital_signage_player_.*\.wgt$/.test(name))
-    .map(name => path.join(root, name))
+    .filter((name) => /^digital_signage_player_.*\.wgt$/.test(name))
+    .map((name) => path.join(root, name))
 
   if (files.length === 0) {
     throw new Error(`No WGT file found in ${root}. Run 'pnpm run build' first.`)

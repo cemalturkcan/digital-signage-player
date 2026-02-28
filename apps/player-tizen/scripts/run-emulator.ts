@@ -2,9 +2,8 @@
 import * as path from 'node:path'
 import * as process from 'node:process'
 import {
-  ensureCommand,
   execInherit,
-  getAppPackageId,
+  getAppId,
   loadDotEnvFile,
   resolveSdbCommand,
   rootDir,
@@ -15,20 +14,21 @@ function main(): void {
   const envFilePath = path.join(rootDir, '.env.tizen')
   loadDotEnvFile(envFilePath)
 
-  ensureCommand('tizen', '\'tizen\' command not found in PATH. Add Tizen CLI to your PATH and retry.')
   const sdbCommand = resolveSdbCommand()
 
-  const packageId = process.env.APP_PACKAGE_ID || getAppPackageId(path.join(rootDir, 'config.xml'))
+  const configuredAppId = process.env.APP_ID || process.env.APP_PACKAGE_ID || ''
+  const appId = configuredAppId.includes('.')
+    ? configuredAppId
+    : getAppId(path.join(rootDir, 'config.xml'))
   const targetSerial = waitForTargetSerial(sdbCommand)
 
-  console.log(`Running package ${packageId} on target ${targetSerial}`)
-  execInherit('tizen', ['run', '-p', packageId, '-s', targetSerial])
+  console.log(`Running app ${appId} on target ${targetSerial}`)
+  execInherit(sdbCommand, ['-s', targetSerial, 'shell', 'app_launcher', '-s', appId])
 }
 
 try {
   main()
-}
-catch (error) {
+} catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`ERROR: ${message}`)
   process.exit(1)

@@ -3,6 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as process from 'node:process'
 import {
+  commandExists,
   distDir,
   ensureCommand,
   execCapture,
@@ -18,12 +19,69 @@ const envFilePath = path.join(rootDir, '.env.tizen')
 const packageJsonPath = path.join(rootDir, 'package.json')
 const configXmlPath = path.join(rootDir, 'config.xml')
 
-function profileExists(profileName: string): boolean {
-  const output = execCapture('tizen', ['security-profiles', 'list'])
-  return output.includes(profileName)
+function resolveProfilesPath(): string {
+  try {
+    const output = execCapture('tizen', ['cli-config', '-l'])
+    for (const rawLine of output.split(/\r?\n/)) {
+      const line = rawLine.trim()
+      if (!line.startsWith('default.profiles.path=')) {
+        continue
+      }
+
+      const profilesPath = line.slice('default.profiles.path='.length).trim()
+      if (profilesPath) {
+        return profilesPath
+      }
+    }
+  } catch {
+    // Ignore and fall through to default path.
+  }
+
+  return path.join(
+    process.env.USERPROFILE ?? process.env.HOME ?? '',
+    'tizen-studio-data',
+    'profile',
+    'profiles.xml'
+  )
 }
 
-function resolveAuthorCertPath(profileName: string, configuredPath: string): string {
+function getProfileNames(): string[] {
+  try {
+    const output = execCapture('tizen', ['security-profiles', 'list'])
+    const names: string[] = []
+
+    for (const rawLine of output.split(/\r?\n/)) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('Loaded in') || line.startsWith('[Profile Name]')) {
+        continue
+      }
+
+      const matched = line.match(/^([^\s]+)/)
+      if (matched) {
+        names.push(matched[1])
+      }
+    }
+
+    return names
+  } catch {
+    return []
+  }
+}
+
+function profileExists(profileName: string): boolean {
+  return getProfileNames().includes(profileName)
+}
+
+function resolveTizenDataDir(profilesPath: string): string {
+  const profileDir = path.dirname(profilesPath)
+  return path.dirname(profileDir)
+}
+
+function resolveAuthorCertPath(
+  profileName: string,
+  configuredPath: string,
+  tizenDataDir: string
+): string {
   if (configuredPath) {
     const absoluteConfigured = path.isAbsolute(configuredPath)
       ? configuredPath
@@ -38,7 +96,7 @@ function resolveAuthorCertPath(profileName: string, configuredPath: string): str
     return rootCert
   }
 
-  const homeCert = path.join(process.env.HOME ?? process.env.USERPROFILE ?? '', 'tizen-studio-data', 'keystore', 'author', `${profileName}.p12`)
+  const homeCert = path.join(tizenDataDir, 'keystore', 'author', `${profileName}.p12`)
   if (fs.existsSync(homeCert)) {
     return homeCert
   }
@@ -46,7 +104,14 @@ function resolveAuthorCertPath(profileName: string, configuredPath: string): str
   return ''
 }
 
-function ensureSigningProfile(profileName: string, authorName: string, authorPassword: string, configuredAuthorCertPath: string): void {
+function ensureSigningProfile(
+  profileName: string,
+  authorName: string,
+  authorPassword: string,
+  configuredAuthorCertPath: string,
+  tizenDataDir: string,
+  profilesPath: string
+): void {
   if (profileExists(profileName)) {
     console.log(`Profile exists: ${profileName}`)
     return
@@ -54,10 +119,45 @@ function ensureSigningProfile(profileName: string, authorName: string, authorPas
 
   console.log(`Creating certificate and profile: ${profileName}`)
 
-  let authorCertPath = resolveAuthorCertPath(profileName, configuredAuthorCertPath)
+  let authorCertPath = resolveAuthorCertPath(profileName, configuredAuthorCertPath, tizenDataDir)
   if (!authorCertPath) {
-    execInherit('tizen', ['certificate', '-a', authorName, '-p', authorPassword, '-f', profileName])
-    authorCertPath = resolveAuthorCertPath(profileName, configuredAuthorCertPath)
+    const absoluteConfigured = configuredAuthorCertPath
+      ? path.isAbsolute(configuredAuthorCertPath)
+        ? configuredAuthorCertPath
+        : path.resolve(rootDir, configuredAuthorCertPath)
+      : ''
+    const authorPath = absoluteConfigured
+      ? absoluteConfigured.toLowerCase().endsWith('.p12')
+        ? path.dirname(absoluteConfigured)
+        : absoluteConfigured
+      : path.join(tizenDataDir, 'keystore', 'author')
+
+    if (!fs.existsSync(authorPath)) {
+      fs.mkdirSync(authorPath, { recursive: true })
+    }
+
+    try {
+      execInherit('tizen', [
+        'certificate',
+        '-a',
+        authorName,
+        '-p',
+        authorPassword,
+        '-f',
+        profileName,
+        '--',
+        authorPath,
+      ])
+    } catch {
+      const keytoolHint = commandExists('keytool')
+        ? ''
+        : ' keytool is not available in PATH, so certificate generation may fail. Install a JDK and add its bin directory to PATH.'
+      throw new Error(
+        `Could not generate author certificate for profile ${profileName}.${keytoolHint}`
+      )
+    }
+
+    authorCertPath = resolveAuthorCertPath(profileName, configuredAuthorCertPath, tizenDataDir)
   }
 
   if (!authorCertPath) {
@@ -75,10 +175,11 @@ function ensureSigningProfile(profileName: string, authorName: string, authorPas
       '-p',
       authorPassword,
     ])
-  }
-  catch {
+  } catch {
     if (!profileExists(profileName)) {
-      throw new Error(`Could not create security profile: ${profileName}`)
+      throw new Error(
+        `Could not create security profile: ${profileName}. Check 'tizen security-profiles list' and '${profilesPath}'.`
+      )
     }
   }
 
@@ -91,7 +192,7 @@ function packageWgt(profileName: string, version: string): void {
   }
 
   if (!fs.existsSync(distDir)) {
-    throw new Error('dist/ not found. Run \'vite build --mode tizen\' first.')
+    throw new Error("dist/ not found. Run 'vite build --mode tizen' first.")
   }
 
   console.log('Copying config.xml to dist/')
@@ -100,7 +201,7 @@ function packageWgt(profileName: string, version: string): void {
   console.log(`Packaging WGT with profile: ${profileName}`)
   execInherit('tizen', ['package', '-t', 'wgt', '-s', profileName, '--', distDir])
 
-  const wgtFiles = fs.readdirSync(distDir).filter(name => name.endsWith('.wgt'))
+  const wgtFiles = fs.readdirSync(distDir).filter((name) => name.endsWith('.wgt'))
   if (wgtFiles.length === 0) {
     throw new Error('WGT file not found after packaging')
   }
@@ -121,13 +222,15 @@ function packageWgt(profileName: string, version: string): void {
 function main(): void {
   loadDotEnvFile(envFilePath)
 
-  ensureCommand('tizen', '\'tizen\' command not found in PATH. Add Tizen CLI to your PATH and retry.')
-  ensureCommand('npx', '\'npx\' command not found in PATH.')
+  ensureCommand('tizen', "'tizen' command not found in PATH. Add Tizen CLI to your PATH and retry.")
+  ensureCommand('npx', "'npx' command not found in PATH.")
 
   const profileName = process.env.TIZEN_PROFILE || 'SignageProfile'
   const authorPassword = process.env.TIZEN_AUTHOR_CERT_PASSWORD || 'signage1234'
   const authorName = process.env.TIZEN_AUTHOR_CERT_NAME || 'SignageAuthor'
   const authorCertPath = process.env.TIZEN_AUTHOR_CERT_PATH || ''
+  const profilesPath = resolveProfilesPath()
+  const tizenDataDir = resolveTizenDataDir(profilesPath)
 
   const version = getPackageJsonVersion(packageJsonPath)
   console.log('Tizen CLI: tizen (PATH)')
@@ -138,14 +241,20 @@ function main(): void {
   console.log('Building for Tizen...')
   execInherit('npx', ['vite', 'build', '--mode', 'tizen'])
 
-  ensureSigningProfile(profileName, authorName, authorPassword, authorCertPath)
+  ensureSigningProfile(
+    profileName,
+    authorName,
+    authorPassword,
+    authorCertPath,
+    tizenDataDir,
+    profilesPath
+  )
   packageWgt(profileName, version)
 }
 
 try {
   main()
-}
-catch (error) {
+} catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`ERROR: ${message}`)
   process.exit(1)
