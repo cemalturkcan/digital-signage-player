@@ -12,14 +12,36 @@ import { playlistRepository } from '@/routes/playlist/repository.js'
 const DEFAULT_PLAYLIST_ITEMS: PlaylistItemInput[] = [
   {
     mediaType: 'image',
-    mediaUrl: 'https://picsum.photos/1920/1080',
+    mediaUrl: 'https://cdn.cemalturkcan.com/images/image1.jpg',
     duration: 10,
     sortOrder: 0,
   },
   {
     mediaType: 'video',
-    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    mediaUrl: 'https://cdn.cemalturkcan.com/videos/video1.mp4',
     sortOrder: 1,
+  },
+  {
+    mediaType: 'image',
+    mediaUrl: 'https://cdn.cemalturkcan.com/images/image2.jpg',
+    duration: 10,
+    sortOrder: 2,
+  },
+  {
+    mediaType: 'video',
+    mediaUrl: 'https://cdn.cemalturkcan.com/videos/video2.mp4',
+    sortOrder: 3,
+  },
+  {
+    mediaType: 'image',
+    mediaUrl: 'https://cdn.cemalturkcan.com/images/image3.jpg',
+    duration: 10,
+    sortOrder: 4,
+  },
+  {
+    mediaType: 'video',
+    mediaUrl: 'https://cdn.cemalturkcan.com/videos/video3.mp4',
+    sortOrder: 5,
   },
 ]
 
