@@ -1,7 +1,8 @@
+import { spawnSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { spawnSync } from 'node:child_process'
+import * as process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
@@ -90,7 +91,7 @@ export function loadDotEnvFile(filePath: string): void {
 
     if (
       (value.startsWith('"') && value.endsWith('"'))
-      || (value.startsWith("'") && value.endsWith("'"))
+      || (value.startsWith('\'') && value.endsWith('\''))
     ) {
       value = value.slice(1, -1)
     }
@@ -160,7 +161,7 @@ export function waitForTargetSerial(sdbCommand: string, timeoutSeconds = 45): st
 
 export function updateWidgetVersion(configXmlPath: string, version: string): void {
   const current = fs.readFileSync(configXmlPath, 'utf8')
-  const next = current.replace(/(<widget[^>]*\bversion=")([^"]*)(")/, `$1${version}$3`)
+  const next = current.replace(/(<widget[^>]*\sversion=")([^"]*)(")/, `$1${version}$3`)
 
   if (next === current) {
     throw new Error('Could not update widget version in config.xml')
@@ -176,7 +177,7 @@ export function getPackageJsonVersion(packageJsonPath: string): string {
 
 export function getAppPackageId(configXmlPath: string): string {
   const configXml = fs.readFileSync(configXmlPath, 'utf8')
-  const match = configXml.match(/<tizen:application[^>]*\bpackage="([^"]+)"/)
+  const match = configXml.match(/<tizen:application[^>]*\spackage="([^"]+)"/)
 
   if (!match) {
     throw new Error('Could not resolve package id from config.xml')

@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
-import path from 'node:path'
+import * as path from 'node:path'
+import * as process from 'node:process'
 import {
   ensureCommand,
   execInherit,
@@ -8,13 +9,13 @@ import {
   resolveWgtInput,
   rootDir,
   waitForTargetSerial,
-} from './tizen-common.ts'
+} from './tizen-common'
 
 function main(): void {
   const envFilePath = path.join(rootDir, '.env.tizen')
   loadDotEnvFile(envFilePath)
 
-  ensureCommand('tizen', "'tizen' command not found in PATH. Add Tizen CLI to your PATH and retry.")
+  ensureCommand('tizen', '\'tizen\' command not found in PATH. Add Tizen CLI to your PATH and retry.')
   const sdbCommand = resolveSdbCommand()
 
   const inputWgtPath = process.argv[2]

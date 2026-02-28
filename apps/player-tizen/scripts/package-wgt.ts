@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import * as process from 'node:process'
 import {
   distDir,
   ensureCommand,
@@ -11,7 +12,7 @@ import {
   loadDotEnvFile,
   rootDir,
   updateWidgetVersion,
-} from './tizen-common.js'
+} from './tizen-common'
 
 const envFilePath = path.join(rootDir, '.env.tizen')
 const packageJsonPath = path.join(rootDir, 'package.json')
@@ -90,7 +91,7 @@ function packageWgt(profileName: string, version: string): void {
   }
 
   if (!fs.existsSync(distDir)) {
-    throw new Error("dist/ not found. Run 'vite build --mode tizen' first.")
+    throw new Error('dist/ not found. Run \'vite build --mode tizen\' first.')
   }
 
   console.log('Copying config.xml to dist/')
@@ -120,8 +121,8 @@ function packageWgt(profileName: string, version: string): void {
 function main(): void {
   loadDotEnvFile(envFilePath)
 
-  ensureCommand('tizen', "'tizen' command not found in PATH. Add Tizen CLI to your PATH and retry.")
-  ensureCommand('npx', "'npx' command not found in PATH.")
+  ensureCommand('tizen', '\'tizen\' command not found in PATH. Add Tizen CLI to your PATH and retry.')
+  ensureCommand('npx', '\'npx\' command not found in PATH.')
 
   const profileName = process.env.TIZEN_PROFILE || 'SignageProfile'
   const authorPassword = process.env.TIZEN_AUTHOR_CERT_PASSWORD || 'signage1234'
