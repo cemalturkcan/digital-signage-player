@@ -6,6 +6,10 @@
     "dev": "vite --host",
     "dev:mock": "vite --mode mock",
     "build": "bash scripts/package-wgt.sh",
+    "wgt:install": "bash scripts/install-emulator.sh",
+    "wgt:run": "bash scripts/run-emulator.sh",
+    "wgt:deploy": "pnpm run build && pnpm run wgt:install",
+    "wgt:deploy:run": "pnpm run wgt:deploy && pnpm run wgt:run",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src",
@@ -16,6 +20,7 @@
   "dependencies": {
     "@signage/config": "workspace:*",
     "@signage/contracts": "workspace:*",
+    "@unocss/reset": "^66.6.2",
     "axios": "^1.13.5",
     "mqtt": "^5.15.0",
     "pinia": "^3.0.4",

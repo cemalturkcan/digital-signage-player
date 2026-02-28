@@ -57,7 +57,9 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
     options?.onError?.(err)
     setState('error')
     return {
-      config: {} as BootstrapConfig,
+      config: {
+        deviceId,
+      },
       registration: null,
       state: 'error',
     }
@@ -69,13 +71,13 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
     setState('connected')
   }
   catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    options?.onError?.(err)
-    setState('error')
+    setState('registered')
     return {
-      config: {} as BootstrapConfig,
+      config: {
+        deviceId,
+      },
       registration,
-      state: 'error',
+      state: 'registered',
     }
   }
 

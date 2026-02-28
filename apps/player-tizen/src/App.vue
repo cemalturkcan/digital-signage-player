@@ -356,8 +356,13 @@ onMounted(async () => {
     globalStore.showError('Bootstrap failed')
     return
   }
+
   registerCommandHandler()
-  await setupMqtt()
+
+  if (bootstrapResult.state === 'connected') {
+    await setupMqtt()
+  }
+
   await fetchAndLoadPlaylist()
 })
 
@@ -425,7 +430,7 @@ onUnmounted(() => {
 #error {
   flex-direction: column;
   color: #fff;
-  font-family: sans-serif;
+  font-family: var(--font-sans);
 }
 
 .spinner {

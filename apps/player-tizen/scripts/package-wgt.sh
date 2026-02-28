@@ -19,8 +19,9 @@ TIZEN_AUTHOR_CERT_PASSWORD="${TIZEN_AUTHOR_CERT_PASSWORD:-signage1234}"
 TIZEN_AUTHOR_CERT_NAME="${TIZEN_AUTHOR_CERT_NAME:-SignageAuthor}"
 TIZEN_AUTHOR_CERT_PATH="${TIZEN_AUTHOR_CERT_PATH:-}"
 
-if [[ -z "${TIZEN_CLI:-}" ]]; then
-  echo "ERROR: TIZEN_CLI is not set in .env.tizen"
+if ! command -v tizen >/dev/null 2>&1; then
+  echo "ERROR: 'tizen' command not found in PATH"
+  echo "Add Tizen CLI to your PATH and retry."
   exit 1
 fi
 
@@ -57,7 +58,7 @@ resolve_author_cert_path() {
 }
 
 VERSION="$(grep '"version"' "$ROOT_DIR/package.json" | head -1 | sed 's/.*"version".*"\(.*\)".*/\1/')"
-echo "Tizen CLI: $TIZEN_CLI"
+echo "Tizen CLI: tizen (PATH)"
 echo "Version: $VERSION"
 
 sed -i "/widget/s/version=\"[^\"]*\"/version=\"$VERSION\"/" "$ROOT_DIR/config.xml"
@@ -71,7 +72,7 @@ else
 fi
 
 profile_exists() {
-  run_tizen "$TIZEN_CLI" security-profiles list 2>&1 | grep -q "$TIZEN_PROFILE"
+  run_tizen tizen security-profiles list 2>&1 | grep -q "$TIZEN_PROFILE"
 }
 
 if ! profile_exists; then
@@ -79,7 +80,7 @@ if ! profile_exists; then
   AUTHOR_CERT_PATH="$(resolve_author_cert_path)"
 
   if [[ -z "$AUTHOR_CERT_PATH" ]]; then
-    run_tizen "$TIZEN_CLI" certificate \
+    run_tizen tizen certificate \
       -a "$TIZEN_AUTHOR_CERT_NAME" \
       -p "$TIZEN_AUTHOR_CERT_PASSWORD" \
       -f "$TIZEN_PROFILE"
@@ -98,7 +99,7 @@ if ! profile_exists; then
     AUTHOR_CERT_ARG="$AUTHOR_CERT_PATH"
   fi
 
-  if ! run_tizen "$TIZEN_CLI" security-profiles add \
+  if ! run_tizen tizen security-profiles add \
     -n "$TIZEN_PROFILE" \
     -a "$AUTHOR_CERT_ARG" \
     -p "$TIZEN_AUTHOR_CERT_PASSWORD"; then
@@ -133,7 +134,7 @@ else
 fi
 
 echo "Packaging WGT with profile: $TIZEN_PROFILE"
-run_tizen "$TIZEN_CLI" package -t wgt -s "$TIZEN_PROFILE" -- "$WIN_DIST_DIR"
+run_tizen tizen package -t wgt -s "$TIZEN_PROFILE" -- "$WIN_DIST_DIR"
 
 sleep 1
 

@@ -1,0 +1,54 @@
+@import './base.css';
+
+.section {
+  margin-bottom: var(--size-8);
+}
+
+.section--lg {
+  margin-bottom: var(--size-12);
+}
+
+.grid {
+  display: grid;
+  gap: var(--size-4);
+}
+
+.grid--1cols {
+  grid-template-columns: 1fr;
+}
+
+.grid--2cols {
+  grid-template-columns: 1fr;
+}
+
+.grid--3cols {
+  grid-template-columns: 1fr;
+}
+
+.grid--4cols {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .grid--2cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid--3cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid--4cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid--3cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grid--4cols {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

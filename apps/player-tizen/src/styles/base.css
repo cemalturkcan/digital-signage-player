@@ -1,0 +1,200 @@
+:root {
+  font-size: 62.5%;
+  --white: #fafafa;
+  --black: #0b0b0b;
+
+  color-scheme: light;
+
+  --gray-50: #fafafa;
+  --gray-100: #f4f4f5;
+  --gray-200: #e4e4e7;
+  --gray-300: #d4d4d8;
+  --gray-400: #a1a1aa;
+  --gray-500: #71717a;
+  --gray-600: #52525b;
+  --gray-700: #3f3f46;
+  --gray-800: #27272a;
+  --gray-900: #18181b;
+  --gray-950: #111111;
+
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-200: #fecaca;
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #991919;
+  --red-800: #511111;
+  --red-900: #300c0c;
+  --red-950: #1f0808;
+
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #a3cfff;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #173da6;
+  --blue-800: #1a3478;
+  --blue-900: #14204a;
+  --blue-950: #0c142e;
+
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-200: #bbf7d0;
+  --green-300: #86efac;
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
+  --green-950: #052e16;
+
+  --orange-50: #fff7ed;
+  --orange-100: #ffedd5;
+  --orange-200: #fed7aa;
+  --orange-300: #fdba74;
+  --orange-400: #fb923c;
+  --orange-500: #f97316;
+  --orange-600: #ea580c;
+  --orange-700: #92310a;
+  --orange-800: #6c2710;
+  --orange-900: #3b1106;
+  --orange-950: #220a04;
+
+  --bg: var(--gray-100);
+  --bg-subtle: var(--gray-50);
+  --bg-muted: var(--gray-100);
+  --bg-emphasized: var(--gray-200);
+  --bg-inverted: var(--black);
+  --bg-panel: var(--white);
+  --bg-error: var(--red-50);
+  --bg-warning: var(--orange-50);
+  --bg-success: var(--green-50);
+  --bg-info: var(--blue-50);
+
+  --border: var(--gray-200);
+  --border-subtle: var(--gray-100);
+  --border-muted: var(--gray-200);
+  --border-emphasized: var(--gray-300);
+  --border-inverted: var(--gray-800);
+  --border-error: var(--red-200);
+  --border-warning: var(--orange-200);
+  --border-success: var(--green-200);
+  --border-info: var(--blue-200);
+
+  --fg: var(--black);
+  --fg-muted: var(--gray-600);
+  --fg-subtle: var(--gray-400);
+  --fg-inverted: var(--white);
+  --fg-error: var(--red-500);
+  --fg-warning: var(--orange-600);
+  --fg-success: var(--green-600);
+  --fg-info: var(--blue-600);
+
+  --size-1: 0.4rem;
+  --size-2: 0.8rem;
+  --size-3: 1.2rem;
+  --size-4: 1.6rem;
+  --size-5: 2rem;
+  --size-6: 2.4rem;
+  --size-8: 3.2rem;
+  --size-10: 4rem;
+  --size-12: 4.8rem;
+  --size-14: 5.6rem;
+  --size-16: 6.4rem;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+  --radius-full: 9999px;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+
+  --font-size-xs: 1.2rem;
+  --font-size-sm: 1.4rem;
+  --font-size-md: 1.6rem;
+  --font-size-lg: 1.8rem;
+  --font-size-xl: 2rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+}
+
+[data-theme='dark'],
+.dark {
+  color-scheme: dark;
+
+  --bg: var(--gray-950);
+  --bg-subtle: var(--gray-900);
+  --bg-muted: var(--gray-800);
+  --bg-emphasized: var(--gray-700);
+  --bg-inverted: var(--white);
+  --bg-panel: var(--gray-900);
+  --bg-error: var(--red-950);
+  --bg-warning: var(--orange-950);
+  --bg-success: var(--green-950);
+  --bg-info: var(--blue-950);
+
+  --border: var(--gray-800);
+  --border-subtle: var(--gray-900);
+  --border-muted: var(--gray-800);
+  --border-emphasized: var(--gray-700);
+  --border-inverted: var(--gray-200);
+  --border-error: var(--red-900);
+  --border-warning: var(--orange-900);
+  --border-success: var(--green-900);
+  --border-info: var(--blue-900);
+
+  --fg: var(--white);
+  --fg-muted: var(--gray-400);
+  --fg-subtle: var(--gray-500);
+  --fg-inverted: var(--black);
+  --fg-error: var(--red-400);
+  --fg-warning: var(--orange-400);
+  --fg-success: var(--green-400);
+  --fg-info: var(--blue-400);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  color: var(--fg);
+  background: var(--bg);
+  line-height: var(--line-height-normal);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: var(--font-size-md);
+}

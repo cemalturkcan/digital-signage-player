@@ -93,6 +93,9 @@ importers:
       '@signage/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@unocss/reset':
+        specifier: ^66.6.2
+        version: 66.6.2
       axios:
         specifier: ^1.13.5
         version: 1.13.5
@@ -1272,6 +1275,10 @@ packages:
       '@typescript-eslint/types': 8.56.1
       eslint-visitor-keys: 5.0.1
     dev: true
+
+  /@unocss/reset@66.6.2:
+    resolution: {integrity: sha512-hBmXE8pJUybUYwFKVZsVy8XyIv3W7htz2ejYuJVpZAQnO4PWPUBb95UcLwBvHWhzZxXRNtvsTtSOsreUvm6mJw==}
+    dev: false
 
   /@vitejs/plugin-vue@6.0.4(vite@7.3.1)(vue@3.5.29):
     resolution: {integrity: sha512-uM5iXipgYIn13UUQCZNdWkYk+sysBeA97d5mHsAoAt1u/wpN3+zxOmsVJWosuzX+IMGRzeYUNytztrYznboIkQ==}

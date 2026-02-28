@@ -24,7 +24,10 @@ async function connect(config: RegistrationResponse): Promise<void> {
   }
 
   let brokerUrl: string
-  if (config.mqtt.host && config.mqtt.port) {
+  if (MQTT_BROKER_URL) {
+    brokerUrl = MQTT_BROKER_URL
+  }
+  else if (config.mqtt.host && config.mqtt.port) {
     const isBrowser = typeof window !== 'undefined'
     let protocol: string
     if (isBrowser) {
