@@ -332,7 +332,7 @@
 **Status**: Approved
 **Date**: 2026-02-27
 
-**Decision**: player-tizen `build` script produces signed WGT via env-driven `.env.tizen` + `scripts/package-wgt.sh` + Turbo outputs caching (`*.wgt`).
+**Decision**: player `build` script produces signed WGT via env-driven `.env.tizen` + `scripts/package-wgt.sh` + Turbo outputs caching (`*.wgt`).
 
 **Rationale**:
 

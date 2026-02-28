@@ -1,5 +1,5 @@
 {
-  "name": "@signage/player-tizen",
+  "name": "@signage/player",
   "version": "0.1.0",
   "type": "module",
   "scripts": {

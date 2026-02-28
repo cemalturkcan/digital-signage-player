@@ -46,7 +46,7 @@ Routes are defined with Hono OpenAPI (`@hono/zod-openapi`) in domain `doc.ts` mo
 ### 4. Start Player (Development)
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 cp .env.example .env  # Set VITE_API_BASE_URL to your backend IP
 pnpm dev
 ```
@@ -77,7 +77,7 @@ pnpm typecheck    # Type check only
 ### Player-Specific
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 pnpm dev          # Vite dev server
 pnpm dev:mock     # Dev mode with mock data
 pnpm build        # Build and package WGT
@@ -182,7 +182,7 @@ The player implements a practical offline-first strategy:
 ### Build WGT Package
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 # Edit .env.tizen:
 # TIZEN_CLI=C:/tizen-studio/tools/ide/bin/tizen.bat
 # TIZEN_PROFILE=SignageProfile
@@ -226,7 +226,7 @@ The build script auto-detects WSL and converts paths for Windows Tizen CLI:
 ```
 ├── apps/
 │   ├── backend/          # Hono API + MQTT integration
-│   └── player-tizen/     # Vue3 + Vite Tizen player
+│   └── player/           # Vue3 + Vite player app (Tizen provider included)
 ├── packages/
 │   ├── contracts/        # Shared TypeScript types
 │   └── config/           # Shared config contracts

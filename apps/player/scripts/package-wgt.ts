@@ -34,9 +34,7 @@ function resolveProfilesPath(): string {
       }
     }
   }
-  catch {
-    // Ignore and fall through to default path.
-  }
+  catch {}
 
   return path.join(
     process.env.USERPROFILE ?? process.env.HOME ?? '',
@@ -118,13 +116,7 @@ function resolveOpenSslCommand(): string {
   const candidates = [
     path.join(process.env.TIZEN_STUDIO_HOME ?? '', 'tools', 'msys2', 'usr', 'bin', 'openssl.exe'),
     path.join('C:\\', 'tizen-studio', 'tools', 'msys2', 'usr', 'bin', 'openssl.exe'),
-    path.join(
-      process.env.ProgramFiles ?? 'C:\\Program Files',
-      'Git',
-      'usr',
-      'bin',
-      'openssl.exe',
-    ),
+    path.join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'usr', 'bin', 'openssl.exe'),
     path.join(
       process.env.ProgramFiles ?? 'C:\\Program Files',
       'Git',

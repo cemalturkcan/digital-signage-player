@@ -40,9 +40,7 @@ function main(): void {
   try {
     execInherit(sdbCommand, ['-s', targetSerial, 'uninstall', packageId])
   }
-  catch {
-    // Ignore uninstall errors (package may not be installed yet).
-  }
+  catch {}
 
   try {
     installWithSdb(sdbCommand, targetSerial, wgtPath)

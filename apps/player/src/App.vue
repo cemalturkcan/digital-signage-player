@@ -1,19 +1,14 @@
 <script setup lang="ts">
-import type {
-  CommandEnvelope,
-  CommandResultEnvelope,
-  CommandType,
-  MediaItem,
-} from '@signage/contracts'
-import type { Bootstrap } from '@/app/bootstrap/bootstrap'
-import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
-import { commandBus } from '@/app/commands/bus'
-import { mqttClientService } from '@/app/mqtt/client'
-import { getPlaylist } from '@/app/request/requests/playlist'
-import { useGlobalStore } from '@/app/stores/global/store'
-import { useMediaStore } from '@/app/stores/media/store'
-import { usePlayerStore } from '@/app/stores/player/store'
-import { usePlaylistStore } from '@/app/stores/playlist/store'
+import type {CommandEnvelope, CommandResultEnvelope, CommandType, MediaItem,} from '@signage/contracts'
+import type {Bootstrap} from '@/app/bootstrap/bootstrap'
+import {computed, inject, onMounted, onUnmounted, ref, watch} from 'vue'
+import {commandBus} from '@/app/commands/bus'
+import {mqttClientService} from '@/app/mqtt/client'
+import {getPlaylist} from '@/app/request/requests/playlist'
+import {useGlobalStore} from '@/app/stores/global/store'
+import {useMediaStore} from '@/app/stores/media/store'
+import {usePlayerStore} from '@/app/stores/player/store'
+import {usePlaylistStore} from '@/app/stores/playlist/store'
 
 const globalStore = useGlobalStore()
 const playerStore = usePlayerStore()
@@ -133,8 +128,7 @@ async function handleMediaError(): Promise<void> {
     if (cached) {
       retryWithCache.value = true
       revokeCurrentBlob()
-      const url = URL.createObjectURL(cached)
-      currentBlobUrl.value = url
+      currentBlobUrl.value = URL.createObjectURL(cached)
       return
     }
   }

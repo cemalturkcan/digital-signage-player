@@ -85,7 +85,7 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.3.1)(tsx@4.21.0)
 
-  apps/player-tizen:
+  apps/player:
     dependencies:
       '@signage/config':
         specifier: workspace:*

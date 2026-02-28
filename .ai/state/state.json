@@ -48,7 +48,7 @@
     "architecture": "Clean Architecture with Layered Modules",
     "monorepo": {
       "tool": "pnpm workspaces",
-      "packages": ["apps/backend", "apps/player-tizen", "packages/contracts", "packages/config"]
+      "packages": ["apps/backend", "apps/player", "packages/contracts", "packages/config"]
     }
   },
   "quality": {

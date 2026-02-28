@@ -18,7 +18,7 @@ digital-signage/
 │   │   │   └── playlist/            # Playlist fetch endpoint
 │   │   ├── db/                      # Database connection (lazy init)
 │   │   └── config.ts                # Environment configuration
-│   └── player-tizen/         # Tizen player application
+│   └── player/               # Player application (provider-based)
 │       src/
 │       ├── app/
 │       │   ├── bootstrap/           # Registration and MQTT connect flow

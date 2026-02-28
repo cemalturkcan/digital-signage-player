@@ -17,7 +17,7 @@
 ### 1. Configure Player Environment
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 
 # Create player .env
 cat > .env <<EOF
@@ -52,7 +52,7 @@ The build script auto-detects WSL and handles path conversion:
 ### Development Build
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 pnpm dev
 ```
 
@@ -61,7 +61,7 @@ Runs Vite dev server at http://localhost:5173
 ### Production Build (WGT Package)
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 pnpm build
 ```
 

@@ -81,7 +81,7 @@
       "status": "completed",
       "priority": "high",
       "completedAt": "2026-02-27T08:57:06Z",
-      "notes": "player-tizen build now produces signed WGT via env-driven .env.tizen + package-wgt.sh + turbo outputs caching (*.wgt)"
+      "notes": "player build now produces signed WGT via env-driven .env.tizen + package-wgt.sh + turbo outputs caching (*.wgt)"
     },
     {
       "id": "DSP-012",

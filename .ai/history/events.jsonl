@@ -1,6 +1,6 @@
 {"event":"state-initialized","timestamp":"2024-02-25T21:20:00Z","details":{"project":"digital-signage-player","platforms":["tizen","webos"],"stack":"typescript-vite-mqtt-indexeddb"}}
 {"event":"task-completed","timestamp":"2025-02-25T22:00:00Z","taskId":"DSP-001","details":{"title":"Project Initialization","phase":"scaffolding"}}
-{"event":"monorepo-established","timestamp":"2025-02-25T22:05:00Z","details":{"apps":["backend","player-tizen"],"packages":["contracts","config"],"tool":"pnpm-workspaces"}}
+{"event":"monorepo-established","timestamp":"2025-02-25T22:05:00Z","details":{"apps":["backend","player"],"packages":["contracts","config"],"tool":"pnpm-workspaces"}}
 {"event":"task-in-progress","timestamp":"2025-02-26T00:00:00Z","taskId":"DSP-006","details":{"title":"Player Engine and UI","note":"Vue + Axios foundation established"}}
 {"event":"task-completed","timestamp":"2025-02-26T00:00:00Z","taskId":"DSP-007","details":{"title":"Build and Test","quality":{"lint":"passing","typecheck":"passing"}}}
 {"event":"architectural-shift","timestamp":"2025-02-26T00:00:00Z","details":{"from":"vanilla-ts","to":"vue3-axios","pattern":"module-level-instances"}}
@@ -14,7 +14,7 @@
 {"event":"task-completed","timestamp":"2026-02-26T21:59:36Z","taskId":"DSP-004","details":{"title":"MQTT Layer and Commands","changes":["Shared client pattern","Browser websocket fixes (ws://:9001, MQTT_CLIENT_* env vars)"]}}
 {"event":"state-updated","timestamp":"2026-02-26T21:59:36Z","details":{"phase":"backend-stabilized","status":"Backend refactoring complete, runtime expects mosquitto/postgres"}}
 {"event":"task-created","timestamp":"2026-02-27T08:57:06Z","taskId":"DSP-011","details":{"title":"Tizen WGT Build Automation","status":"completed"}}
-{"event":"task-completed","timestamp":"2026-02-27T08:57:06Z","taskId":"DSP-011","details":{"title":"Tizen WGT Build Automation","changes":["player-tizen build script: bash scripts/package-wgt.sh","Requires .env.tizen and TIZEN_CLI env var","Vite build --mode tizen + Tizen CLI packaging","Output: digital_signage_player_${version}.wgt","turbo.json globalDependencies: **/.env.tizen, outputs: *.wgt"],"decisions":["ADR-016: Tizen WGT Build Automation"]}}
+{"event":"task-completed","timestamp":"2026-02-27T08:57:06Z","taskId":"DSP-011","details":{"title":"Tizen WGT Build Automation","changes":["player build script: bash scripts/package-wgt.sh","Requires .env.tizen and TIZEN_CLI env var","Vite build --mode tizen + Tizen CLI packaging","Output: digital_signage_player_${version}.wgt","turbo.json globalDependencies: **/.env.tizen, outputs: *.wgt"],"decisions":["ADR-016: Tizen WGT Build Automation"]}}
 {"event":"state-updated","timestamp":"2026-02-27T08:57:06Z","details":{"phase":"backend-stabilized","projectStatus":"wgt-build-automated","updatedAt":"2026-02-27T08:57:06Z"}}
 {"event":"ai-knowledge-updated","timestamp":"2026-02-27T08:57:06Z","details":{"type":"maintenance","filesUpdated":["state.json","tasks/index.json","tasks/DSP-011.md","decisions.md","events.jsonl"],"phaseTransition":"wgt-build-automated"}}
 {"event":"plan-updated","timestamp":"2026-02-27T09:25:39Z","details":{"type":"case-focused-rescope","tasksUpdated":["DSP-002","DSP-003","DSP-005","DSP-006","DSP-008"],"taskAdded":"DSP-012","currentTaskSwitchedTo":"DSP-002","phaseTransition":"case-plan-active"}}

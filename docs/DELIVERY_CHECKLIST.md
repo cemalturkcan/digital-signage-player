@@ -41,7 +41,7 @@ curl http://localhost:3000/api/health
 ## Player Verification
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 
 # 1. Type check
 pnpm typecheck
@@ -164,7 +164,7 @@ mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
 ## WGT Build Verification
 
 ```bash
-cd apps/player-tizen
+cd apps/player
 
 # 1. Configure .env.tizen
 cat .env.tizen
@@ -196,21 +196,21 @@ tizen install -n digital_signage_player_0.1.0.wgt -t <emulator-name>
 
 ## Checklist Summary
 
-| Test                        | Status | Notes                                   |
-| --------------------------- | ------ | --------------------------------------- |
-| Backend typecheck           | [ ]    | `pnpm typecheck` in `apps/backend`      |
-| API docs available          | [ ]    | Swagger UI at `/docs` shows endpoints   |
-| Player typecheck            | [ ]    | `pnpm typecheck` in `apps/player-tizen` |
-| Device registration         | [ ]    | POST `/api/register`                    |
-| Playlist fetch              | [ ]    | GET `/api/playlist?deviceId={id}`       |
-| MQTT ping command           | [ ]    | Via mosquitto_pub/sub                   |
-| Playback loop               | [ ]    | Image 10s, then video, then loop        |
-| Screenshot command (MQTT)   | [ ]    | No REST endpoint; use MQTT              |
-| Offline playback            | [ ]    | Disconnect network, verify cache works  |
-| Volume command              | [ ]    | Via MQTT `set_volume`                   |
-| WGT build                   | [ ]    | `pnpm build` in `apps/player-tizen`     |
-| WGT signed                  | [ ]    | Check for `author-signature.xml`        |
-| Emulator run (if available) | [ ]    | `tizen install` to emulator             |
+| Test                        | Status | Notes                                  |
+| --------------------------- | ------ | -------------------------------------- |
+| Backend typecheck           | [ ]    | `pnpm typecheck` in `apps/backend`     |
+| API docs available          | [ ]    | Swagger UI at `/docs` shows endpoints  |
+| Player typecheck            | [ ]    | `pnpm typecheck` in `apps/player`      |
+| Device registration         | [ ]    | POST `/api/register`                   |
+| Playlist fetch              | [ ]    | GET `/api/playlist?deviceId={id}`      |
+| MQTT ping command           | [ ]    | Via mosquitto_pub/sub                  |
+| Playback loop               | [ ]    | Image 10s, then video, then loop       |
+| Screenshot command (MQTT)   | [ ]    | No REST endpoint; use MQTT             |
+| Offline playback            | [ ]    | Disconnect network, verify cache works |
+| Volume command              | [ ]    | Via MQTT `set_volume`                  |
+| WGT build                   | [ ]    | `pnpm build` in `apps/player`          |
+| WGT signed                  | [ ]    | Check for `author-signature.xml`       |
+| Emulator run (if available) | [ ]    | `tizen install` to emulator            |
 
 ## Known Issues
 

@@ -18,7 +18,7 @@ out/
 
 # Allow apps .env files with safe defaults
 !apps/backend/.env
-!apps/player-tizen/.env
+!apps/player/.env
 
 # IDE
 .idea/
@@ -59,4 +59,3 @@ temp/
 *old*
 
 .turbo
-
