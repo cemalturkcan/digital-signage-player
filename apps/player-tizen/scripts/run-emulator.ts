@@ -2,7 +2,7 @@
 import * as path from 'node:path'
 import * as process from 'node:process'
 import {
-  execInherit,
+  execCapture,
   getAppId,
   loadDotEnvFile,
   resolveSdbCommand,
@@ -23,7 +23,19 @@ function main(): void {
   const targetSerial = waitForTargetSerial(sdbCommand)
 
   console.log(`Running app ${appId} on target ${targetSerial}`)
-  execInherit(sdbCommand, ['-s', targetSerial, 'shell', 'app_launcher', '-s', appId])
+  const runOutput = execCapture(sdbCommand, [
+    '-s',
+    targetSerial,
+    'shell',
+    'app_launcher',
+    '-s',
+    appId,
+  ])
+  console.log(runOutput.trim())
+
+  if (!runOutput.includes('successfully launched')) {
+    throw new Error('Run failed (app_launcher did not report successful launch).')
+  }
 }
 
 try {
