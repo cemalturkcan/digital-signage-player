@@ -24,9 +24,62 @@ export interface RequestConfig {
   headers?: Record<string, string>
 }
 
+interface ApiMeta {
+  code?: string
+  message?: string
+}
+
+interface ApiEnvelope<T> {
+  data: T | null
+  meta?: ApiMeta
+}
+
 export interface HttpError extends Error {
   status?: number
+  code?: string
   data?: unknown
+}
+
+function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  return 'data' in value && 'meta' in value
+}
+
+function unwrapResponse<T>(payload: unknown): T {
+  if (!isApiEnvelope(payload)) {
+    return payload as T
+  }
+
+  if (payload.data === null) {
+    return undefined as T
+  }
+
+  return payload.data as T
+}
+
+function toHttpError(error: unknown): HttpError {
+  if (!axios.isAxiosError(error)) {
+    return error as HttpError
+  }
+
+  const responseData = error.response?.data
+  const status = error.response?.status
+  const message = isApiEnvelope(responseData)
+    ? responseData.meta?.message ?? error.message
+    : error.message
+
+  const httpError: HttpError = new Error(message)
+  httpError.status = status
+  httpError.data = responseData
+
+  if (isApiEnvelope(responseData)) {
+    httpError.code = responseData.meta?.code
+  }
+
+  return httpError
 }
 
 async function makeRequest<T>(
@@ -41,22 +94,16 @@ async function makeRequest<T>(
   }
 
   try {
-    const response = await axiosInstance.request<T>({
+    const response = await axiosInstance.request<unknown>({
       method,
       url: config.url,
       data: config.payload,
       headers,
     })
-    return response.data
+    return unwrapResponse<T>(response.data)
   }
   catch (error) {
-    if (axios.isAxiosError(error)) {
-      const httpError: HttpError = new Error(error.message)
-      httpError.status = error.response?.status
-      httpError.data = error.response?.data
-      throw httpError
-    }
-    throw error
+    throw toHttpError(error)
   }
 }
 
