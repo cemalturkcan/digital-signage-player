@@ -30,9 +30,15 @@ export interface ApiResponse<T = never> {
   meta: Meta
 }
 
-export type ServiceResponse<T = never>
-  = | { data?: T, error?: never }
-    | { data?: never, error: Err }
+export interface Page<T> {
+  size: number
+  total: number
+  currentPage: number
+  totalPages: number
+  content: T[]
+}
+
+export type ServiceResponse<T = never> = { data?: T, error?: never } | { data?: never, error: Err }
 
 function jsonResponse<T>(data: T | null, code: string, message: string): ApiResponse<T> {
   return {
@@ -48,11 +54,7 @@ export function ok<T>(data: T): ServiceResponse<T> {
   return { data }
 }
 
-export function fail(
-  code: string,
-  message?: string,
-  originError?: Error,
-): ServiceResponse {
+export function fail(code: string, message?: string, originError?: Error): ServiceResponse {
   return {
     error: new Err(code, message ?? getCodeMessage(code), originError),
   }

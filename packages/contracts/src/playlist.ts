@@ -17,14 +17,18 @@ export interface MediaItem {
 
 export type MediaType = 'image' | 'video'
 
-export interface PlaylistResponse {
-  playlists: Playlist[]
-  pagination: Pagination
+export interface Page<T> {
+  size: number
+  total: number
+  currentPage: number
+  totalPages: number
+  content: T[]
 }
 
-export interface Pagination {
-  page: number
-  pageSize: number
-  totalItems: number
+export interface PlaylistResponse {
+  size: number
+  total: number
+  currentPage: number
   totalPages: number
+  content: Playlist[]
 }

@@ -56,6 +56,21 @@ export const usePlaylistStore = defineStore('playlist', {
       }
       return this.currentPlaylist.items[this.currentIndex] ?? null
     },
+    prevWithLoop(): MediaItem | null {
+      if (!this.currentPlaylist) {
+        return null
+      }
+      if (this.currentIndex > 0) {
+        this.currentIndex -= 1
+      }
+      else if (this.currentPlaylist.items.length > 0) {
+        this.currentIndex = this.currentPlaylist.items.length - 1
+      }
+      else {
+        return null
+      }
+      return this.currentPlaylist.items[this.currentIndex] ?? null
+    },
     resetIndex(): void {
       this.currentIndex = 0
     },

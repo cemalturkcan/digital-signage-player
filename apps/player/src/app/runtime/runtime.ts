@@ -8,7 +8,7 @@ import type { Buffer } from 'node:buffer'
 import type { Bootstrap } from '@/app/bootstrap/bootstrap'
 import { commandBus } from '@/app/commands/bus'
 import { mqttClientService } from '@/app/mqtt/client'
-import { getPlaylist } from '@/app/request/requests/playlist'
+import { getPlaylistsByDeviceId } from '@/app/request/requests/playlist'
 import { useGlobalStore } from '@/app/stores/global/store'
 import { useLibraryStore } from '@/app/stores/library/store'
 import { usePlayerStore } from '@/app/stores/player/store'
@@ -92,8 +92,8 @@ export async function fetchPlaylists(): Promise<Playlist[]> {
 
   try {
     globalStore.showLoading('Loading playlists...')
-    const response = await getPlaylist(currentDeviceId, 1, 100)
-    const playlists = response.playlists
+    const response = await getPlaylistsByDeviceId(currentDeviceId)
+    const playlists = response.content
     libraryStore.setPlaylists(playlists)
     globalStore.hideLoading()
     return playlists

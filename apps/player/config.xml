@@ -7,7 +7,7 @@
     <tizen:application id="SgnPlayer0.DigitalSignage" package="SgnPlayer0" required_version="9.0"/>
     <name>Digital Signage Player</name>
     <content src="index.html"/>
-    <icon src="icon.png"/>
+    <icon src="favicon.svg"/>
     <tizen:privilege name="http://tizen.org/privilege/internet"/>
     <tizen:privilege name="http://tizen.org/privilege/network.get"/>
     <feature name="http://tizen.org/feature/screen.size.all"/>

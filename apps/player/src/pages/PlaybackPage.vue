@@ -3,6 +3,7 @@ import type { MediaItem } from '@signage/contracts'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { usePlayerStore } from '@/app/stores/player/store'
 import { usePlaylistStore } from '@/app/stores/playlist/store'
+import TransportControls from '@/components/playback/TransportControls.vue'
 import Player from '@/components/Player.vue'
 
 interface PlayerRef {
@@ -15,6 +16,8 @@ const playlistStore = usePlaylistStore()
 
 const playerRef = ref<PlayerRef | null>(null)
 const imageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+
+const IMAGE_DURATION_SECONDS = 5
 
 const currentItem = computed(() => playerStore.currentItem)
 const isImage = computed(() => currentItem.value?.type === 'image')
@@ -37,7 +40,7 @@ async function playItem(item: MediaItem): Promise<void> {
   if (item.type !== 'image')
     return
 
-  const duration = Math.max(1, item.duration ?? 5)
+  const duration = IMAGE_DURATION_SECONDS
   imageTimer.value = setTimeout(() => {
     void nextItem()
   }, duration * 1000)
@@ -49,6 +52,14 @@ async function nextItem(): Promise<void> {
     return
 
   await playItem(next)
+}
+
+async function prevItem(): Promise<void> {
+  const previous = playlistStore.prevWithLoop()
+  if (!previous)
+    return
+
+  await playItem(previous)
 }
 
 function handleVideoEnded(): void {
@@ -108,10 +119,15 @@ onUnmounted(() => {
         v-else-if="isVideo && currentItem"
         ref="playerRef"
         :src="currentItem.url"
+        :controls="false"
         class="playback-page_media"
         @ended="handleVideoEnded"
         @error="handleMediaError"
       />
+
+      <div class="playback-page_controls">
+        <TransportControls @next="nextItem" @previous="prevItem" />
+      </div>
     </div>
   </div>
 </template>
@@ -124,6 +140,7 @@ onUnmounted(() => {
 }
 
 .playback-page_media-wrap {
+  position: relative;
   width: 100%;
   height: 100%;
   display: flex;
@@ -135,5 +152,12 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.playback-page_controls {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-tv-page);
+  transform: translateX(-50%);
 }
 </style>

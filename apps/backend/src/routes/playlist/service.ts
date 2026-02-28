@@ -14,7 +14,6 @@ const DEFAULT_PLAYLIST: Playlist = {
       id: 'default-0',
       type: 'image',
       url: 'https://cdn.cemalturkcan.com/images/image1.jpg',
-      duration: 5,
       order: 0,
     },
     {
@@ -27,7 +26,6 @@ const DEFAULT_PLAYLIST: Playlist = {
       id: 'default-2',
       type: 'image',
       url: 'https://cdn.cemalturkcan.com/images/image2.jpg',
-      duration: 5,
       order: 2,
     },
     {
@@ -39,32 +37,14 @@ const DEFAULT_PLAYLIST: Playlist = {
   ],
 }
 
-function getNumericPlaylistId(playlistId: string): number | null {
-  const parsed = Number.parseInt(playlistId, 10)
-
-  if (!Number.isSafeInteger(parsed) || parsed < 1) {
-    return null
-  }
-
-  return parsed
-}
-
 function mapRecordToPlaylist(record: PlaylistRecord, itemRecords: PlaylistItemRecord[]): Playlist {
   const items: MediaItem[] = itemRecords.map((itemRecord: PlaylistItemRecord) => {
-    const item: MediaItem = {
+    return {
       id: String(itemRecord.id),
       type: itemRecord.mediaType,
       url: itemRecord.mediaUrl,
       order: itemRecord.sortOrder,
     }
-
-    if (itemRecord.mediaType === 'image') {
-      item.duration = itemRecord.duration ?? 5
-    } else if (itemRecord.duration !== null) {
-      item.duration = itemRecord.duration
-    }
-
-    return item
   })
 
   return {
@@ -80,109 +60,49 @@ async function loadPlaylistFromRecord(record: PlaylistRecord): Promise<Playlist>
   return mapRecordToPlaylist(record, itemRecords)
 }
 
-function buildPageWindow(
-  page: number,
-  pageSize: number
-): {
-  includeDefault: boolean
-  deviceOffset: number
-  deviceLimit: number
-} {
-  const startIndex = (page - 1) * pageSize
-  const includeDefault = startIndex === 0
-
-  if (includeDefault) {
-    return {
-      includeDefault: true,
-      deviceOffset: 0,
-      deviceLimit: Math.max(0, pageSize - 1),
-    }
-  }
-
-  return {
-    includeDefault: false,
-    deviceOffset: Math.max(0, startIndex - 1),
-    deviceLimit: pageSize,
-  }
-}
-
 export interface PlaylistService {
-  getPlaylist: (
+  getPlaylistsByDeviceId: (
     deviceId: string,
     page: number,
-    pageSize: number
+    pageSize: number,
   ) => Promise<ServiceResponse<PlaylistResponse>>
-  getPlaylistById: (playlistId: string) => Promise<ServiceResponse<Playlist>>
 }
 
 export const playlistService: PlaylistService = {
-  async getPlaylist(
+  async getPlaylistsByDeviceId(
     deviceId: string,
     page: number,
-    pageSize: number
+    pageSize: number,
   ): Promise<ServiceResponse<PlaylistResponse>> {
     const normalizedDeviceId = deviceId.trim()
-
     if (!normalizedDeviceId) {
       return fail(ErrorCode.BAD_REQUEST, 'deviceId required')
     }
 
     try {
-      const totalDevicePlaylists =
-        await playlistRepository.countPlaylistsByDeviceId(normalizedDeviceId)
-      const totalItems = totalDevicePlaylists + 1
-      const totalPages = Math.ceil(totalItems / pageSize)
-      const { includeDefault, deviceOffset, deviceLimit } = buildPageWindow(page, pageSize)
+      const offset = (page - 1) * pageSize
 
-      const devicePlaylistRecords = await playlistRepository.listPlaylistsByDeviceId(
-        normalizedDeviceId,
-        deviceLimit,
-        deviceOffset
-      )
-      const devicePlaylists = await Promise.all(
-        devicePlaylistRecords.map((record: PlaylistRecord) => loadPlaylistFromRecord(record))
-      )
+      const [totalDevicePlaylists, records] = await Promise.all([
+        playlistRepository.countPlaylistsByDeviceId(normalizedDeviceId),
+        playlistRepository.listPlaylistsByDeviceId(normalizedDeviceId, pageSize, offset),
+      ])
 
-      const playlists = includeDefault ? [DEFAULT_PLAYLIST, ...devicePlaylists] : devicePlaylists
+      const devicePlaylists = await Promise.all(records.map(loadPlaylistFromRecord))
+      const content = page === 1 ? [DEFAULT_PLAYLIST, ...devicePlaylists] : devicePlaylists
+
+      const total = totalDevicePlaylists + 1
+      const totalPages = Math.ceil(total / pageSize)
 
       return ok({
-        playlists,
-        pagination: {
-          page,
-          pageSize,
-          totalItems,
-          totalPages,
-        },
+        size: pageSize,
+        total,
+        currentPage: page,
+        totalPages,
+        content,
       })
-    } catch (error) {
-      return unexpected(error, 'Failed to get playlists')
     }
-  },
-
-  async getPlaylistById(playlistId: string): Promise<ServiceResponse<Playlist>> {
-    const normalizedPlaylistId = playlistId.trim()
-
-    if (normalizedPlaylistId === DEFAULT_PLAYLIST.id) {
-      return ok(DEFAULT_PLAYLIST)
-    }
-
-    const numericPlaylistId = getNumericPlaylistId(normalizedPlaylistId)
-
-    if (numericPlaylistId === null) {
-      return fail(ErrorCode.NOT_FOUND, 'Playlist not found')
-    }
-
-    try {
-      const playlistRecord = await playlistRepository.findPlaylistById(numericPlaylistId)
-
-      if (playlistRecord === null) {
-        return fail(ErrorCode.NOT_FOUND, 'Playlist not found')
-      }
-
-      const playlist = await loadPlaylistFromRecord(playlistRecord)
-      return ok(playlist)
-    } catch (error) {
-      return unexpected(error, 'Failed to get playlist by id')
+    catch (error) {
+      return unexpected(error, 'Failed to get playlists by device id')
     }
   },
 }

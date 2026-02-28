@@ -1,28 +1,15 @@
 import type { Context } from 'hono'
+import { getNonEmptyString, getPage, getPageSize } from '@/app/rest/params.js'
 import { Res } from '@/app/rest/rest.js'
-import {
-  getPlaylistDeviceId,
-  getPlaylistId,
-  getPlaylistPage,
-  getPlaylistPageSize,
-} from '@/routes/playlist/modal.js'
 import { playlistService } from '@/routes/playlist/service.js'
 
 export const playlistController = {
-  async getPlaylist(c: Context) {
-    const deviceId = getPlaylistDeviceId(c.req.query('deviceId'))!
-    const page = getPlaylistPage(c.req.query('page'))
-    const pageSize = getPlaylistPageSize(c.req.query('pageSize'))
+  async getPlaylistsByDeviceId(c: Context) {
+    const deviceId = getNonEmptyString(c.req.query('deviceId'))
+    const page = getPage(c.req.query('page'))
+    const pageSize = getPageSize(c.req.query('pageSize'))
 
-    const result = await playlistService.getPlaylist(deviceId, page, pageSize)
-
-    return Res(result)
-  },
-
-  async getPlaylistById(c: Context) {
-    const id = getPlaylistId(c.req.param('id'))!
-
-    const result = await playlistService.getPlaylistById(id)
+    const result = await playlistService.getPlaylistsByDeviceId(deviceId ?? '', page, pageSize)
 
     return Res(result)
   },
