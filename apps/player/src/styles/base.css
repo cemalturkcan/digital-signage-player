@@ -117,11 +117,13 @@
   --radius-4xl: 32px;
   --radius-full: 9999px;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
     'Segoe UI Symbol', 'Noto Color Emoji';
   --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
 
   --font-size-xs: 1.2rem;
@@ -137,6 +139,30 @@
 
   --line-height-tight: 1.25;
   --line-height-normal: 1.5;
+
+  --border-width-thin: 1px;
+  --motion-fast: 160ms;
+  --motion-slow: 1000ms;
+
+  --surface-tv: var(--bg-inverted);
+  --surface-tv-elevated: var(--gray-900);
+  --surface-tv-accent: var(--blue-700);
+  --surface-tv-accent-strong: var(--blue-600);
+
+  --border-tv: var(--gray-700);
+  --border-tv-strong: var(--blue-400);
+
+  --text-tv: var(--fg-inverted);
+  --text-tv-muted: var(--gray-300);
+  --text-tv-subtle: var(--gray-400);
+
+  --radius-tv-card: var(--radius-2xl);
+  --radius-tv-pill: var(--radius-full);
+
+  --space-tv-page: var(--size-12);
+  --space-tv-stack: var(--size-8);
+  --space-tv-gap: var(--size-4);
+  --space-tv-card: var(--size-5);
 }
 
 [data-theme='dark'],

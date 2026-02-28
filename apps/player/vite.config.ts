@@ -6,7 +6,15 @@ export default defineConfig(({ mode }) => {
   const isTizen = mode === 'tizen'
 
   return {
-    plugins: [vue()],
+    plugins: [
+      vue({
+        template: {
+          compilerOptions: {
+            isCustomElement: tag => tag.startsWith('media-'),
+          },
+        },
+      }),
+    ],
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),

@@ -4,6 +4,7 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import { createApp } from 'vue'
 import App from '@/App.vue'
 import { bootstrap } from '@/app/bootstrap/bootstrap'
+import { disposePlayerRuntime, initializePlayerRuntime } from '@/app/runtime/runtime'
 import { useGlobalStore } from '@/app/stores/global/store'
 import '@unocss/reset/tailwind.css'
 import '@/styles/style.css'
@@ -43,9 +44,16 @@ async function main(): Promise<void> {
   if (result.state === 'error') {
     globalStore.showError('Bootstrap failed')
   }
+  else {
+    await initializePlayerRuntime(result)
+  }
 
   app.provide('bootstrapResult', result)
   app.mount('#app')
+
+  window.addEventListener('beforeunload', () => {
+    disposePlayerRuntime()
+  })
 }
 
 main().catch((err) => {
