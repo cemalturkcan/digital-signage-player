@@ -1,13 +1,20 @@
 import type { Context } from 'hono'
 import { Res } from '@/app/rest/rest.js'
-import { getPlaylistDeviceId, getPlaylistId } from '@/routes/playlist/modal.js'
+import {
+  getPlaylistDeviceId,
+  getPlaylistId,
+  getPlaylistPage,
+  getPlaylistPageSize,
+} from '@/routes/playlist/modal.js'
 import { playlistService } from '@/routes/playlist/service.js'
 
 export const playlistController = {
   async getPlaylist(c: Context) {
     const deviceId = getPlaylistDeviceId(c.req.query('deviceId'))!
+    const page = getPlaylistPage(c.req.query('page'))
+    const pageSize = getPlaylistPageSize(c.req.query('pageSize'))
 
-    const result = await playlistService.getPlaylist(deviceId)
+    const result = await playlistService.getPlaylist(deviceId, page, pageSize)
 
     return Res(result)
   },

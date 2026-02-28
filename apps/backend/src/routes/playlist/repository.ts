@@ -24,6 +24,10 @@ interface PlaylistItemRow {
   updated_at: Date | string
 }
 
+interface CountRow {
+  total: string
+}
+
 const SELECT_PLAYLIST_BY_DEVICE_ID = `SELECT id, device_id, name, created_at, updated_at
 FROM playlists
 WHERE device_id = $1
@@ -33,6 +37,16 @@ LIMIT 1`
 const SELECT_PLAYLIST_BY_ID = `SELECT id, device_id, name, created_at, updated_at
 FROM playlists
 WHERE id = $1`
+
+const SELECT_PLAYLISTS_BY_DEVICE_ID = `SELECT id, device_id, name, created_at, updated_at
+FROM playlists
+WHERE device_id = $1
+ORDER BY updated_at DESC, id DESC
+LIMIT $2 OFFSET $3`
+
+const COUNT_PLAYLISTS_BY_DEVICE_ID = `SELECT COUNT(*)::text AS total
+FROM playlists
+WHERE device_id = $1`
 
 const INSERT_PLAYLIST = `INSERT INTO playlists (device_id, name)
 VALUES ($1, $2)
@@ -97,6 +111,12 @@ function toPlaylistItemRecord(row: PlaylistItemRow): PlaylistItemRecord {
 
 export interface PlaylistRepository {
   findPlaylistByDeviceId: (deviceId: string) => Promise<PlaylistRecord | null>
+  listPlaylistsByDeviceId: (
+    deviceId: string,
+    limit: number,
+    offset: number
+  ) => Promise<PlaylistRecord[]>
+  countPlaylistsByDeviceId: (deviceId: string) => Promise<number>
   findPlaylistById: (playlistId: number) => Promise<PlaylistRecord | null>
   createPlaylistForDevice: (deviceId: string, name: string) => Promise<PlaylistRecord>
   replacePlaylistItems: (playlistId: number, items: PlaylistItemInput[]) => Promise<void>
@@ -115,6 +135,36 @@ export const playlistRepository: PlaylistRepository = {
     }
 
     return toPlaylistRecord(result.rows[0])
+  },
+
+  async listPlaylistsByDeviceId(
+    deviceId: string,
+    limit: number,
+    offset: number
+  ): Promise<PlaylistRecord[]> {
+    const database = getDb()
+
+    const result = await database.query<PlaylistRow>(SELECT_PLAYLISTS_BY_DEVICE_ID, [
+      deviceId,
+      limit,
+      offset,
+    ])
+
+    return result.rows.map(toPlaylistRecord)
+  },
+
+  async countPlaylistsByDeviceId(deviceId: string): Promise<number> {
+    const database = getDb()
+
+    const result = await database.query<CountRow>(COUNT_PLAYLISTS_BY_DEVICE_ID, [deviceId])
+    const row = result.rows[0]
+
+    if (!row) {
+      return 0
+    }
+
+    const total = Number.parseInt(row.total, 10)
+    return Number.isSafeInteger(total) && total >= 0 ? total : 0
   },
 
   async findPlaylistById(playlistId: number): Promise<PlaylistRecord | null> {
@@ -154,12 +204,10 @@ export const playlistRepository: PlaylistRepository = {
       }
 
       await client.query('COMMIT')
-    }
-    catch (error) {
+    } catch (error) {
       await client.query('ROLLBACK')
       throw error
-    }
-    finally {
+    } finally {
       client.release()
     }
   },
@@ -175,7 +223,7 @@ export const playlistRepository: PlaylistRepository = {
 
   async assignPlaylistToDevice(
     playlistId: number,
-    deviceId: string,
+    deviceId: string
   ): Promise<PlaylistRecord | null> {
     const database = getDb()
 

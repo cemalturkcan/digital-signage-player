@@ -18,12 +18,13 @@ export interface MediaItem {
 export type MediaType = 'image' | 'video'
 
 export interface PlaylistResponse {
-  playlist: Playlist
-  cache: CacheInfo
+  playlists: Playlist[]
+  pagination: Pagination
 }
 
-export interface CacheInfo {
-  etag: string
-  maxAge: number
-  cacheControl: string
+export interface Pagination {
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
 }

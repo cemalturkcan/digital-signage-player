@@ -48,6 +48,29 @@ export function getPlaylistId(id: unknown): string | undefined {
   return getNonEmptyString(id)
 }
 
+function getPositiveInteger(value: unknown): number | undefined {
+  const normalized = getNonEmptyString(value)
+  if (!normalized) {
+    return undefined
+  }
+
+  const parsed = Number.parseInt(normalized, 10)
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    return undefined
+  }
+
+  return parsed
+}
+
+export function getPlaylistPage(value: unknown): number {
+  return getPositiveInteger(value) ?? 1
+}
+
+export function getPlaylistPageSize(value: unknown): number {
+  const pageSize = getPositiveInteger(value) ?? 10
+  return Math.min(pageSize, 100)
+}
+
 export const PlaylistMediaItemSchema = z.object({
   id: z.string(),
   type: z.enum(['image', 'video']),
@@ -66,16 +89,19 @@ export const PlaylistSchema = z.object({
 })
 
 export const PlaylistResponseSchema = z.object({
-  playlist: PlaylistSchema,
-  cache: z.object({
-    etag: z.string(),
-    maxAge: z.number(),
-    cacheControl: z.string(),
+  playlists: z.array(PlaylistSchema),
+  pagination: z.object({
+    page: z.number().int().min(1),
+    pageSize: z.number().int().min(1),
+    totalItems: z.number().int().min(0),
+    totalPages: z.number().int().min(0),
   }),
 })
 
 export const PlaylistQuerySchema = z.object({
   deviceId: z.string('deviceId required').trim().min(1, 'deviceId required'),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
 })
 
 export const PlaylistParamsSchema = z.object({

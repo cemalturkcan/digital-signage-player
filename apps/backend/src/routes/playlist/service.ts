@@ -1,66 +1,42 @@
-import type { CacheInfo, MediaItem, Playlist, PlaylistResponse } from '@signage/contracts'
+import type { MediaItem, Playlist, PlaylistResponse } from '@signage/contracts'
 import type { ServiceResponse } from '@/app/rest/rest.js'
-import type {
-  PlaylistItemInput,
-  PlaylistItemRecord,
-  PlaylistRecord,
-} from '@/routes/playlist/modal.js'
+import type { PlaylistItemRecord, PlaylistRecord } from '@/routes/playlist/modal.js'
 import { ErrorCode } from '@/app/rest/codes.js'
 import { fail, ok, unexpected } from '@/app/rest/rest.js'
 import { playlistRepository } from '@/routes/playlist/repository.js'
 
-const DEFAULT_PLAYLIST_ITEMS: PlaylistItemInput[] = [
-  {
-    mediaType: 'image',
-    mediaUrl: 'https://cdn.cemalturkcan.com/images/image1.jpg',
-    duration: 10,
-    sortOrder: 0,
-  },
-  {
-    mediaType: 'video',
-    mediaUrl: 'https://cdn.cemalturkcan.com/videos/video1.mp4',
-    sortOrder: 1,
-  },
-  {
-    mediaType: 'image',
-    mediaUrl: 'https://cdn.cemalturkcan.com/images/image2.jpg',
-    duration: 10,
-    sortOrder: 2,
-  },
-  {
-    mediaType: 'video',
-    mediaUrl: 'https://cdn.cemalturkcan.com/videos/video2.mp4',
-    sortOrder: 3,
-  },
-  {
-    mediaType: 'image',
-    mediaUrl: 'https://cdn.cemalturkcan.com/images/image3.jpg',
-    duration: 10,
-    sortOrder: 4,
-  },
-  {
-    mediaType: 'video',
-    mediaUrl: 'https://cdn.cemalturkcan.com/videos/video3.mp4',
-    sortOrder: 5,
-  },
-]
-
-function createCacheInfo(playlist: Playlist): CacheInfo {
-  return {
-    etag: `"${playlist.id}-${playlist.updatedAt}"`,
-    maxAge: 60,
-    cacheControl: 'public, max-age=60',
-  }
-}
-
-function buildPlaylistName(deviceId: string): string {
-  const playlistName = `playlist-${deviceId}`
-
-  if (playlistName.length <= 255) {
-    return playlistName
-  }
-
-  return playlistName.slice(0, 255)
+const DEFAULT_PLAYLIST: Playlist = {
+  id: 'default',
+  createdAt: 0,
+  updatedAt: 0,
+  items: [
+    {
+      id: 'default-0',
+      type: 'image',
+      url: 'https://cdn.cemalturkcan.com/images/image1.jpg',
+      duration: 5,
+      order: 0,
+    },
+    {
+      id: 'default-1',
+      type: 'video',
+      url: 'https://cdn.cemalturkcan.com/videos/video1.mp4',
+      order: 1,
+    },
+    {
+      id: 'default-2',
+      type: 'image',
+      url: 'https://cdn.cemalturkcan.com/images/image2.jpg',
+      duration: 5,
+      order: 2,
+    },
+    {
+      id: 'default-3',
+      type: 'video',
+      url: 'https://cdn.cemalturkcan.com/videos/video2.mp4',
+      order: 3,
+    },
+  ],
 }
 
 function getNumericPlaylistId(playlistId: string): number | null {
@@ -73,15 +49,6 @@ function getNumericPlaylistId(playlistId: string): number | null {
   return parsed
 }
 
-function mapItemToInput(item: MediaItem): PlaylistItemInput {
-  return {
-    mediaType: item.type,
-    mediaUrl: item.url,
-    duration: item.type === 'image' ? (item.duration ?? 10) : item.duration,
-    sortOrder: item.order,
-  }
-}
-
 function mapRecordToPlaylist(record: PlaylistRecord, itemRecords: PlaylistItemRecord[]): Playlist {
   const items: MediaItem[] = itemRecords.map((itemRecord: PlaylistItemRecord) => {
     const item: MediaItem = {
@@ -92,9 +59,8 @@ function mapRecordToPlaylist(record: PlaylistRecord, itemRecords: PlaylistItemRe
     }
 
     if (itemRecord.mediaType === 'image') {
-      item.duration = itemRecord.duration ?? 10
-    }
-    else if (itemRecord.duration !== null) {
+      item.duration = itemRecord.duration ?? 5
+    } else if (itemRecord.duration !== null) {
       item.duration = itemRecord.duration
     }
 
@@ -114,48 +80,91 @@ async function loadPlaylistFromRecord(record: PlaylistRecord): Promise<Playlist>
   return mapRecordToPlaylist(record, itemRecords)
 }
 
+function buildPageWindow(
+  page: number,
+  pageSize: number
+): {
+  includeDefault: boolean
+  deviceOffset: number
+  deviceLimit: number
+} {
+  const startIndex = (page - 1) * pageSize
+  const includeDefault = startIndex === 0
+
+  if (includeDefault) {
+    return {
+      includeDefault: true,
+      deviceOffset: 0,
+      deviceLimit: Math.max(0, pageSize - 1),
+    }
+  }
+
+  return {
+    includeDefault: false,
+    deviceOffset: Math.max(0, startIndex - 1),
+    deviceLimit: pageSize,
+  }
+}
+
 export interface PlaylistService {
-  getPlaylist: (deviceId: string) => Promise<ServiceResponse<PlaylistResponse>>
+  getPlaylist: (
+    deviceId: string,
+    page: number,
+    pageSize: number
+  ) => Promise<ServiceResponse<PlaylistResponse>>
   getPlaylistById: (playlistId: string) => Promise<ServiceResponse<Playlist>>
-  updatePlaylist: (deviceId: string, playlist: Playlist) => Promise<ServiceResponse<void>>
-  assignPlaylist: (deviceId: string, playlistId: string) => Promise<ServiceResponse<void>>
 }
 
 export const playlistService: PlaylistService = {
-  async getPlaylist(deviceId: string): Promise<ServiceResponse<PlaylistResponse>> {
+  async getPlaylist(
+    deviceId: string,
+    page: number,
+    pageSize: number
+  ): Promise<ServiceResponse<PlaylistResponse>> {
     const normalizedDeviceId = deviceId.trim()
 
+    if (!normalizedDeviceId) {
+      return fail(ErrorCode.BAD_REQUEST, 'deviceId required')
+    }
+
     try {
-      let playlistRecord = await playlistRepository.findPlaylistByDeviceId(normalizedDeviceId)
+      const totalDevicePlaylists =
+        await playlistRepository.countPlaylistsByDeviceId(normalizedDeviceId)
+      const totalItems = totalDevicePlaylists + 1
+      const totalPages = Math.ceil(totalItems / pageSize)
+      const { includeDefault, deviceOffset, deviceLimit } = buildPageWindow(page, pageSize)
 
-      if (playlistRecord === null) {
-        const createdPlaylist = await playlistRepository.createPlaylistForDevice(
-          normalizedDeviceId,
-          buildPlaylistName(normalizedDeviceId),
-        )
+      const devicePlaylistRecords = await playlistRepository.listPlaylistsByDeviceId(
+        normalizedDeviceId,
+        deviceLimit,
+        deviceOffset
+      )
+      const devicePlaylists = await Promise.all(
+        devicePlaylistRecords.map((record: PlaylistRecord) => loadPlaylistFromRecord(record))
+      )
 
-        await playlistRepository.replacePlaylistItems(createdPlaylist.id, DEFAULT_PLAYLIST_ITEMS)
-        playlistRecord = await playlistRepository.findPlaylistById(createdPlaylist.id)
-
-        if (playlistRecord === null) {
-          return fail(ErrorCode.NOT_FOUND, 'Playlist not found')
-        }
-      }
-
-      const playlist = await loadPlaylistFromRecord(playlistRecord)
+      const playlists = includeDefault ? [DEFAULT_PLAYLIST, ...devicePlaylists] : devicePlaylists
 
       return ok({
-        playlist,
-        cache: createCacheInfo(playlist),
+        playlists,
+        pagination: {
+          page,
+          pageSize,
+          totalItems,
+          totalPages,
+        },
       })
-    }
-    catch (error) {
-      return unexpected(error, 'Failed to get playlist')
+    } catch (error) {
+      return unexpected(error, 'Failed to get playlists')
     }
   },
 
   async getPlaylistById(playlistId: string): Promise<ServiceResponse<Playlist>> {
     const normalizedPlaylistId = playlistId.trim()
+
+    if (normalizedPlaylistId === DEFAULT_PLAYLIST.id) {
+      return ok(DEFAULT_PLAYLIST)
+    }
 
     const numericPlaylistId = getNumericPlaylistId(normalizedPlaylistId)
 
@@ -172,61 +181,8 @@ export const playlistService: PlaylistService = {
 
       const playlist = await loadPlaylistFromRecord(playlistRecord)
       return ok(playlist)
-    }
-    catch (error) {
+    } catch (error) {
       return unexpected(error, 'Failed to get playlist by id')
-    }
-  },
-
-  async updatePlaylist(deviceId: string, playlist: Playlist): Promise<ServiceResponse<void>> {
-    const normalizedDeviceId = deviceId.trim()
-
-    try {
-      const playlistRecord = await playlistRepository.findPlaylistByDeviceId(normalizedDeviceId)
-      const currentPlaylistRecord
-        = playlistRecord
-          ?? (await playlistRepository.createPlaylistForDevice(
-            normalizedDeviceId,
-            buildPlaylistName(normalizedDeviceId),
-          ))
-
-      const itemInputs = playlist.items
-        .map(mapItemToInput)
-        .sort((a: PlaylistItemInput, b: PlaylistItemInput) => a.sortOrder - b.sortOrder)
-
-      await playlistRepository.replacePlaylistItems(currentPlaylistRecord.id, itemInputs)
-      await playlistRepository.touchPlaylist(currentPlaylistRecord.id)
-      return ok(undefined)
-    }
-    catch (error) {
-      return unexpected(error, 'Failed to update playlist')
-    }
-  },
-
-  async assignPlaylist(deviceId: string, playlistId: string): Promise<ServiceResponse<void>> {
-    const normalizedDeviceId = deviceId.trim()
-    const normalizedPlaylistId = playlistId.trim()
-
-    const numericPlaylistId = getNumericPlaylistId(normalizedPlaylistId)
-
-    if (numericPlaylistId === null) {
-      return fail(ErrorCode.NOT_FOUND, 'Playlist not found')
-    }
-
-    try {
-      const assignedPlaylist = await playlistRepository.assignPlaylistToDevice(
-        numericPlaylistId,
-        normalizedDeviceId,
-      )
-
-      if (assignedPlaylist === null) {
-        return fail(ErrorCode.NOT_FOUND, 'Playlist not found')
-      }
-
-      return ok(undefined)
-    }
-    catch (error) {
-      return unexpected(error, 'Failed to assign playlist')
     }
   },
 }

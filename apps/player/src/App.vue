@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import type {CommandEnvelope, CommandResultEnvelope, CommandType, MediaItem,} from '@signage/contracts'
-import type {Bootstrap} from '@/app/bootstrap/bootstrap'
-import {computed, inject, onMounted, onUnmounted, ref, watch} from 'vue'
-import {commandBus} from '@/app/commands/bus'
-import {mqttClientService} from '@/app/mqtt/client'
-import {getPlaylist} from '@/app/request/requests/playlist'
-import {useGlobalStore} from '@/app/stores/global/store'
-import {useMediaStore} from '@/app/stores/media/store'
-import {usePlayerStore} from '@/app/stores/player/store'
-import {usePlaylistStore} from '@/app/stores/playlist/store'
+import type {
+  CommandEnvelope,
+  CommandResultEnvelope,
+  CommandType,
+  MediaItem,
+} from '@signage/contracts'
+import type { Bootstrap } from '@/app/bootstrap/bootstrap'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { commandBus } from '@/app/commands/bus'
+import { mqttClientService } from '@/app/mqtt/client'
+import { getPlaylist } from '@/app/request/requests/playlist'
+import { useGlobalStore } from '@/app/stores/global/store'
+import { usePlayerStore } from '@/app/stores/player/store'
+import { usePlaylistStore } from '@/app/stores/playlist/store'
 
 const globalStore = useGlobalStore()
 const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
-const mediaStore = useMediaStore()
 
 const bootstrapResult = inject<Bootstrap>('bootstrapResult')
 const deviceId = bootstrapResult?.config.deviceId ?? ''
@@ -22,49 +25,27 @@ const mediaRef = ref<HTMLImageElement | HTMLVideoElement | null>(null)
 const imageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const processedCommands = ref<Set<string>>(new Set())
 const mqttMessageHandler = ref<((topic: string, message: Buffer) => void) | null>(null)
-const currentBlobUrl = ref<string | null>(null)
-const retryWithCache = ref<boolean>(false)
 
 const currentItem = computed(() => playerStore.currentItem)
 const isImage = computed(() => currentItem.value?.type === 'image')
 const isVideo = computed(() => currentItem.value?.type === 'video')
 
-function revokeCurrentBlob(): void {
-  if (currentBlobUrl.value) {
-    URL.revokeObjectURL(currentBlobUrl.value)
-    currentBlobUrl.value = null
-  }
-}
-
 async function fetchAndLoadPlaylist(): Promise<void> {
   try {
     globalStore.showLoading('Loading playlist...')
     const response = await getPlaylist(deviceId)
-    await mediaStore.savePlaylist(response.playlist)
-    await playlistStore.loadPlaylist(response.playlist)
-    globalStore.hideLoading()
-    void prefetchMediaFiles()
-    await startPlayback()
-  }
-  catch (error) {
-    const cached = await mediaStore.loadPlaylist()
-    if (cached) {
-      await playlistStore.loadPlaylist(cached)
-      globalStore.hideLoading()
-      await startPlayback()
-    }
-    else {
-      globalStore.showError(error instanceof Error ? error.message : 'Failed to load playlist')
-    }
-  }
-}
 
-async function prefetchMediaFiles(): Promise<void> {
-  const items = playlistStore.currentPlaylist?.items
-  if (!items || items.length === 0) {
-    return
+    const playlist = response.playlists[0]
+    if (!playlist) {
+      throw new Error('Playlist not found')
+    }
+
+    await playlistStore.loadPlaylist(playlist)
+    globalStore.hideLoading()
+    await startPlayback()
+  } catch (error) {
+    globalStore.showError(error instanceof Error ? error.message : 'Failed to load playlist')
   }
-  void mediaStore.prefetchMedia(items)
 }
 
 async function startPlayback(): Promise<void> {
@@ -77,29 +58,20 @@ async function startPlayback(): Promise<void> {
 
 async function playItem(item: MediaItem): Promise<void> {
   clearImageTimer()
-  revokeCurrentBlob()
-  retryWithCache.value = false
   await playerStore.load(item)
-  const url = await mediaStore.getCachedUrl(item)
-  if (url !== item.url) {
-    currentBlobUrl.value = url
-  }
+
   if (item.type === 'image') {
     playerStore.play()
-    const duration = item.duration ?? 10
     imageTimer.value = setTimeout(() => {
       void nextItem()
-    }, duration * 1000)
-  }
-  else if (item.type === 'video') {
+    }, 5000)
+  } else if (item.type === 'video') {
     playerStore.play()
   }
 }
 
 async function nextItem(): Promise<void> {
   clearImageTimer()
-  revokeCurrentBlob()
-  retryWithCache.value = false
   const next = playlistStore.nextWithLoop()
   if (next) {
     await playItem(next)
@@ -118,20 +90,6 @@ function handleVideoEnded(): void {
 }
 
 async function handleMediaError(): Promise<void> {
-  const item = currentItem.value
-  if (!item) {
-    void nextItem()
-    return
-  }
-  if (!retryWithCache.value) {
-    const cached = await mediaStore.loadMedia(item.id)
-    if (cached) {
-      retryWithCache.value = true
-      revokeCurrentBlob()
-      currentBlobUrl.value = URL.createObjectURL(cached)
-      return
-    }
-  }
   void nextItem()
 }
 
@@ -149,7 +107,7 @@ function buildSuccessResult(command: CommandEnvelope, payload?: unknown): Comman
 function buildErrorResult(
   command: CommandEnvelope,
   code: string,
-  message: string,
+  message: string
 ): CommandResultEnvelope {
   return {
     type: 'command_result',
@@ -167,8 +125,6 @@ async function handleReloadPlaylist(): Promise<void> {
 
 async function handleRestartPlayer(): Promise<void> {
   clearImageTimer()
-  revokeCurrentBlob()
-  retryWithCache.value = false
   playerStore.stop()
   playlistStore.resetIndex()
   await startPlayback()
@@ -200,8 +156,7 @@ async function handleScreenshot(command: CommandEnvelope): Promise<CommandResult
     const blob = await playerStore.captureScreenshot()
     const base64 = await blobToBase64(blob)
     return buildSuccessResult(command, { base64, mimeType: blob.type || 'image/png' })
-  }
-  catch {
+  } catch {
     return buildErrorResult(command, 'SCREENSHOT_FAILED', 'Failed to capture screenshot')
   }
 }
@@ -226,7 +181,7 @@ async function executeCommand(command: CommandEnvelope): Promise<CommandResultEn
   processedCommands.value.add(command.commandId)
   if (processedCommands.value.size > 1000) {
     const oldest = Array.from(processedCommands.value).slice(0, 500)
-    oldest.forEach(id => processedCommands.value.delete(id))
+    oldest.forEach((id) => processedCommands.value.delete(id))
   }
 
   try {
@@ -254,15 +209,14 @@ async function executeCommand(command: CommandEnvelope): Promise<CommandResultEn
         return buildErrorResult(
           command,
           'UNSUPPORTED_COMMAND',
-          `Command ${command.command} not implemented in handler`,
+          `Command ${command.command} not implemented in handler`
         )
     }
-  }
-  catch (error) {
+  } catch (error) {
     return buildErrorResult(
       command,
       'EXECUTION_ERROR',
-      error instanceof Error ? error.message : 'Unknown error',
+      error instanceof Error ? error.message : 'Unknown error'
     )
   }
 }
@@ -312,8 +266,7 @@ async function handleMqttMessage(message: Buffer, responseTopic: string): Promis
   let envelope: unknown
   try {
     envelope = JSON.parse(message.toString())
-  }
-  catch {
+  } catch {
     await mqttClientService.publish(responseTopic, {
       type: 'command_result',
       command: 'ping',
@@ -342,7 +295,7 @@ watch(
       })
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 onMounted(async () => {
@@ -362,7 +315,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearImageTimer()
-  revokeCurrentBlob()
   playerStore.stop()
   const client = mqttClientService.client
   if (client && mqttMessageHandler.value) {
@@ -385,14 +337,14 @@ onUnmounted(() => {
         <img
           v-if="isImage && currentItem"
           ref="mediaRef"
-          :src="currentBlobUrl || currentItem.url"
+          :src="currentItem.url"
           class="media-element"
           @error="handleMediaError"
-        >
+        />
         <video
           v-else-if="isVideo && currentItem"
           ref="mediaRef"
-          :src="currentBlobUrl || currentItem.url"
+          :src="currentItem.url"
           class="media-element"
           autoplay
           playsinline

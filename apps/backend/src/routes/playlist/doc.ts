@@ -17,7 +17,7 @@ const getPlaylistRoute = createRoute({
     query: PlaylistQuerySchema,
   },
   responses: {
-    200: jsonResponse(PlaylistResponseSchema, 'Playlist for device'),
+    200: jsonResponse(PlaylistResponseSchema, 'Paginated playlists for device'),
     400: DefaultErrorResponses[400],
     500: DefaultErrorResponses[500],
   },
