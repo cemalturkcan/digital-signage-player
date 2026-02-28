@@ -95,10 +95,10 @@
       "title": "Backend OpenAPI Refactoring",
       "status": "completed",
       "priority": "high",
-      "completedAt": "2026-02-27T12:00:00Z",
-      "notes": "Refactored backend to baseapp-style patterns: controller/service/repository layering, modal.ts/doc.ts patterns, OpenAPI integration with Hono Zod OpenAPI, Swagger UI, pino HTTP logger"
+      "completedAt": "2026-02-28T12:00:00Z",
+      "notes": "Refactored backend to baseapp-style patterns: controller/service/repository layering, modal.ts/doc.ts patterns, OpenAPI integration with Hono Zod OpenAPI, Swagger UI, pino HTTP logger. Post-completion fixes: OpenAPI /api grouping, route doc path normalization, registerHandler typing fix, MqttProtocol derived from validProtocols, standardized error handling"
     }
   ],
   "nextId": 14,
-  "lastUpdated": "2026-02-27T12:00:00Z"
+  "lastUpdated": "2026-02-28T12:00:00Z"
 }

@@ -4,9 +4,8 @@ import { PlaylistDoc } from '@/routes/playlist/doc.js'
 import { RegisterDoc } from '@/routes/register/doc.js'
 
 export function registerApiRoutes(app: OpenAPIHono): void {
-  const api = app.basePath('/api')
-
-  HealthDoc.register(api)
-  RegisterDoc.register(api)
-  PlaylistDoc.register(api)
+  const apiRouter = app.basePath('/api')
+  HealthDoc.register(apiRouter)
+  RegisterDoc.register(apiRouter)
+  PlaylistDoc.register(apiRouter)
 }

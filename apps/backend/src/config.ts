@@ -5,6 +5,7 @@ export const HOST = process.env.HOST
 export const NODE_ENV = process.env.NODE_ENV
 
 const validProtocols = ['mqtt', 'mqtts', 'ws', 'wss'] as const
+type MqttProtocol = (typeof validProtocols)[number]
 export const MQTT_PROTOCOL: MqttProtocol = (process.env.MQTT_PROTOCOL as MqttProtocol) ?? 'mqtt'
 export const MQTT_HOST = process.env.MQTT_HOST ?? 'localhost'
 export const MQTT_PORT = Number(process.env.MQTT_PORT ?? 1883)
@@ -21,7 +22,6 @@ export const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 export const MQTT_SSL = MQTT_PROTOCOL === 'mqtts' || MQTT_PROTOCOL === 'wss'
 
-// Client/public MQTT config (for browser websocket connections)
 export const MQTT_CLIENT_HOST = process.env.MQTT_CLIENT_HOST ?? MQTT_HOST
 export const MQTT_CLIENT_PORT = Number(process.env.MQTT_CLIENT_PORT ?? 9001)
 export const MQTT_CLIENT_SSL = process.env.MQTT_CLIENT_SSL === 'true' || MQTT_SSL

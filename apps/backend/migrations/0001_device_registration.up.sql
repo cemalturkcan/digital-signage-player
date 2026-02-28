@@ -1,4 +1,3 @@
--- Create devices table
 CREATE TABLE IF NOT EXISTS devices (
   id SERIAL PRIMARY KEY,
   device_id VARCHAR(255) UNIQUE NOT NULL,
@@ -8,7 +7,6 @@ CREATE TABLE IF NOT EXISTS devices (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create playlists table linked to devices
 CREATE TABLE IF NOT EXISTS playlists (
   id SERIAL PRIMARY KEY,
   device_id VARCHAR(255) NOT NULL,
@@ -21,7 +19,6 @@ CREATE TABLE IF NOT EXISTS playlists (
     ON DELETE CASCADE
 );
 
--- Create playlist_items table linked to playlists
 CREATE TABLE IF NOT EXISTS playlist_items (
   id SERIAL PRIMARY KEY,
   playlist_id INTEGER NOT NULL,
@@ -37,18 +34,7 @@ CREATE TABLE IF NOT EXISTS playlist_items (
     ON DELETE CASCADE
 );
 
--- Indexes for devices
-CREATE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id);
-CREATE INDEX IF NOT EXISTS idx_devices_mqtt_username ON devices(mqtt_username);
 
--- Indexes for playlists
-CREATE INDEX IF NOT EXISTS idx_playlists_device_id ON playlists(device_id);
-
--- Indexes for playlist_items
-CREATE INDEX IF NOT EXISTS idx_playlist_items_playlist_id ON playlist_items(playlist_id);
-CREATE INDEX IF NOT EXISTS idx_playlist_items_sort_order ON playlist_items(playlist_id, sort_order);
-
--- Shared trigger function for auto-updating updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -57,7 +43,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Triggers for auto-updating updated_at on all tables
 DROP TRIGGER IF EXISTS update_devices_updated_at ON devices;
 CREATE TRIGGER update_devices_updated_at
   BEFORE UPDATE ON devices

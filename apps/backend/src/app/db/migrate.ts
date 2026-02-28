@@ -61,7 +61,7 @@ async function runMigrations(): Promise<void> {
   logger.info('Running migrations')
   await db.query(CREATE_MIGRATIONS_TABLE)
 
-  const migrationsDir = fileURLToPath(new URL('../../migrations', import.meta.url))
+  const migrationsDir = fileURLToPath(new URL('../../../migrations', import.meta.url))
   const applied = await getAppliedMigrations()
 
   const files = await readdir(migrationsDir)

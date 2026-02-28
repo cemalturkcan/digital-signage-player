@@ -1,42 +1,61 @@
-import type { OpenAPIHono, RouteConfig, RouteHandler } from '@hono/zod-openapi'
+import type { OpenAPIHono, RouteConfig } from '@hono/zod-openapi'
 import { z } from '@hono/zod-openapi'
+import { BAD_REQUEST, getCodeMessage, NOT_FOUND, SERVER_INTERNAL_ERROR, SUCCESS, UNAUTHORIZED } from '@/app/rest/codes.js'
 
-/**
- * Helper to register an OpenAPI route handler without explicit type casts.
- * Encapsulates the `as unknown as RouteHandler<...>` cast internally.
- */
 export function registerHandler<R extends RouteConfig>(
   api: OpenAPIHono,
   route: R,
-  handler: RouteHandler<R>,
+  handler: any,
 ): void {
-  api.openapi(route, handler as unknown as RouteHandler<R>)
+  api.openapi(route, handler)
 }
 
-export const ErrorResponseSchema = z.object({
-  error: z.string(),
-  code: z.string(),
-  status: z.number().int(),
+const SuccessMetaSchema = z.object({
+  code: z.string().default(SUCCESS),
+  message: z.string().default(getCodeMessage(SUCCESS)),
 })
 
-function createErrorResponse(description: string) {
-  return {
-    description,
-    content: {
-      'application/json': {
-        schema: ErrorResponseSchema,
-      },
-    },
-  }
-}
+const BadRequestDataSchema = z.union([
+  z.object({
+    path: z.string().optional(),
+    message: z.string().optional(),
+  }),
+  z.null(),
+])
 
-export const DefaultErrorResponses = {
-  400: createErrorResponse('Bad Request'),
-  404: createErrorResponse('Not Found'),
-  500: createErrorResponse('Internal Server Error'),
-} as const
+const BadRequestResponseSchema = z.object({
+  data: BadRequestDataSchema,
+  meta: z.object({
+    code: z.string().default(BAD_REQUEST),
+    message: z.string().default(getCodeMessage(BAD_REQUEST)),
+  }),
+})
 
-export function jsonResponse<T>(schema: T, description: string) {
+const NotFoundResponseSchema = z.object({
+  data: z.null(),
+  meta: z.object({
+    code: z.string().default(NOT_FOUND),
+    message: z.string().default(getCodeMessage(NOT_FOUND)),
+  }),
+})
+
+const InternalErrorResponseSchema = z.object({
+  data: z.null(),
+  meta: z.object({
+    code: z.string().default(SERVER_INTERNAL_ERROR),
+    message: z.string().default(getCodeMessage(SERVER_INTERNAL_ERROR)),
+  }),
+})
+
+const UnauthorizedResponseSchema = z.object({
+  data: z.null(),
+  meta: z.object({
+    code: z.string().default(UNAUTHORIZED),
+    message: z.string().default(getCodeMessage(UNAUTHORIZED)),
+  }),
+})
+
+function createResponse<T extends z.ZodTypeAny>(schema: T, description: string) {
   return {
     description,
     content: {
@@ -45,4 +64,25 @@ export function jsonResponse<T>(schema: T, description: string) {
       },
     },
   }
+}
+
+function createErrorResponse<T extends z.ZodTypeAny>(schema: T, description: string) {
+  return createResponse(schema, description)
+}
+
+export const DefaultErrorResponses = {
+  400: createErrorResponse(BadRequestResponseSchema, getCodeMessage(BAD_REQUEST)),
+  401: createErrorResponse(UnauthorizedResponseSchema, getCodeMessage(UNAUTHORIZED)),
+  404: createErrorResponse(NotFoundResponseSchema, getCodeMessage(NOT_FOUND)),
+  500: createErrorResponse(InternalErrorResponseSchema, getCodeMessage(SERVER_INTERNAL_ERROR)),
+} as const
+
+export function jsonResponse<T extends z.ZodTypeAny>(schema: T, description: string) {
+  return createResponse(
+    z.object({
+      data: schema,
+      meta: SuccessMetaSchema,
+    }),
+    description,
+  )
 }
