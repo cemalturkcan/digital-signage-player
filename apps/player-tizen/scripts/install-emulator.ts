@@ -39,13 +39,15 @@ function main(): void {
 
   try {
     execInherit(sdbCommand, ['-s', targetSerial, 'uninstall', packageId])
-  } catch {
+  }
+  catch {
     // Ignore uninstall errors (package may not be installed yet).
   }
 
   try {
     installWithSdb(sdbCommand, targetSerial, wgtPath)
-  } catch (error) {
+  }
+  catch (error) {
     const output = error instanceof Error ? error.message : String(error)
     const shouldRetry = output.includes('error] val[-12]')
 
@@ -56,7 +58,8 @@ function main(): void {
     console.log('Install reported certificate/signature validation error. Retrying once...')
     try {
       installWithSdb(sdbCommand, targetSerial, wgtPath)
-    } catch (retryError) {
+    }
+    catch (retryError) {
       const retryOutput = retryError instanceof Error ? retryError.message : String(retryError)
       const shouldRebuild = retryOutput.includes('error] val[-12]')
       if (!shouldRebuild) {
@@ -64,7 +67,7 @@ function main(): void {
       }
 
       console.log(
-        'Install still failed after retry. Rebuilding package once and retrying install...'
+        'Install still failed after retry. Rebuilding package once and retrying install...',
       )
       execInherit('pnpm', ['run', 'build'])
       installWithSdb(sdbCommand, targetSerial, wgtPath)
@@ -76,7 +79,8 @@ function main(): void {
 
 try {
   main()
-} catch (error) {
+}
+catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`ERROR: ${message}`)
   process.exit(1)

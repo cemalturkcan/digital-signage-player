@@ -40,7 +40,8 @@ function main(): void {
 
 try {
   main()
-} catch (error) {
+}
+catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`ERROR: ${message}`)
   process.exit(1)

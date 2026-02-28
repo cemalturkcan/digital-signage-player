@@ -1,12 +1,12 @@
-import '@unocss/reset/tailwind.css'
-import '@/styles/style.css'
-
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
 import { createApp } from 'vue'
 import App from '@/App.vue'
 import { bootstrap } from '@/app/bootstrap/bootstrap'
 import { useGlobalStore } from '@/app/stores/global/store'
+import '@unocss/reset/tailwind.css'
+import '@/styles/style.css'
 
 async function main(): Promise<void> {
   const app = createApp(App)

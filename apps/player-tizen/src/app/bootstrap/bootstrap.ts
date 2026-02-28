@@ -70,7 +70,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
     await mqttClientService.connect(registration)
     setState('connected')
   }
-  catch (error) {
+  catch {
     setState('registered')
     return {
       config: {

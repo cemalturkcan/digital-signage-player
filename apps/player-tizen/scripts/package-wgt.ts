@@ -33,7 +33,8 @@ function resolveProfilesPath(): string {
         return profilesPath
       }
     }
-  } catch {
+  }
+  catch {
     // Ignore and fall through to default path.
   }
 
@@ -41,7 +42,7 @@ function resolveProfilesPath(): string {
     process.env.USERPROFILE ?? process.env.HOME ?? '',
     'tizen-studio-data',
     'profile',
-    'profiles.xml'
+    'profiles.xml',
   )
 }
 
@@ -56,14 +57,15 @@ function getProfileNames(): string[] {
         continue
       }
 
-      const matched = line.match(/^([^\s]+)/)
+      const matched = line.match(/^(\S+)/)
       if (matched) {
         names.push(matched[1])
       }
     }
 
     return names
-  } catch {
+  }
+  catch {
     return []
   }
 }
@@ -117,18 +119,18 @@ function resolveOpenSslCommand(): string {
     path.join(process.env.TIZEN_STUDIO_HOME ?? '', 'tools', 'msys2', 'usr', 'bin', 'openssl.exe'),
     path.join('C:\\', 'tizen-studio', 'tools', 'msys2', 'usr', 'bin', 'openssl.exe'),
     path.join(
-      process.env['ProgramFiles'] ?? 'C:\\Program Files',
+      process.env.ProgramFiles ?? 'C:\\Program Files',
       'Git',
       'usr',
       'bin',
-      'openssl.exe'
+      'openssl.exe',
     ),
     path.join(
-      process.env['ProgramFiles'] ?? 'C:\\Program Files',
+      process.env.ProgramFiles ?? 'C:\\Program Files',
       'Git',
       'mingw64',
       'bin',
-      'openssl.exe'
+      'openssl.exe',
     ),
   ]
 
@@ -139,7 +141,7 @@ function resolveOpenSslCommand(): string {
   }
 
   throw new Error(
-    'OpenSSL is not available in PATH and no bundled fallback was found. Install OpenSSL or Git for Windows.'
+    'OpenSSL is not available in PATH and no bundled fallback was found. Install OpenSSL or Git for Windows.',
   )
 }
 
@@ -147,7 +149,7 @@ function generateAuthorCertWithOpenSsl(
   authorPath: string,
   profileName: string,
   authorName: string,
-  authorPassword: string
+  authorPassword: string,
 ): string {
   const openSslCommand = resolveOpenSslCommand()
 
@@ -238,19 +240,19 @@ function resolveDistributorDefaults(): {
     certificateGeneratorDir,
     'certificates',
     'developer',
-    'tizen-developer-ca.cer'
+    'tizen-developer-ca.cer',
   )
   const distPath = path.join(
     certificateGeneratorDir,
     'certificates',
     'distributor',
-    'tizen-distributor-signer.p12'
+    'tizen-distributor-signer.p12',
   )
   const distCaPath = path.join(
     certificateGeneratorDir,
     'certificates',
     'distributor',
-    'tizen-distributor-ca.cer'
+    'tizen-distributor-ca.cer',
   )
 
   const confProfilesPath = path.resolve(
@@ -258,7 +260,7 @@ function resolveDistributorDefaults(): {
     '..',
     'ide',
     'conf-ncli',
-    'profiles.xml'
+    'profiles.xml',
   )
   if (!fs.existsSync(confProfilesPath)) {
     throw new Error(`Default distributor config not found: ${confProfilesPath}`)
@@ -266,7 +268,7 @@ function resolveDistributorDefaults(): {
 
   const content = fs.readFileSync(confProfilesPath, 'utf8')
   const match = content.match(
-    /<profileitem[\s\S]*?distributor="1"[\s\S]*?password="([^"]+)"[\s\S]*?\/>/
+    /<profileitem[\s\S]*?distributor="1"[\s\S]*?password="([^"]+)"[\s\S]*?\/>/,
   )
   if (!match) {
     throw new Error('Could not resolve distributor password from Tizen default profile config')
@@ -284,7 +286,7 @@ function ensureProfileInProfilesXml(
   profilesPath: string,
   profileName: string,
   authorCertPath: string,
-  authorPassword: string
+  authorPassword: string,
 ): void {
   const { authorCaPath, distPath, distCaPath, distPassword } = resolveDistributorDefaults()
 
@@ -319,7 +321,7 @@ function ensureProfileInProfilesXml(
 function resolveAuthorCertPath(
   profileName: string,
   configuredPath: string,
-  tizenDataDir: string
+  tizenDataDir: string,
 ): string {
   if (configuredPath) {
     const absoluteConfigured = path.isAbsolute(configuredPath)
@@ -349,7 +351,7 @@ function ensureSigningProfile(
   authorPassword: string,
   configuredAuthorCertPath: string,
   tizenDataDir: string,
-  profilesPath: string
+  profilesPath: string,
 ): void {
   if (profileExists(profileName)) {
     console.log(`Profile exists: ${profileName}`)
@@ -387,7 +389,8 @@ function ensureSigningProfile(
         '--',
         authorPath,
       ])
-    } catch {
+    }
+    catch {
       console.log('tizen certificate failed, trying OpenSSL fallback...')
       generateAuthorCertWithOpenSsl(authorPath, profileName, authorName, authorPassword)
     }
@@ -398,7 +401,7 @@ function ensureSigningProfile(
       const keytoolHint = commandExists('keytool') ? '' : ' keytool is not available in PATH.'
       const opensslHint = commandExists('openssl') ? '' : ' OpenSSL is not available in PATH.'
       throw new Error(
-        `Could not generate author certificate for profile ${profileName}.${keytoolHint}${opensslHint}`
+        `Could not generate author certificate for profile ${profileName}.${keytoolHint}${opensslHint}`,
       )
     }
   }
@@ -418,14 +421,15 @@ function ensureSigningProfile(
       '-p',
       authorPassword,
     ])
-  } catch {
+  }
+  catch {
     if (!profileExists(profileName)) {
       console.log('security-profiles add failed, writing profiles.xml fallback...')
       ensureProfileInProfilesXml(profilesPath, profileName, authorCertPath, authorPassword)
 
       if (!profileExists(profileName)) {
         throw new Error(
-          `Could not create security profile: ${profileName}. Check 'tizen security-profiles list' and '${profilesPath}'.`
+          `Could not create security profile: ${profileName}. Check 'tizen security-profiles list' and '${profilesPath}'.`,
         )
       }
     }
@@ -440,7 +444,7 @@ function packageWgt(profileName: string, version: string): void {
   }
 
   if (!fs.existsSync(distDir)) {
-    throw new Error("dist/ not found. Run 'vite build --mode tizen' first.")
+    throw new Error('dist/ not found. Run \'vite build --mode tizen\' first.')
   }
 
   console.log('Copying config.xml to dist/')
@@ -449,7 +453,7 @@ function packageWgt(profileName: string, version: string): void {
   console.log(`Packaging WGT with profile: ${profileName}`)
   execInherit('tizen', ['package', '-t', 'wgt', '-s', profileName, '--', distDir])
 
-  const wgtFiles = fs.readdirSync(distDir).filter((name) => name.endsWith('.wgt'))
+  const wgtFiles = fs.readdirSync(distDir).filter(name => name.endsWith('.wgt'))
   if (wgtFiles.length === 0) {
     throw new Error('WGT file not found after packaging')
   }
@@ -470,8 +474,8 @@ function packageWgt(profileName: string, version: string): void {
 function main(): void {
   loadDotEnvFile(envFilePath)
 
-  ensureCommand('tizen', "'tizen' command not found in PATH. Add Tizen CLI to your PATH and retry.")
-  ensureCommand('npx', "'npx' command not found in PATH.")
+  ensureCommand('tizen', '\'tizen\' command not found in PATH. Add Tizen CLI to your PATH and retry.')
+  ensureCommand('npx', '\'npx\' command not found in PATH.')
 
   const profileName = process.env.TIZEN_PROFILE || 'SignageProfile'
   const authorPassword = process.env.TIZEN_AUTHOR_CERT_PASSWORD || 'signage1234'
@@ -495,7 +499,7 @@ function main(): void {
     authorPassword,
     authorCertPath,
     tizenDataDir,
-    profilesPath
+    profilesPath,
   )
 
   packageWgt(profileName, version)
@@ -503,7 +507,8 @@ function main(): void {
 
 try {
   main()
-} catch (error) {
+}
+catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`ERROR: ${message}`)
   process.exit(1)

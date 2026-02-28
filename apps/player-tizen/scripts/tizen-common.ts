@@ -21,7 +21,7 @@ function runRaw(command: string, args: string[], options: Record<string, unknown
       env = {
         ...process.env,
         JAVA_HOME: java8Path,
-        PATH: java8Path + '\\bin;' + (process.env.PATH ?? ''),
+        PATH: `${java8Path}\\bin;${process.env.PATH ?? ''}`,
       }
     }
   }
@@ -48,7 +48,7 @@ function getCombinedOutput(result: ReturnType<typeof runRaw>) {
 export function execInherit(
   command: string,
   args: string[],
-  options: Record<string, unknown> = {}
+  options: Record<string, unknown> = {},
 ): void {
   const result = runRaw(command, args, {
     stdio: 'inherit',
@@ -63,7 +63,7 @@ export function execInherit(
 export function execCapture(
   command: string,
   args: string[],
-  options: Record<string, unknown> = {}
+  options: Record<string, unknown> = {},
 ): string {
   const result = runRaw(command, args, {
     stdio: 'pipe',
@@ -115,8 +115,8 @@ export function loadDotEnvFile(filePath: string): void {
     let value = line.slice(separatorIndex + 1).trim()
 
     if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
+      (value.startsWith('"') && value.endsWith('"'))
+      || (value.startsWith('\'') && value.endsWith('\''))
     ) {
       value = value.slice(1, -1)
     }
@@ -131,8 +131,8 @@ export function resolveSdbCommand(): string {
   }
 
   const homeDir = os.homedir()
-  const fallback =
-    process.platform === 'win32'
+  const fallback
+    = process.platform === 'win32'
       ? path.join(homeDir, 'tizen-studio', 'tools', 'sdb.exe')
       : path.join(homeDir, 'tizen-studio', 'tools', 'sdb')
 
@@ -233,8 +233,8 @@ export function getAppId(configXmlPath: string): string {
 export function resolveLatestWgt(root: string): string {
   const files = fs
     .readdirSync(root)
-    .filter((name) => /^digital_signage_player_.*\.wgt$/.test(name))
-    .map((name) => path.join(root, name))
+    .filter(name => /^digital_signage_player_.*\.wgt$/.test(name))
+    .map(name => path.join(root, name))
 
   if (files.length === 0) {
     throw new Error(`No WGT file found in ${root}. Run 'pnpm run build' first.`)
