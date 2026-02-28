@@ -163,7 +163,10 @@ export function waitForTargetSerial(sdbCommand: string, timeoutSeconds = 45): st
 
 export function updateWidgetVersion(configXmlPath: string, version: string): void {
   const current = fs.readFileSync(configXmlPath, 'utf8')
-  const next = current.replace(/(<widget[^>]*\sversion=")([^"]*)(")/, `$1${version}$3`)
+  const next = current.replace(
+    /(<widget\s[^>]*\sversion\s*=\s*)(["'])([^"']*)(\2)/,
+    `$1$2${version}$2`,
+  )
 
   if (next === current) {
     throw new Error('Could not update widget version in config.xml')
@@ -179,7 +182,7 @@ export function getPackageJsonVersion(packageJsonPath: string): string {
 
 export function getAppPackageId(configXmlPath: string): string {
   const configXml = fs.readFileSync(configXmlPath, 'utf8')
-  const match = configXml.match(/<tizen:application[^>]*\spackage="([^"]+)"/)
+  const match = configXml.match(/<tizen:application\s[^>]*\spackage\s*=\s*["']([^"']+)["']/)
 
   if (!match) {
     throw new Error('Could not resolve package id from config.xml')
