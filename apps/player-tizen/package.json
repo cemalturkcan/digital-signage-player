@@ -5,16 +5,16 @@
   "scripts": {
     "dev": "vite --host",
     "dev:mock": "vite --mode mock",
-    "build": "bash scripts/package-wgt.sh",
-    "wgt:install": "bash scripts/install-emulator.sh",
-    "wgt:run": "bash scripts/run-emulator.sh",
+    "build": "tsx scripts/package-wgt.ts",
+    "wgt:install": "tsx scripts/install-emulator.ts",
+    "wgt:run": "tsx scripts/run-emulator.ts",
     "wgt:deploy": "pnpm run build && pnpm run wgt:install",
     "wgt:deploy:run": "pnpm run wgt:deploy && pnpm run wgt:run",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "vitest run"
   },
   "dependencies": {
@@ -31,6 +31,7 @@
   "devDependencies": {
     "@types/node": "^25.3.1",
     "@vitejs/plugin-vue": "^6.0.4",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.0.18",

@@ -121,6 +121,9 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^6.0.4
         version: 6.0.4(vite@7.3.1)(vue@3.5.29)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
