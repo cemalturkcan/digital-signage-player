@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Playlist } from '@signage/contracts'
 import { useI18n } from 'vue-i18n'
-import { formatDate } from '@/utils/format'
+import { formatDate } from '@/app/utils/format'
 
 interface PlaylistCardProps {
   playlist: Playlist

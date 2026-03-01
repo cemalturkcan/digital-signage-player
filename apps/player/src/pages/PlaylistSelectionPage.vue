@@ -3,7 +3,6 @@ import type { Playlist } from '@signage/contracts'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { activatePlaylist } from '@/app/runtime/runtime'
 import { useLibraryStore } from '@/app/stores/library/store'
 import PlaylistCard from '@/components/playlist/PlaylistCard.vue'
 
@@ -13,7 +12,6 @@ const { playlists, selectedPlaylistId } = storeToRefs(libraryStore)
 const { t } = useI18n()
 
 async function handleSelect(playlist: Playlist): Promise<void> {
-  await activatePlaylist(playlist)
   await router.push(`/playlist/${playlist.id}`)
 }
 </script>

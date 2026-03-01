@@ -9,7 +9,6 @@ import { useLibraryStore } from '@/app/stores/library/store'
 import { usePlayerStore } from '@/app/stores/player/store'
 import { usePlaylistStore } from '@/app/stores/playlist/store'
 import ExitPlaybackButton from '@/components/playback/ExitPlaybackButton.vue'
-import TransportControls from '@/components/playback/TransportControls.vue'
 import Player from '@/components/Player.vue'
 
 interface PlayerRef {
@@ -30,7 +29,21 @@ const switchingSource = ref(false)
 const playbackToken = ref(0)
 const activeMediaRelease = ref<(() => void) | null>(null)
 
+const HIDE_CONTROLS_DELAY_MS = 3000
 const IMAGE_DURATION_SECONDS = 5
+
+const controlsVisible = ref(false)
+let hideControlsTimer: ReturnType<typeof setTimeout> | null = null
+
+function showControls(): void {
+  controlsVisible.value = true
+  if (hideControlsTimer)
+    clearTimeout(hideControlsTimer)
+  hideControlsTimer = setTimeout(() => {
+    controlsVisible.value = false
+    hideControlsTimer = null
+  }, HIDE_CONTROLS_DELAY_MS)
+}
 
 const currentItem = computed(() => playerStore.currentItem)
 const isImage = computed(() => currentItem.value?.type === 'image')
@@ -110,7 +123,12 @@ async function playItem(item: MediaItem): Promise<void> {
   clearImageTimer()
   clearActiveMediaSource()
 
-  const source = await resolvePlayableMediaSource(deviceStore.getDeviceId(), item.url)
+  const deviceId = deviceStore.deviceId
+  if (!deviceId) {
+    return
+  }
+
+  const source = await resolvePlayableMediaSource(deviceId, item.url)
   if (token !== playbackToken.value) {
     source.release()
     return
@@ -152,14 +170,6 @@ async function nextItem(): Promise<void> {
   }
 
   await playItem(next)
-}
-
-async function prevItem(): Promise<void> {
-  const previous = playlistStore.prevForPlayback()
-  if (!previous)
-    return
-
-  await playItem(previous)
 }
 
 function handleVideoEnded(): void {
@@ -218,11 +228,18 @@ onUnmounted(() => {
   playbackToken.value += 1
   clearImageTimer()
   clearActiveMediaSource()
+  if (hideControlsTimer)
+    clearTimeout(hideControlsTimer)
 })
 </script>
 
 <template>
-  <div class="playback-page">
+  <div
+    class="playback-page"
+    @mousemove="showControls"
+    @keydown="showControls"
+    @touchstart="showControls"
+  >
     <div class="playback-page_media-wrap">
       <img
         v-if="isImage && currentItem"
@@ -242,13 +259,14 @@ onUnmounted(() => {
         @error="handleMediaError"
       />
 
-      <div class="playback-page_controls">
-        <TransportControls @next="nextItem" @previous="prevItem" />
-      </div>
-
-      <div class="playback-page_exit">
-        <ExitPlaybackButton @exit="finishPlaybackAndReturnToSelection" />
-      </div>
+      <Transition name="controls-fade">
+        <div
+          v-if="controlsVisible"
+          class="playback-page_exit"
+        >
+          <ExitPlaybackButton @exit="finishPlaybackAndReturnToSelection" />
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -275,16 +293,19 @@ onUnmounted(() => {
   object-fit: contain;
 }
 
-.playback-page_controls {
-  position: absolute;
-  left: 50%;
-  bottom: var(--space-tv-page);
-  transform: translateX(-50%);
-}
-
 .playback-page_exit {
   position: absolute;
   left: var(--space-tv-page);
   top: var(--space-tv-page);
+}
+
+.controls-fade-enter-active,
+.controls-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.controls-fade-enter-from,
+.controls-fade-leave-to {
+  opacity: 0;
 }
 </style>

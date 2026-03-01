@@ -24,18 +24,4 @@ export const useDeviceStore = defineStore('device', {
     isRegistered: (state): boolean => state.registration !== null,
     mqttConfig: (state): RegistrationResponse['mqtt'] | null => state.registration?.mqtt ?? null,
   },
-
-  actions: {
-    setRegistration(registration: RegistrationResponse): void {
-      this.registration = registration
-    },
-
-    clearRegistration(): void {
-      this.registration = null
-    },
-
-    getDeviceId(): string {
-      return this.deviceId!
-    },
-  },
 })
