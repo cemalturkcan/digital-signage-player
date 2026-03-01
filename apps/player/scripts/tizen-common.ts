@@ -29,7 +29,7 @@ function runRaw(command: string, args: string[], options: Record<string, unknown
   const result = spawnSync(command, args, {
     encoding: 'utf8',
     cwd: rootDir,
-    shell: true,
+    shell: isWin,
     env,
     ...options,
   })
