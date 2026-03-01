@@ -2,11 +2,20 @@ import type { MediaItem, Playlist, PlaylistResponse } from '@signage/contracts'
 import { db } from '@/app/db/db.js'
 
 interface PlaylistWithItemsRow {
-  playlist_id: number | null
-  playlist_created_at: Date | string | null
-  playlist_updated_at: Date | string | null
-  items: unknown
+  id: number
+  loop: boolean
+  created_at: number
+  updated_at: number
   total_count: number
+  items: unknown
+}
+
+interface PlaylistDetailsRow {
+  id: number
+  loop: boolean
+  created_at: number
+  updated_at: number
+  items: unknown
 }
 
 interface PlaylistItemJson {
@@ -14,97 +23,76 @@ interface PlaylistItemJson {
   type: 'image' | 'video'
   url: string
   order: number
-}
-
-const DEFAULT_PLAYLIST: Playlist = {
-  id: 'default',
-  createdAt: 0,
-  updatedAt: 0,
-  items: [
-    {
-      id: 'default-0',
-      type: 'image',
-      url: 'https://cdn.cemalturkcan.com/images/image1.jpg',
-      order: 0,
-    },
-    {
-      id: 'default-1',
-      type: 'video',
-      url: 'https://cdn.cemalturkcan.com/videos/video1.mp4',
-      order: 1,
-    },
-    {
-      id: 'default-2',
-      type: 'image',
-      url: 'https://cdn.cemalturkcan.com/images/image2.jpg',
-      order: 2,
-    },
-    {
-      id: 'default-3',
-      type: 'video',
-      url: 'https://cdn.cemalturkcan.com/videos/video2.mp4',
-      order: 3,
-    },
-    {
-      id: 'default-4',
-      type: 'image',
-      url: 'https://cdn.cemalturkcan.com/images/image3.jpg',
-      order: 4,
-    },
-    {
-      id: 'default-5',
-      type: 'video',
-      url: 'https://cdn.cemalturkcan.com/videos/video3.mp4',
-      order: 5,
-    },
-  ],
+  duration?: number | null
 }
 
 const SELECT_PLAYLISTS_WITH_ITEMS_BY_DEVICE_ID = `WITH filtered_playlists AS (
-  SELECT id, created_at, updated_at
-  FROM playlists
-  WHERE device_id = $1
-),
-total_count AS (
-  SELECT COUNT(*)::int AS total
-  FROM filtered_playlists
-),
-paged_playlists AS (
-  SELECT id, created_at, updated_at
-  FROM filtered_playlists
-  ORDER BY updated_at DESC, id DESC
-  LIMIT $2 OFFSET $3
-),
-playlists_with_items AS (
   SELECT
-    paged_playlists.id AS playlist_id,
-    paged_playlists.created_at AS playlist_created_at,
-    paged_playlists.updated_at AS playlist_updated_at,
-    COALESCE(
-      json_agg(
-        json_build_object(
-          'id', playlist_items.id::text,
-          'type', playlist_items.media_type,
-          'url', playlist_items.media_url,
-          'order', playlist_items.sort_order
-        )
-        ORDER BY playlist_items.sort_order ASC, playlist_items.id ASC
-      ) FILTER (WHERE playlist_items.id IS NOT NULL),
-      '[]'::json
-    ) AS items
-  FROM paged_playlists
-  LEFT JOIN playlist_items ON playlist_items.playlist_id = paged_playlists.id
-  GROUP BY paged_playlists.id, paged_playlists.created_at, paged_playlists.updated_at
+    id,
+    loop,
+    created_at,
+    updated_at,
+    COUNT(*) OVER()::int AS total_count
+  FROM playlists
+  WHERE device_id IS NULL OR device_id = $1
+  ORDER BY updated_at DESC, id DESC
+), paged_playlists AS (
+  SELECT *
+  FROM filtered_playlists
+  LIMIT $2 OFFSET $3
 )
 SELECT
-  playlists_with_items.playlist_id,
-  playlists_with_items.playlist_created_at,
-  playlists_with_items.playlist_updated_at,
-  playlists_with_items.items,
-  total_count.total AS total_count
-FROM total_count
-LEFT JOIN playlists_with_items ON true
-ORDER BY playlists_with_items.playlist_updated_at DESC NULLS LAST, playlists_with_items.playlist_id DESC NULLS LAST`
+  paged_playlists.id,
+  paged_playlists.loop,
+  (EXTRACT(EPOCH FROM paged_playlists.created_at) * 1000)::double precision AS created_at,
+  (EXTRACT(EPOCH FROM paged_playlists.updated_at) * 1000)::double precision AS updated_at,
+  paged_playlists.total_count,
+  COALESCE(
+    json_agg(
+      json_build_object(
+        'id', playlist_items.id::text,
+        'type', playlist_items.media_type,
+        'url', playlist_items.media_url,
+        'duration', playlist_items.duration,
+        'order', playlist_items.sort_order
+      )
+      ORDER BY playlist_items.sort_order ASC, playlist_items.id ASC
+    ) FILTER (WHERE playlist_items.id IS NOT NULL),
+    '[]'::json
+  ) AS items
+FROM paged_playlists
+LEFT JOIN playlist_items ON playlist_items.playlist_id = paged_playlists.id
+GROUP BY paged_playlists.id, paged_playlists.loop, paged_playlists.created_at, paged_playlists.updated_at, paged_playlists.total_count
+ORDER BY paged_playlists.updated_at DESC, paged_playlists.id DESC`
+
+const SELECT_PLAYLIST_BY_ID = `WITH target_playlist AS (
+  SELECT id, loop, created_at, updated_at
+  FROM playlists
+  WHERE id = $1
+    AND (device_id IS NULL OR device_id = $2)
+  LIMIT 1
+)
+SELECT
+  target_playlist.id,
+  target_playlist.loop,
+  (EXTRACT(EPOCH FROM target_playlist.created_at) * 1000)::double precision AS created_at,
+  (EXTRACT(EPOCH FROM target_playlist.updated_at) * 1000)::double precision AS updated_at,
+  COALESCE(
+    json_agg(
+      json_build_object(
+        'id', playlist_items.id::text,
+        'type', playlist_items.media_type,
+        'url', playlist_items.media_url,
+        'duration', playlist_items.duration,
+        'order', playlist_items.sort_order
+      )
+      ORDER BY playlist_items.sort_order ASC, playlist_items.id ASC
+    ) FILTER (WHERE playlist_items.id IS NOT NULL),
+    '[]'::json
+  ) AS items
+FROM target_playlist
+LEFT JOIN playlist_items ON playlist_items.playlist_id = target_playlist.id
+GROUP BY target_playlist.id, target_playlist.loop, target_playlist.created_at, target_playlist.updated_at`
 
 function mapItems(value: unknown): MediaItem[] {
   if (!Array.isArray(value)) {
@@ -131,6 +119,7 @@ function mapItems(value: unknown): MediaItem[] {
       id: item.id,
       type: item.type,
       url: item.url,
+      duration: item.duration,
       order: item.order,
     })
   }
@@ -138,27 +127,18 @@ function mapItems(value: unknown): MediaItem[] {
   return items
 }
 
-function mapRowsToPlaylists(rows: PlaylistWithItemsRow[]): Playlist[] {
-  const playlists: Playlist[] = []
-
-  for (const row of rows) {
-    if (
-      row.playlist_id === null
-      || row.playlist_created_at === null
-      || row.playlist_updated_at === null
-    ) {
-      continue
-    }
-
-    playlists.push({
-      id: String(row.playlist_id),
-      createdAt: new Date(row.playlist_created_at).getTime(),
-      updatedAt: new Date(row.playlist_updated_at).getTime(),
-      items: mapItems(row.items),
-    })
+function mapRowToPlaylist(row: PlaylistDetailsRow): Playlist {
+  return {
+    id: String(row.id),
+    loop: row.loop,
+    createdAt: Math.trunc(row.created_at),
+    updatedAt: Math.trunc(row.updated_at),
+    items: mapItems(row.items),
   }
+}
 
-  return playlists
+function mapRowsToPlaylists(rows: PlaylistWithItemsRow[]): Playlist[] {
+  return rows.map(row => mapRowToPlaylist(row))
 }
 
 export interface PlaylistRepository {
@@ -167,6 +147,7 @@ export interface PlaylistRepository {
     page: number,
     pageSize: number,
   ) => Promise<PlaylistResponse>
+  getPlaylistById: (playlistId: number, deviceId: string) => Promise<Playlist | null>
 }
 
 export const playlistRepository: PlaylistRepository = {
@@ -175,10 +156,6 @@ export const playlistRepository: PlaylistRepository = {
     page: number,
     pageSize: number,
   ): Promise<PlaylistResponse> {
-    if (db === null) {
-      throw new Error('Database not connected')
-    }
-
     const offset = (page - 1) * pageSize
     const result = await db.query<PlaylistWithItemsRow>(SELECT_PLAYLISTS_WITH_ITEMS_BY_DEVICE_ID, [
       deviceId,
@@ -186,9 +163,8 @@ export const playlistRepository: PlaylistRepository = {
       offset,
     ])
 
-    const totalDevicePlaylists = result.rows[0]?.total_count ?? 0
-    const total = totalDevicePlaylists + 1
-    const totalPages = Math.ceil(total / pageSize)
+    const total = result.rows[0]?.total_count ?? 0
+    const totalPages = total > 0 ? Math.ceil(total / pageSize) : 0
     const playlists = mapRowsToPlaylists(result.rows)
 
     return {
@@ -196,7 +172,17 @@ export const playlistRepository: PlaylistRepository = {
       total,
       currentPage: page,
       totalPages,
-      content: [DEFAULT_PLAYLIST, ...playlists],
+      content: playlists,
     }
+  },
+
+  async getPlaylistById(playlistId: number, deviceId: string): Promise<Playlist | null> {
+    const result = await db.query<PlaylistDetailsRow>(SELECT_PLAYLIST_BY_ID, [playlistId, deviceId])
+    const row = result.rows[0]
+    if (!row) {
+      return null
+    }
+
+    return mapRowToPlaylist(row)
   },
 }

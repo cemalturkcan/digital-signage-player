@@ -9,6 +9,7 @@ import { computeHash } from '@/app/cache/hash'
 import { syncMediaCache } from '@/app/cache/media-cache'
 import { readPlaylistCache, writePlaylistCache } from '@/app/cache/playlist-cache'
 import { commandBus } from '@/app/commands/bus'
+import { COMMAND_ERROR_CODES } from '@/app/commands/constants'
 import { mqttClientService } from '@/app/mqtt/client'
 import { createPlatformAdapter } from '@/app/platform/factory'
 import { getPlaylistsByDeviceId } from '@/app/request/requests/playlist'
@@ -16,6 +17,7 @@ import { useGlobalStore } from '@/app/stores/global/store'
 import { useLibraryStore } from '@/app/stores/library/store'
 import { usePlayerStore } from '@/app/stores/player/store'
 import { usePlaylistStore } from '@/app/stores/playlist/store'
+import { translate } from '@/modules/i18n'
 
 const processedCommands = new Set<string>()
 
@@ -110,7 +112,7 @@ async function fetchPlaylistsWithPolicy(options?: { networkFirst?: boolean }): P
     return cached.response.content
   }
 
-  globalStore.showLoading('Loading playlists...')
+  globalStore.showLoading(translate('loadingPlaylists'))
   const fromNetwork = await refreshPlaylistsFromNetwork(cached?.hash)
   if (fromNetwork) {
     return fromNetwork
@@ -124,7 +126,7 @@ async function fetchPlaylistsWithPolicy(options?: { networkFirst?: boolean }): P
   }
 
   globalStore.hideLoading()
-  globalStore.showError('Failed to load playlists')
+  globalStore.showError(translate('failedToLoadPlaylists'))
   libraryStore.setPlaylists([])
   return []
 }
@@ -170,23 +172,30 @@ async function handleReloadPlaylist(): Promise<void> {
 }
 
 async function handleRestartPlayer(): Promise<void> {
+  const libraryStore = useLibraryStore()
   const playlistStore = usePlaylistStore()
   const playerStore = usePlayerStore()
-  const currentPlaylist = playlistStore.currentPlaylist
-  if (!currentPlaylist) {
+
+  playerStore.stop()
+  playlistStore.clearPlaylist()
+
+  const playlists = await fetchPlaylistsWithPolicy({ networkFirst: true })
+  if (playlists.length === 0) {
     playerStore.stop()
     return
   }
 
-  playlistStore.resetIndex()
-  const firstItem = getFirstItem(currentPlaylist)
-  if (!firstItem) {
-    playerStore.stop()
-    return
+  const selectedId = libraryStore.selectedPlaylistId
+  if (selectedId) {
+    const selectedPlaylist = playlists.find(playlist => playlist.id === selectedId)
+    if (selectedPlaylist) {
+      await activatePlaylist(selectedPlaylist)
+      return
+    }
   }
 
-  await playerStore.load(firstItem)
-  playerStore.play()
+  const fallbackPlaylist = playlists[0]
+  await activatePlaylist(fallbackPlaylist)
 }
 
 async function handlePlay(): Promise<void> {
@@ -214,7 +223,11 @@ async function handleScreenshot(command: CommandEnvelope): Promise<CommandResult
     return buildSuccessResult(command, { base64, mimeType: blob.type || 'image/png' })
   }
   catch {
-    return buildErrorResult(command, 'SCREENSHOT_FAILED', 'Failed to capture screenshot')
+    return buildErrorResult(
+      command,
+      COMMAND_ERROR_CODES.SCREENSHOT_FAILED,
+      translate('failedToCaptureScreenshot'),
+    )
   }
 }
 
@@ -252,16 +265,16 @@ async function executeCommand(command: CommandEnvelope): Promise<CommandResultEn
       default:
         return buildErrorResult(
           command,
-          'UNSUPPORTED_COMMAND',
-          `Command ${command.command} not implemented in handler`,
+          COMMAND_ERROR_CODES.UNSUPPORTED_COMMAND,
+          translate('unsupportedCommand', { command: command.command }),
         )
     }
   }
   catch (error) {
     return buildErrorResult(
       command,
-      'EXECUTION_ERROR',
-      error instanceof Error ? error.message : 'Unknown error',
+      COMMAND_ERROR_CODES.EXECUTION_ERROR,
+      error instanceof Error ? error.message : translate('unknownError'),
     )
   }
 }
@@ -304,13 +317,34 @@ async function handleMqttMessage(message: Uint8Array, responseTopic: string): Pr
       correlationId: 'unknown',
       status: 'error',
       timestamp: Date.now(),
-      error: { code: 'INVALID_JSON', message: 'Failed to parse command JSON' },
+      error: {
+        code: COMMAND_ERROR_CODES.INVALID_JSON,
+        message: translate('invalidCommandJson'),
+      },
     })
     return
   }
 
+  const resolvedResponseTopic = getReplyTopic(envelope, responseTopic)
   const result = await commandBus.execute(envelope)
-  await mqttClientService.publish(responseTopic, result)
+  await mqttClientService.publish(resolvedResponseTopic, result)
+}
+
+function getReplyTopic(envelope: unknown, fallbackTopic: string): string {
+  if (typeof envelope !== 'object' || envelope === null) {
+    return fallbackTopic
+  }
+
+  const value = envelope as Record<string, unknown>
+  if (typeof value.replyTopic !== 'string' || value.replyTopic.trim().length === 0) {
+    return fallbackTopic
+  }
+
+  return value.replyTopic
+}
+
+function getFallbackResponseTopic(): string {
+  return `signage/${currentDeviceId}/responses`
 }
 
 async function setupMqtt(): Promise<void> {
@@ -318,7 +352,6 @@ async function setupMqtt(): Promise<void> {
     return
 
   const commandTopic = `signage/${currentDeviceId}/commands`
-  const responseTopic = `signage/${currentDeviceId}/responses`
 
   if (mqttMessageHandler) {
     mqttClientService.offMessage(mqttMessageHandler)
@@ -328,7 +361,7 @@ async function setupMqtt(): Promise<void> {
     if (topic !== commandTopic)
       return
 
-    void handleMqttMessage(message, responseTopic)
+    void handleMqttMessage(message, getFallbackResponseTopic())
   }
 
   mqttClientService.onMessage(mqttMessageHandler)

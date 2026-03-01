@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import type { Playlist } from '@signage/contracts'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { activatePlaylist } from '@/app/runtime/runtime'
 import { useLibraryStore } from '@/app/stores/library/store'
 import PlaylistCard from '@/components/playlist/PlaylistCard.vue'
 
-const emit = defineEmits<{
-  (e: 'select', playlist: Playlist): void
-}>()
+const router = useRouter()
 const libraryStore = useLibraryStore()
 const { playlists, selectedPlaylistId } = storeToRefs(libraryStore)
+const { t } = useI18n()
 
-function handleSelect(playlist: Playlist): void {
-  emit('select', playlist)
+async function handleSelect(playlist: Playlist): Promise<void> {
+  await activatePlaylist(playlist)
+  await router.push(`/playlist/${playlist.id}`)
 }
 </script>
 
@@ -19,18 +22,18 @@ function handleSelect(playlist: Playlist): void {
   <section class="playlist-page">
     <div class="playlist-page_header">
       <p class="playlist-page_kicker">
-        Digital Signage
+        {{ t('playlistSelectionKicker') }}
       </p>
       <h1 class="playlist-page_title">
-        Playlist Selection
+        {{ t('playlistSelectionTitle') }}
       </h1>
       <p class="playlist-page_subtitle">
-        Pick one list to start playback on this screen.
+        {{ t('playlistSelectionSubtitle') }}
       </p>
     </div>
 
     <div v-if="playlists.length === 0" class="playlist-page_empty">
-      <p>No playlists available for this device.</p>
+      <p>{{ t('playlistSelectionEmpty') }}</p>
     </div>
 
     <div v-else class="playlist-grid">
@@ -39,7 +42,7 @@ function handleSelect(playlist: Playlist): void {
         :key="playlist.id"
         :playlist="playlist"
         :selected="playlist.id === selectedPlaylistId"
-        @select="handleSelect"
+        @select="(playlist) => void handleSelect(playlist)"
       />
     </div>
   </section>
@@ -48,11 +51,12 @@ function handleSelect(playlist: Playlist): void {
 <style scoped>
 .playlist-page {
   width: 100%;
-  height: 100%;
-  padding: var(--space-tv-page);
+  min-height: 100%;
+  padding: clamp(var(--size-4), 4vw, var(--space-tv-page));
   color: var(--text-tv);
   background: var(--surface-tv);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .playlist-page_header {
@@ -62,33 +66,41 @@ function handleSelect(playlist: Playlist): void {
 .playlist-page_kicker {
   font-size: var(--font-size-xs);
   text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--text-tv-subtle);
   margin-bottom: var(--size-2);
 }
 
 .playlist-page_title {
-  font-size: var(--size-12);
+  font-size: clamp(var(--size-10), 8vw, var(--size-12));
   line-height: var(--line-height-tight);
   font-weight: var(--font-weight-bold);
 }
 
 .playlist-page_subtitle {
   margin-top: var(--size-2);
-  font-size: var(--font-size-lg);
+  font-size: clamp(var(--font-size-sm), 3.8vw, var(--font-size-md));
   color: var(--text-tv-muted);
 }
 
 .playlist-page_empty {
   border: var(--border-width-thin) solid var(--border-tv);
   border-radius: var(--radius-tv-card);
-  padding: var(--space-tv-card);
-  font-size: var(--font-size-xl);
+  padding: clamp(var(--size-4), 3vw, var(--space-tv-card));
+  font-size: clamp(var(--font-size-lg), 4vw, var(--font-size-xl));
   color: var(--text-tv-muted);
 }
 
 .playlist-grid {
   display: grid;
-  gap: var(--space-tv-gap);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  gap: clamp(var(--size-3), 2vw, var(--space-tv-gap));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 36rem), 1fr));
+}
+
+@media (max-width: 640px) {
+  .playlist-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

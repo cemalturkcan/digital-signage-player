@@ -1,7 +1,7 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
 import type { ServiceResponse } from '@/app/rest/rest.js'
 import type { DeviceRecord } from '@/routes/register/modal.js'
-import { mqttProvisioningService } from '@/app/mqtt/provisioning-service.js'
+import { messageBusService } from '@/app/message-bus/service.js'
 import { ok, unexpected } from '@/app/rest/rest.js'
 import { MQTT_CLIENT_HOST, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
 import { registerRepository } from '@/routes/register/repository.js'
@@ -36,17 +36,15 @@ export const registerService: RegisterService = {
     const deviceId = request.deviceId.trim()
 
     try {
-      const { device, shouldProvision } = await registerRepository.findOrCreate({
+      const { device } = await registerRepository.findOrCreate({
         deviceId,
       })
 
-      if (shouldProvision) {
-        await mqttProvisioningService.provisionDevice(
-          device.deviceId,
-          device.mqttUsername,
-          device.mqttPassword,
-        )
-      }
+      await messageBusService.provisionDevice(
+        device.deviceId,
+        device.mqttUsername,
+        device.mqttPassword,
+      )
 
       return ok(buildRegistrationResponse(device))
     }

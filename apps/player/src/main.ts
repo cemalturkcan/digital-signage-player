@@ -6,6 +6,8 @@ import App from '@/App.vue'
 import { bootstrap } from '@/app/bootstrap/bootstrap'
 import { disposePlayerRuntime, initializePlayerRuntime } from '@/app/runtime/runtime'
 import { useGlobalStore } from '@/app/stores/global/store'
+import { i18n, translate } from '@/modules/i18n'
+import router from '@/router'
 import '@unocss/reset/tailwind.css'
 import '@/styles/style.css'
 
@@ -14,9 +16,11 @@ async function main(): Promise<void> {
   const pinia = createPinia()
   pinia.use(piniaPluginPersistedstate)
   app.use(pinia)
+  app.use(i18n)
+  app.use(router)
 
   const globalStore = useGlobalStore()
-  globalStore.showLoading('Initializing...')
+  globalStore.showLoading(translate('initializing'))
 
   app.mount('#app')
 
@@ -30,16 +34,16 @@ async function main(): Promise<void> {
         globalStore.setStatus(state)
         switch (state) {
           case 'registering':
-            globalStore.showLoading('Registering device...')
+            globalStore.showLoading(translate('registeringDevice'))
             break
           case 'connecting_mqtt':
-            globalStore.showLoading('Connecting to MQTT...')
+            globalStore.showLoading(translate('connectingMqtt'))
             break
           case 'connected':
             globalStore.hideLoading()
             break
           case 'error':
-            globalStore.showLoading('Offline mode...')
+            globalStore.showLoading(translate('offlineMode'))
             break
         }
       },
@@ -51,7 +55,9 @@ async function main(): Promise<void> {
     await initializePlayerRuntime(result)
   }
   catch (error) {
-    globalStore.showError(error instanceof Error ? error.message : 'Initialization failed')
+    globalStore.showError(
+      error instanceof Error ? error.message : translate('initializationFailed'),
+    )
   }
 }
 

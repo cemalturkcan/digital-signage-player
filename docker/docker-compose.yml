@@ -25,7 +25,22 @@ services:
       - MOSQUITTO_DYNSEC_PASSWORD=${MQTT_DYNSEC_PASSWORD:-admin1234567}
     command: >
       sh -c '
-        exec mosquitto -c /mosquitto/config/mosquitto.conf
+        mosquitto -c /mosquitto/config/mosquitto.conf &
+        pid=$$!
+        pass=$${MOSQUITTO_DYNSEC_PASSWORD:-admin1234567}
+
+        until mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec getClient admin >/dev/null 2>&1; do
+          sleep 1
+        done
+
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec createRole backend_dispatcher >/dev/null 2>&1 || true
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec addRoleACL backend_dispatcher publishClientSend "#" allow >/dev/null 2>&1 || true
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec addRoleACL backend_dispatcher publishClientReceive "#" allow >/dev/null 2>&1 || true
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec addRoleACL backend_dispatcher subscribePattern "#" allow >/dev/null 2>&1 || true
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec addRoleACL backend_dispatcher unsubscribePattern "#" allow >/dev/null 2>&1 || true
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec addClientRole admin backend_dispatcher -1 >/dev/null 2>&1 || true
+
+        wait "$$pid"
       '
     restart: unless-stopped
     healthcheck:

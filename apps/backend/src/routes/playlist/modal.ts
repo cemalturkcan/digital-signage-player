@@ -2,8 +2,9 @@ import { z } from '@hono/zod-openapi'
 
 export interface PlaylistRecord {
   id: number
-  deviceId: string
+  deviceId: string | null
   name: string
+  loop: boolean
   createdAt: number
   updatedAt: number
 }
@@ -22,7 +23,7 @@ export interface PlaylistItemRecord {
 export interface PlaylistItemInput {
   mediaUrl: string
   mediaType: 'image' | 'video'
-  duration?: number
+  duration?: number | null
   sortOrder: number
 }
 
@@ -30,7 +31,7 @@ export const PlaylistMediaItemSchema = z.object({
   id: z.string(),
   type: z.enum(['image', 'video']),
   url: z.string(),
-  duration: z.number().optional(),
+  duration: z.number().nullable().optional(),
   order: z.number().int(),
   checksum: z.string().optional(),
   mimeType: z.string().optional(),
@@ -38,6 +39,7 @@ export const PlaylistMediaItemSchema = z.object({
 
 export const PlaylistSchema = z.object({
   id: z.string(),
+  loop: z.boolean().optional(),
   items: z.array(PlaylistMediaItemSchema),
   createdAt: z.number(),
   updatedAt: z.number(),
@@ -55,4 +57,12 @@ export const PlaylistQuerySchema = z.object({
   deviceId: z.string('deviceId required').trim().min(1, 'deviceId required'),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
+})
+
+export const PlaylistParamsSchema = z.object({
+  id: z.string('id required').trim().min(1, 'id required'),
+})
+
+export const PlaylistByIdQuerySchema = z.object({
+  deviceId: z.string('deviceId required').trim().min(1, 'deviceId required'),
 })
