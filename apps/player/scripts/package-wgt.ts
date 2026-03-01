@@ -231,95 +231,6 @@ function generateAuthorCertWithOpenSsl(
   return outputP12Path
 }
 
-function resolveDistributorDefaults(): {
-  authorCaPath: string
-  distPath: string
-  distCaPath: string
-  distPassword: string
-} {
-  const certificateGeneratorDir = resolveCertificateGeneratorDir()
-  const authorCaPath = path.join(
-    certificateGeneratorDir,
-    'certificates',
-    'developer',
-    'tizen-developer-ca.cer',
-  )
-  const distPath = path.join(
-    certificateGeneratorDir,
-    'certificates',
-    'distributor',
-    'tizen-distributor-signer.p12',
-  )
-  const distCaPath = path.join(
-    certificateGeneratorDir,
-    'certificates',
-    'distributor',
-    'tizen-distributor-ca.cer',
-  )
-
-  const confProfilesPath = path.resolve(
-    certificateGeneratorDir,
-    '..',
-    'ide',
-    'conf-ncli',
-    'profiles.xml',
-  )
-  if (!fs.existsSync(confProfilesPath)) {
-    throw new Error(`Default distributor config not found: ${confProfilesPath}`)
-  }
-
-  const content = fs.readFileSync(confProfilesPath, 'utf8')
-  const match = content.match(
-    /<profileitem[\s\S]*?distributor="1"[\s\S]*?password="([^"]+)"[\s\S]*?\/>/,
-  )
-  if (!match) {
-    throw new Error('Could not resolve distributor password from Tizen default profile config')
-  }
-
-  return {
-    authorCaPath,
-    distPath,
-    distCaPath,
-    distPassword: match[1],
-  }
-}
-
-function ensureProfileInProfilesXml(
-  profilesPath: string,
-  profileName: string,
-  authorCertPath: string,
-  authorPassword: string,
-): void {
-  const { authorCaPath, distPath, distCaPath, distPassword } = resolveDistributorDefaults()
-
-  const profileBlock = [
-    `  <profile name="${profileName}">`,
-    `    <profileitem ca="${authorCaPath.replace(/\\/g, '/')}" distributor="0" key="${authorCertPath.replace(/\\/g, '/')}" password="${authorPassword}" rootca=""/>`,
-    `    <profileitem ca="${distCaPath.replace(/\\/g, '/')}" distributor="1" key="${distPath.replace(/\\/g, '/')}" password="${distPassword}" rootca=""/>`,
-    '    <profileitem ca="" distributor="2" key="" password="" rootca=""/>',
-    '  </profile>',
-  ].join('\n')
-
-  const defaultXml = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<profiles version="2.2">',
-    '</profiles>',
-    '',
-  ].join('\n')
-
-  fs.mkdirSync(path.dirname(profilesPath), { recursive: true })
-
-  const current = fs.existsSync(profilesPath) ? fs.readFileSync(profilesPath, 'utf8') : ''
-  const hasProfile = new RegExp(`<profile\\s+name="${profileName}"`).test(current)
-  if (hasProfile) {
-    return
-  }
-
-  const base = current.includes('<profiles') ? current : defaultXml
-  const next = base.replace('</profiles>', `${profileBlock}\n</profiles>`)
-  fs.writeFileSync(profilesPath, next)
-}
-
 function resolveAuthorCertPath(
   profileName: string,
   configuredPath: string,
@@ -353,7 +264,6 @@ function ensureSigningProfile(
   authorPassword: string,
   configuredAuthorCertPath: string,
   tizenDataDir: string,
-  profilesPath: string,
 ): void {
   if (profileExists(profileName)) {
     console.log(`Profile exists: ${profileName}`)
@@ -412,8 +322,6 @@ function ensureSigningProfile(
     throw new Error(`Could not find author certificate file for profile ${profileName}`)
   }
 
-  const { distPath, distCaPath, distPassword } = resolveDistributorDefaults()
-
   try {
     execInherit('tizen', [
       'security-profiles',
@@ -424,25 +332,12 @@ function ensureSigningProfile(
       authorCertPath,
       '-p',
       authorPassword,
-      '-d',
-      distPath,
-      '-dp',
-      distPassword,
-      '-dc',
-      distCaPath,
     ])
   }
-  catch {
-    if (!profileExists(profileName)) {
-      console.log('security-profiles add failed, writing profiles.xml fallback...')
-      ensureProfileInProfilesXml(profilesPath, profileName, authorCertPath, authorPassword)
-
-      if (!profileExists(profileName)) {
-        throw new Error(
-          `Could not create security profile: ${profileName}. Check 'tizen security-profiles list' and '${profilesPath}'.`,
-        )
-      }
-    }
+  catch (error) {
+    throw new Error(
+      `Could not create security profile: ${profileName}. Original error: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 
   console.log(`Profile created: ${profileName}`)
@@ -503,14 +398,7 @@ function main(): void {
   console.log('Building for Tizen...')
   execInherit('npx', ['vite', 'build', '--mode', 'tizen'])
 
-  ensureSigningProfile(
-    profileName,
-    authorName,
-    authorPassword,
-    authorCertPath,
-    tizenDataDir,
-    profilesPath,
-  )
+  ensureSigningProfile(profileName, authorName, authorPassword, authorCertPath, tizenDataDir)
 
   configureProfilesPath(profilesPath)
 
