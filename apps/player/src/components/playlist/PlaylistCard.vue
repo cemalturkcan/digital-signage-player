@@ -61,7 +61,6 @@ function handleSelect(): void {
   padding: var(--space-tv-card);
   text-align: left;
   transition:
-    transform var(--motion-fast) ease,
     border-color var(--motion-fast) ease,
     background var(--motion-fast) ease;
 }
@@ -70,7 +69,6 @@ function handleSelect(): void {
 .playlist-card:hover {
   border-color: var(--border-tv-strong);
   background: linear-gradient(180deg, var(--surface-tv-accent), var(--surface-tv));
-  transform: translateY(calc(var(--size-2) * -1));
 }
 
 .playlist-card--active {

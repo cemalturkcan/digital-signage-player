@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
-import DefaultLayout from '@/components/player/DefaultLayout.vue'
-import 'media-chrome'
 
 interface PlayerProps {
   src: string
@@ -17,7 +15,7 @@ const props = withDefaults(defineProps<PlayerProps>(), {
   autoplay: true,
   muted: true,
   loop: true,
-  controls: true,
+  controls: false,
   poster: undefined,
   objectFit: 'contain',
 })
@@ -41,7 +39,7 @@ async function play(): Promise<void> {
     await videoRef.value.play()
   }
   catch {
-    // Ignore autoplay and play interruptions from browser/runtime
+    // Ignore autoplay interruptions
   }
 }
 
@@ -108,30 +106,24 @@ defineExpose({
 
 <template>
   <div class="player">
-    <media-controller class="player_controller" autohide="2">
-      <video
-        slot="media"
-        ref="videoRef"
-        class="player_video"
-        :src="source"
-        :autoplay="autoplay"
-        :muted="muted"
-        :loop="loop"
-        :poster="poster"
-        :style="{ objectFit }"
-        playsinline
-        preload="auto"
-        @ended="handleEnded"
-        @error="handleError"
-        @loadedmetadata="handleLoadedMetadata"
-        @pause="handlePause"
-        @play="handlePlay"
-      />
-
-      <media-loading-indicator slot="centered-chrome" noautohide />
-
-      <DefaultLayout v-if="controls" />
-    </media-controller>
+    <video
+      ref="videoRef"
+      class="player_video"
+      :src="source"
+      :autoplay="autoplay"
+      :muted="muted"
+      :loop="loop"
+      :controls="controls"
+      :poster="poster"
+      :style="{ objectFit }"
+      playsinline
+      preload="auto"
+      @ended="handleEnded"
+      @error="handleError"
+      @loadedmetadata="handleLoadedMetadata"
+      @pause="handlePause"
+      @play="handlePlay"
+    />
   </div>
 </template>
 
@@ -140,38 +132,6 @@ defineExpose({
   width: 100%;
   height: 100%;
   background: var(--surface-tv);
-}
-
-.player_controller {
-  width: 100%;
-  height: 100%;
-  --media-control-background: transparent;
-  --media-control-hover-background: transparent;
-  --media-control-border-radius: var(--radius-md);
-  --media-preview-thumbnail-border: var(--border-width-thin) solid var(--text-tv);
-  --media-preview-thumbnail-border-radius: var(--radius-sm);
-  --media-tooltip-display: none;
-  --media-range-track-border-radius: var(--radius-tv-pill);
-  --media-range-track-height: var(--size-1);
-  --media-range-thumb-height: var(--size-4);
-  --media-range-thumb-width: var(--size-4);
-  --media-range-track-background: var(--border-tv);
-  --media-time-range-buffered-color: var(--text-tv-subtle);
-  --media-range-bar-color: var(--text-tv);
-  --media-control-color: var(--text-tv);
-}
-
-:deep(media-time-range) {
-  width: 100%;
-}
-
-:deep(media-play-button#center) {
-  display: none;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 100;
-  transform: translate(-50%, -50%);
 }
 
 .player_video {

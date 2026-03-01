@@ -40,7 +40,6 @@ export const usePlayerStore = defineStore('player', {
     setVolume(level: number): void {
       const clamped = Math.max(0, Math.min(100, level))
       this.volume = clamped
-      // Use Tizen adapter for volume control with fallback
       const adapter = createTizenAdapter()
       adapter.setVolume(clamped)
     },
@@ -54,7 +53,6 @@ export const usePlayerStore = defineStore('player', {
             return await response.blob()
           }
           catch {
-            // Fall through to fallback
           }
         }
       }

@@ -16,6 +16,8 @@ const playlistStore = usePlaylistStore()
 
 const playerRef = ref<PlayerRef | null>(null)
 const imageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+const switchingSource = ref(false)
+const playbackToken = ref(0)
 
 const IMAGE_DURATION_SECONDS = 5
 
@@ -32,18 +34,30 @@ function clearImageTimer(): void {
 }
 
 async function playItem(item: MediaItem): Promise<void> {
+  const token = ++playbackToken.value
+  switchingSource.value = true
   clearImageTimer()
 
-  await playerStore.load(item)
-  playerStore.play()
+  try {
+    await playerStore.load(item)
+    if (token !== playbackToken.value)
+      return
 
-  if (item.type !== 'image')
-    return
+    playerStore.play()
 
-  const duration = IMAGE_DURATION_SECONDS
-  imageTimer.value = setTimeout(() => {
-    void nextItem()
-  }, duration * 1000)
+    if (item.type !== 'image')
+      return
+
+    imageTimer.value = setTimeout(() => {
+      if (token !== playbackToken.value)
+        return
+      void nextItem()
+    }, IMAGE_DURATION_SECONDS * 1000)
+  }
+  finally {
+    if (token === playbackToken.value)
+      switchingSource.value = false
+  }
 }
 
 async function nextItem(): Promise<void> {
@@ -63,10 +77,16 @@ async function prevItem(): Promise<void> {
 }
 
 function handleVideoEnded(): void {
+  if (switchingSource.value)
+    return
+
   void nextItem()
 }
 
 function handleMediaError(): void {
+  if (switchingSource.value)
+    return
+
   void nextItem()
 }
 
@@ -101,6 +121,7 @@ watch(
 )
 
 onUnmounted(() => {
+  playbackToken.value += 1
   clearImageTimer()
 })
 </script>

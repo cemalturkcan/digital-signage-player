@@ -11,11 +11,5 @@ export default antfu(
       'no-unused-vars': 'off',
       'import/no-mutable-exports': 'off',
     },
-  },
-  {
-    files: ['**/*.vue'],
-    rules: {
-      'vue/no-deprecated-slot-attribute': 'off',
-    },
   }
 )
