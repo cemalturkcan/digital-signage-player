@@ -77,6 +77,15 @@ function resolveTizenDataDir(profilesPath: string): string {
   return path.dirname(profileDir)
 }
 
+function configureProfilesPath(profilesPath: string): void {
+  execInherit('tizen', ['cli-config', `default.profiles.path=${profilesPath}`])
+
+  try {
+    execInherit('tizen', ['cli-config', `profiles.path=${profilesPath}`])
+  }
+  catch {}
+}
+
 function resolveCertificateGeneratorDir(): string {
   const candidates = [
     path.join(process.env.TIZEN_STUDIO_HOME ?? '', 'tools', 'certificate-generator'),
@@ -493,6 +502,8 @@ function main(): void {
     tizenDataDir,
     profilesPath,
   )
+
+  configureProfilesPath(profilesPath)
 
   packageWgt(profileName, version)
 }
