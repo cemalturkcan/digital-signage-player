@@ -54,15 +54,15 @@ export const PlaylistResponseSchema = z.object({
 })
 
 export const PlaylistQuerySchema = z.object({
-  deviceId: z.string('deviceId required').trim().min(1, 'deviceId required'),
+  deviceId: z.string().trim().min(1, 'deviceId required'),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
 })
 
 export const PlaylistParamsSchema = z.object({
-  id: z.string('id required').trim().min(1, 'id required'),
+  id: z.string().trim().min(1, 'id required'),
 })
 
 export const PlaylistByIdQuerySchema = z.object({
-  deviceId: z.string('deviceId required').trim().min(1, 'deviceId required'),
+  deviceId: z.string().trim().min(1, 'deviceId required'),
 })
