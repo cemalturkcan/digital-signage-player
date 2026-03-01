@@ -1,0 +1,75 @@
+# Dependencies - CRITICAL: must exclude to prevent pnpm symlink breakage
+**/node_modules
+
+# Build outputs
+**/dist
+build/
+out/
+*.tsbuildinfo
+
+# Environment files (sensitive)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Package files (built)
+*.wgt
+*.ipk
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Backup files
+*bkp*
+*backup*
+*old*
+
+# Turbo cache
+.turbo
+
+# Git
+.git/
+.gitignore
+
+# Docker files (not needed in context)
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+
+# Documentation (not needed for build)
+docs/
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Misc
+.ai/
+.prettierrc
+eslint.config.js
+turbo.json
