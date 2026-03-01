@@ -50,9 +50,7 @@ async function fetchMediaForCache(url: string): Promise<Response | null> {
       return response
     }
   }
-  catch {
-    // ignore and retry with no-cors
-  }
+  catch {}
 
   try {
     const fallback = await fetch(url, { mode: 'no-cors' })
@@ -108,9 +106,7 @@ async function cacheMediaUrls(
       await cache.put(url, response)
       cachedUrls.add(url)
     }
-    catch {
-      // Skip invalid cache entries
-    }
+    catch {}
   }
 
   return cachedUrls

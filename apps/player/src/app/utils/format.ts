@@ -1,4 +1,4 @@
-import { i18n } from '@/modules/i18n'
+import { i18n } from '@/app/modules/i18n'
 
 export function formatDate(timestamp: number): string {
   if (!timestamp)

@@ -26,7 +26,7 @@ async function execute(envelope: unknown): Promise<CommandResultEnvelope> {
     const raw = envelope as Record<string, string> | undefined
     return {
       type: 'command_result',
-      command: (raw?.command as CommandType) ?? 'ping',
+      command: (raw?.command as CommandType) ?? 'reload_playlist',
       correlationId: raw?.commandId ?? 'unknown',
       status: 'error',
       timestamp: now,

@@ -7,15 +7,13 @@ export interface CommandEnvelope {
   replyTopic?: string
 }
 
-export type CommandType =
-  | 'reload_playlist'
-  | 'restart_player'
-  | 'play'
-  | 'pause'
-  | 'set_volume'
-  | 'screenshot'
-  | 'update_config'
-  | 'ping'
+export type CommandType
+  = | 'reload_playlist'
+    | 'restart_player'
+    | 'play'
+    | 'pause'
+    | 'set_volume'
+    | 'screenshot'
 
 export interface ScreenshotCommandParams {
   uploadUrl: string
@@ -60,14 +58,14 @@ export interface EventEnvelope {
   payload?: Record<string, unknown>
 }
 
-export type EventType =
-  | 'playback_started'
-  | 'playback_ended'
-  | 'playback_error'
-  | 'media_loaded'
-  | 'network_status'
-  | 'storage_warning'
-  | 'screenshot_captured'
+export type EventType
+  = | 'playback_started'
+    | 'playback_ended'
+    | 'playback_error'
+    | 'media_loaded'
+    | 'network_status'
+    | 'storage_warning'
+    | 'screenshot_captured'
 
 const VALID_COMMANDS: CommandType[] = [
   'reload_playlist',
@@ -76,8 +74,6 @@ const VALID_COMMANDS: CommandType[] = [
   'pause',
   'set_volume',
   'screenshot',
-  'update_config',
-  'ping',
 ]
 
 export function isCommandType(value: unknown): value is CommandType {
