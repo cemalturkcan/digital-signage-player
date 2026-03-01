@@ -139,11 +139,20 @@ jobs:
           TIZEN_AUTHOR_CERT_PASSWORD: ${{ secrets.TIZEN_AUTHOR_CERT_PASSWORD }}
         run: |
           set -euo pipefail
-          openssl pkcs12 \
-            -in "$RUNNER_TEMP/tizen/author.p12" \
-            -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
-            -nokeys -clcerts \
-            -out /dev/null
+          if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+            openssl pkcs12 \
+              -legacy \
+              -in "$RUNNER_TEMP/tizen/author.p12" \
+              -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
+              -nokeys -clcerts \
+              -out /dev/null
+          else
+            openssl pkcs12 \
+              -in "$RUNNER_TEMP/tizen/author.p12" \
+              -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
+              -nokeys -clcerts \
+              -out /dev/null
+          fi
 
       - name: Build signed WGT
         run: |
