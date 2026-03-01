@@ -2,18 +2,27 @@ import type { RegistrationResponse } from '@signage/contracts'
 import type { MqttClient } from 'mqtt'
 import type mqtt from 'mqtt'
 import { MQTT_BROKER_URL } from '@/config'
-import { connectClient, disconnectClient, getClient, mqttPublish, mqttSubscribe } from './base-client'
+import {
+  connectClient,
+  disconnectClient,
+  getClient,
+  mqttPublish,
+  mqttSubscribe,
+} from './base-client'
 
 type MqttMessageHandler = (topic: string, message: Uint8Array) => void
+type ConnectionChangeHandler = (connected: boolean) => void
 
 export interface MqttClientService {
   readonly connected: boolean
   connect: (config: RegistrationResponse) => Promise<void>
   disconnect: () => Promise<void>
-  publish: (topic: string, payload: unknown) => Promise<void>
+  publish: (topic: string, payload: unknown, qos?: 0 | 1 | 2) => Promise<void>
   subscribe: (topic: string) => Promise<void>
   onMessage: (handler: MqttMessageHandler) => void
   offMessage: (handler: MqttMessageHandler) => void
+  onConnectionChange: (handler: ConnectionChangeHandler) => void
+  offConnectionChange: (handler: ConnectionChangeHandler) => void
 }
 
 const RECONNECT_BASE_DELAY_MS = 1000
@@ -25,6 +34,7 @@ class MqttClientImpl implements MqttClientService {
   private brokerUrl: string | null = null
   private readonly subscriptions = new Set<string>()
   private readonly messageHandlers = new Set<MqttMessageHandler>()
+  private readonly connectionHandlers = new Set<ConnectionChangeHandler>()
   private reconnectAttempt = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private boundClient: MqttClient | null = null
@@ -57,11 +67,12 @@ class MqttClientImpl implements MqttClientService {
     this.clearReconnectTimer()
     this.detachClientHandlers()
     await disconnectClient()
+    this.emitConnectionState(false)
   }
 
-  async publish(topic: string, payload: unknown): Promise<void> {
+  async publish(topic: string, payload: unknown, qos: 0 | 1 | 2 = 1): Promise<void> {
     const message = typeof payload === 'string' ? payload : JSON.stringify(payload)
-    await mqttPublish(topic, message, 1)
+    await mqttPublish(topic, message, qos)
   }
 
   async subscribe(topic: string): Promise<void> {
@@ -76,6 +87,14 @@ class MqttClientImpl implements MqttClientService {
 
   offMessage(handler: MqttMessageHandler): void {
     this.messageHandlers.delete(handler)
+  }
+
+  onConnectionChange(handler: ConnectionChangeHandler): void {
+    this.connectionHandlers.add(handler)
+  }
+
+  offConnectionChange(handler: ConnectionChangeHandler): void {
+    this.connectionHandlers.delete(handler)
   }
 
   private async connectWithCurrentConfig(): Promise<void> {
@@ -95,8 +114,7 @@ class MqttClientImpl implements MqttClientService {
   }
 
   private async resubscribeAll(): Promise<void> {
-    for (const topic of this.subscriptions)
-      await mqttSubscribe(topic, 1)
+    for (const topic of this.subscriptions) await mqttSubscribe(topic, 1)
   }
 
   private attachClientHandlers(client: MqttClient): void {
@@ -129,24 +147,30 @@ class MqttClientImpl implements MqttClientService {
   private readonly handleConnect = (): void => {
     this.reconnectAttempt = 0
     this.clearReconnectTimer()
+    this.emitConnectionState(true)
     void this.resubscribeAll()
   }
 
   private readonly handleClose = (): void => {
+    this.emitConnectionState(false)
     this.scheduleReconnect()
   }
 
   private readonly handleMessage = (topic: string, message: Uint8Array): void => {
-    for (const handler of this.messageHandlers)
-      handler(topic, message)
+    for (const handler of this.messageHandlers) handler(topic, message)
+  }
+
+  private emitConnectionState(connected: boolean): void {
+    for (const handler of this.connectionHandlers) handler(connected)
   }
 
   private scheduleReconnect(): void {
     if (!this.desiredConnected || this.reconnectTimer)
       return
 
-    const delay = Math.min(RECONNECT_MAX_DELAY_MS, RECONNECT_BASE_DELAY_MS * 2 ** this.reconnectAttempt)
-      + Math.floor(Math.random() * 400)
+    const delay
+      = Math.min(RECONNECT_MAX_DELAY_MS, RECONNECT_BASE_DELAY_MS * 2 ** this.reconnectAttempt)
+        + Math.floor(Math.random() * 400)
     this.reconnectAttempt += 1
 
     this.reconnectTimer = setTimeout(() => {

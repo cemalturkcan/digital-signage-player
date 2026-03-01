@@ -1,6 +1,7 @@
 import type { PlatformAdapter } from '@/app/platform/types'
 import { createBrowserPlatformAdapter } from '@/app/platform/browser/adapter'
 import { createTizenPlatformAdapter } from '@/app/platform/tizen/adapter'
+import { RUNTIME_NAME } from '@/config'
 
 type RuntimeName = 'tizen' | 'web'
 
@@ -11,23 +12,12 @@ const adapterByRuntime: Record<RuntimeName, () => PlatformAdapter> = {
   web: createBrowserPlatformAdapter,
 }
 
-function resolveRuntimeName(): RuntimeName {
-  if (import.meta.env.MODE === 'tizen') {
-    return 'tizen'
-  }
-  if (typeof window === 'undefined') {
-    return 'web'
-  }
-  return 'tizen' in window ? 'tizen' : 'web'
-}
-
 export function createPlatformAdapter(): PlatformAdapter {
   if (singletonAdapter) {
     return singletonAdapter
   }
 
-  const runtime = resolveRuntimeName()
-  const createAdapter = adapterByRuntime[runtime] ?? adapterByRuntime.web
+  const createAdapter = adapterByRuntime[RUNTIME_NAME] ?? adapterByRuntime.web
   singletonAdapter = createAdapter()
 
   return singletonAdapter

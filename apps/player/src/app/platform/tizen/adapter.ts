@@ -1,14 +1,13 @@
 import type { PlatformAdapter } from '@/app/platform/types'
+import { captureAppScreenshot } from '@/app/platform/screenshot'
 
 interface TizenWindow {
   tizen?: {
     tvfw?: {
       setVolume?: (value: number) => void
       getVolume?: () => number
-      captureScreen?: () => string
     }
     systeminfo?: {
-      getCapabilities?: () => { screenShotSupport?: boolean }
       getTotalMemory?: () => number
     }
     productinfo?: {
@@ -26,16 +25,6 @@ function getTizen(): TizenWindow['tizen'] {
   }
 
   return (window as TizenWindow).tizen
-}
-
-async function dataUrlToBlob(dataUrl: string): Promise<Blob | null> {
-  try {
-    const response = await fetch(dataUrl)
-    return await response.blob()
-  }
-  catch {
-    return null
-  }
 }
 
 export function createTizenPlatformAdapter(): PlatformAdapter {
@@ -114,9 +103,7 @@ export function createTizenPlatformAdapter(): PlatformAdapter {
 
       try {
         const volume = tizen.tvfw.getVolume()
-        if (typeof volume === 'number') {
-          inMemoryVolume = Math.max(0, Math.min(100, volume))
-        }
+        inMemoryVolume = Math.max(0, Math.min(100, volume))
       }
       catch {}
 
@@ -124,24 +111,7 @@ export function createTizenPlatformAdapter(): PlatformAdapter {
     },
 
     async captureScreenshot(): Promise<Blob | null> {
-      const tizen = getTizen()
-      const supportsScreenshot = tizen?.systeminfo?.getCapabilities?.()?.screenShotSupport
-
-      if (!supportsScreenshot || !tizen?.tvfw?.captureScreen) {
-        return null
-      }
-
-      try {
-        const dataUrl = tizen.tvfw.captureScreen()
-        if (!dataUrl) {
-          return null
-        }
-
-        return await dataUrlToBlob(dataUrl)
-      }
-      catch {
-        return null
-      }
+      return await captureAppScreenshot()
     },
   }
 }

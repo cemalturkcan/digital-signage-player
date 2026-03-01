@@ -99,17 +99,23 @@ function handleSelect(): void {
 .playlist-card_badges {
   display: flex;
   align-items: center;
+  align-self: flex-start;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--size-2);
 }
 
 .playlist-card_badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: var(--border-width-thin) solid var(--border-tv-strong);
   border-radius: var(--radius-tv-pill);
-  padding: var(--size-1) var(--size-3);
+  height: var(--size-6);
+  padding: 0 var(--size-3);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  line-height: 1;
   white-space: nowrap;
 }
 

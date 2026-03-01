@@ -1,6 +1,7 @@
 import type { Buffer } from 'node:buffer'
 import { logger } from '@/app/logger/logger.js'
 import { busClient, generateId, mqttPublish, mqttSubscribe } from './base.js'
+import { commandTopicFor, eventTopicFor, responseTopicFor, statusTopicFor } from './topics.js'
 
 interface DynSecCommand {
   command: string
@@ -98,7 +99,10 @@ class DynSecProvisioner implements DeviceProvisioner {
     const responsePromise = this.waitForResponse(correlationData)
 
     try {
-      await mqttPublish(CONTROL_TOPIC, JSON.stringify({ commands: [{ ...command, correlationData }] }))
+      await mqttPublish(
+        CONTROL_TOPIC,
+        JSON.stringify({ commands: [{ ...command, correlationData }] }),
+      )
     }
     catch (err) {
       const pending = this.pendingCommands.get(correlationData)
@@ -123,12 +127,15 @@ class DynSecProvisioner implements DeviceProvisioner {
     if (commandName === 'addClientRole' && lower === 'internal error')
       return true
 
-    return lower.includes('already exists') || lower.includes('already has') || lower.includes('already in')
+    return (
+      lower.includes('already exists')
+      || lower.includes('already has')
+      || lower.includes('already in')
+    )
   }
 
   async provisionDevice(deviceId: string, username: string, password: string): Promise<void> {
     const roleName = `device_${deviceId}`
-    const baseTopic = `signage/${deviceId}`
 
     await Promise.all([
       this.sendCommand({ command: 'createRole', rolename: roleName }),
@@ -140,7 +147,7 @@ class DynSecProvisioner implements DeviceProvisioner {
         command: 'addRoleACL',
         rolename: roleName,
         acltype: 'subscribePattern',
-        topic: `${baseTopic}/commands`,
+        topic: commandTopicFor(deviceId),
         priority: 0,
         allow: true,
       }),
@@ -148,7 +155,7 @@ class DynSecProvisioner implements DeviceProvisioner {
         command: 'addRoleACL',
         rolename: roleName,
         acltype: 'publishClientSend',
-        topic: `${baseTopic}/responses`,
+        topic: responseTopicFor(deviceId),
         priority: 0,
         allow: true,
       }),
@@ -164,7 +171,7 @@ class DynSecProvisioner implements DeviceProvisioner {
         command: 'addRoleACL',
         rolename: roleName,
         acltype: 'publishClientSend',
-        topic: `${baseTopic}/status`,
+        topic: statusTopicFor(deviceId),
         priority: 0,
         allow: true,
       }),
@@ -172,7 +179,7 @@ class DynSecProvisioner implements DeviceProvisioner {
         command: 'addRoleACL',
         rolename: roleName,
         acltype: 'publishClientSend',
-        topic: `${baseTopic}/events`,
+        topic: eventTopicFor(deviceId),
         priority: 0,
         allow: true,
       }),

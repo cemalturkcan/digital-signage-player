@@ -1,8 +1,7 @@
-import type {
-  CommandEnvelope,
-  Playlist,
-} from '@signage/contracts'
+import type { CommandEnvelope, MediaItem, Playlist } from '@signage/contracts'
+import type { WatchStopHandle } from 'vue'
 import type { Bootstrap } from '@/app/bootstrap/bootstrap'
+import { watch } from 'vue'
 import { computeHash } from '@/app/cache/hash'
 import { syncMediaCache } from '@/app/cache/media-cache'
 import { readPlaylistCache, writePlaylistCache } from '@/app/cache/playlist-cache'
@@ -11,6 +10,8 @@ import { COMMAND_ERROR_CODES } from '@/app/commands/constants'
 import { CommandHandlerError, playerCommandRegistry } from '@/app/commands/registry'
 import { translate } from '@/app/modules/i18n'
 import { mqttClientService } from '@/app/mqtt/client'
+import { eventPublisher } from '@/app/mqtt/event-publisher'
+import { commandTopicFor, responseTopicFor } from '@/app/mqtt/topics'
 import { createPlatformAdapter } from '@/app/platform/factory'
 import { getPlaylistsByDeviceId } from '@/app/request/playlist'
 import { useGlobalStore } from '@/app/stores/global/store'
@@ -20,6 +21,11 @@ import { usePlaylistStore } from '@/app/stores/playlist/store'
 
 let currentDeviceId = ''
 let mqttMessageHandler: ((topic: string, message: Uint8Array) => void) | null = null
+let mqttConnectionHandler: ((connected: boolean) => void) | null = null
+let onlineHandler: (() => void) | null = null
+let offlineHandler: (() => void) | null = null
+let stopPlayerStateWatch: WatchStopHandle | null = null
+let stopCurrentItemWatch: WatchStopHandle | null = null
 
 async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -35,6 +41,115 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 function getFirstItem(playlist: Playlist) {
   return playlist.items[0] ?? null
+}
+
+function toMediaPayload(item: MediaItem): Record<string, unknown> {
+  return {
+    mediaId: item.id,
+    mediaType: item.type,
+    mediaUrl: item.url,
+    order: item.order,
+    duration: item.duration ?? null,
+  }
+}
+
+function publishNetworkStatus(reason: string): void {
+  eventPublisher.publishNetworkStatus(reason)
+}
+
+function stopPlaybackEventPublishing(): void {
+  stopPlayerStateWatch?.()
+  stopCurrentItemWatch?.()
+  stopPlayerStateWatch = null
+  stopCurrentItemWatch = null
+}
+
+function setupPlaybackEventPublishing(): void {
+  const playerStore = usePlayerStore()
+  stopPlaybackEventPublishing()
+
+  stopCurrentItemWatch = watch(
+    () => playerStore.currentItem,
+    (nextItem, previousItem) => {
+      if (previousItem && (!nextItem || previousItem.id !== nextItem.id)) {
+        void eventPublisher.publish('playback_ended', {
+          ...toMediaPayload(previousItem),
+          reason: 'item_changed',
+        })
+      }
+
+      if (nextItem && (!previousItem || previousItem.id !== nextItem.id)) {
+        void eventPublisher.publish('media_loaded', toMediaPayload(nextItem))
+      }
+    },
+  )
+
+  stopPlayerStateWatch = watch(
+    () => playerStore.state,
+    (nextState, previousState) => {
+      const currentItem = playerStore.currentItem
+
+      if (nextState === 'playing' && previousState !== 'playing' && currentItem) {
+        void eventPublisher.publish('playback_started', toMediaPayload(currentItem))
+        return
+      }
+
+      if (nextState === 'error') {
+        void eventPublisher.publish(
+          'playback_error',
+          currentItem ? toMediaPayload(currentItem) : undefined,
+        )
+        return
+      }
+
+      if (
+        previousState === 'playing'
+        && (nextState === 'idle' || nextState === 'ended')
+        && currentItem
+      ) {
+        void eventPublisher.publish('playback_ended', {
+          ...toMediaPayload(currentItem),
+          reason: nextState,
+        })
+      }
+    },
+  )
+}
+
+function stopNetworkStatusTracking(): void {
+  if (typeof window !== 'undefined' && onlineHandler) {
+    window.removeEventListener('online', onlineHandler)
+    onlineHandler = null
+  }
+
+  if (typeof window !== 'undefined' && offlineHandler) {
+    window.removeEventListener('offline', offlineHandler)
+    offlineHandler = null
+  }
+
+  if (mqttConnectionHandler) {
+    mqttClientService.offConnectionChange(mqttConnectionHandler)
+    mqttConnectionHandler = null
+  }
+}
+
+function setupNetworkStatusTracking(): void {
+  stopNetworkStatusTracking()
+
+  if (typeof window !== 'undefined') {
+    onlineHandler = () => publishNetworkStatus('online')
+    offlineHandler = () => publishNetworkStatus('offline')
+
+    window.addEventListener('online', onlineHandler)
+    window.addEventListener('offline', offlineHandler)
+  }
+
+  mqttConnectionHandler = (connected) => {
+    publishNetworkStatus(connected ? 'mqtt_connected' : 'mqtt_disconnected')
+  }
+
+  mqttClientService.onConnectionChange(mqttConnectionHandler)
+  publishNetworkStatus('runtime_initialized')
 }
 
 export async function activatePlaylist(playlist: Playlist): Promise<void> {
@@ -198,7 +313,14 @@ function registerCommandHandlers(): void {
         try {
           const blob = await playerStore.captureScreenshot()
           const base64 = await blobToBase64(blob)
-          return { base64, mimeType: blob.type || 'image/png' }
+          void eventPublisher.publish('screenshot_captured', {
+            mimeType: blob.type || 'image/png',
+            size: blob.size,
+          })
+          return {
+            base64,
+            mimeType: blob.type || 'image/png',
+          }
         }
         catch {
           throw new CommandHandlerError(
@@ -258,14 +380,14 @@ function getReplyTopic(envelope: unknown, fallbackTopic: string): string {
 }
 
 function getFallbackResponseTopic(): string {
-  return `signage/${currentDeviceId}/responses`
+  return responseTopicFor(currentDeviceId)
 }
 
 async function setupMqtt(): Promise<void> {
   if (!currentDeviceId)
     return
 
-  const commandTopic = `signage/${currentDeviceId}/commands`
+  const commandTopic = commandTopicFor(currentDeviceId)
 
   if (mqttMessageHandler)
     mqttClientService.offMessage(mqttMessageHandler)
@@ -301,20 +423,29 @@ async function restoreSelectedPlaylist(playlists: Playlist[]): Promise<void> {
 
 export async function initializePlayerRuntime(bootstrapResult: Bootstrap): Promise<void> {
   currentDeviceId = bootstrapResult.config.deviceId
+  eventPublisher.init(currentDeviceId)
 
   const platformAdapter = createPlatformAdapter()
   await platformAdapter.initialize()
 
   registerCommandHandlers()
+  setupPlaybackEventPublishing()
 
-  if (bootstrapResult.registration)
+  if (bootstrapResult.registration) {
     await setupMqtt()
+    setupNetworkStatusTracking()
+    eventPublisher.startHeartbeat()
+  }
 
   const playlists = await fetchPlaylists()
   await restoreSelectedPlaylist(playlists)
 }
 
 export function disposePlayerRuntime(): void {
+  stopPlaybackEventPublishing()
+  stopNetworkStatusTracking()
+  eventPublisher.stopHeartbeat()
+
   if (mqttMessageHandler)
     mqttClientService.offMessage(mqttMessageHandler)
 
