@@ -326,6 +326,7 @@ function ensureSigningProfile(
     execInherit('tizen', [
       'security-profiles',
       'add',
+      '-A',
       '-n',
       profileName,
       '-a',
