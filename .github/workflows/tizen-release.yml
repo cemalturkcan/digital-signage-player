@@ -121,15 +121,46 @@ jobs:
           fi
 
           mkdir -p "$RUNNER_TEMP/tizen"
-          echo "$TIZEN_AUTHOR_CERT_B64" | base64 -d > "$RUNNER_TEMP/tizen/author.p12"
+          ORIGINAL_CERT_PATH="$RUNNER_TEMP/tizen/author-original.p12"
+          MODERN_CERT_PATH="$RUNNER_TEMP/tizen/author-modern.p12"
+          PEM_PATH="$RUNNER_TEMP/tizen/author.pem"
+
+          echo "$TIZEN_AUTHOR_CERT_B64" | base64 -d > "$ORIGINAL_CERT_PATH"
 
           PROFILE_NAME="${TIZEN_PROFILE:-SignageProfile}"
           TOPIC_NAMESPACE="${VITE_MQTT_TOPIC_NAMESPACE:-players}"
 
+          if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+            openssl pkcs12 \
+              -legacy \
+              -in "$ORIGINAL_CERT_PATH" \
+              -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
+              -nodes \
+              -out "$PEM_PATH"
+          else
+            openssl pkcs12 \
+              -in "$ORIGINAL_CERT_PATH" \
+              -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
+              -nodes \
+              -out "$PEM_PATH"
+          fi
+
+          openssl pkcs12 \
+            -export \
+            -in "$PEM_PATH" \
+            -out "$MODERN_CERT_PATH" \
+            -passout "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
+            -name "$PROFILE_NAME" \
+            -keypbe AES-256-CBC \
+            -certpbe AES-256-CBC \
+            -macalg sha256
+
+          rm -f "$PEM_PATH"
+
           cat > apps/player/.env.tizen <<EOF
           TIZEN_PROFILE="$PROFILE_NAME"
           TIZEN_AUTHOR_CERT_PASSWORD="$TIZEN_AUTHOR_CERT_PASSWORD"
-          TIZEN_AUTHOR_CERT_PATH="$RUNNER_TEMP/tizen/author.p12"
+          TIZEN_AUTHOR_CERT_PATH="$MODERN_CERT_PATH"
           VITE_RUNTIME_NAME=tizen
           VITE_MQTT_TOPIC_NAMESPACE="$TOPIC_NAMESPACE"
           EOF
@@ -139,20 +170,17 @@ jobs:
           TIZEN_AUTHOR_CERT_PASSWORD: ${{ secrets.TIZEN_AUTHOR_CERT_PASSWORD }}
         run: |
           set -euo pipefail
-          if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
-            openssl pkcs12 \
-              -legacy \
-              -in "$RUNNER_TEMP/tizen/author.p12" \
-              -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
-              -nokeys -clcerts \
-              -out /dev/null
-          else
-            openssl pkcs12 \
-              -in "$RUNNER_TEMP/tizen/author.p12" \
-              -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
-              -nokeys -clcerts \
-              -out /dev/null
-          fi
+          openssl pkcs12 \
+            -in "$RUNNER_TEMP/tizen/author-modern.p12" \
+            -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
+            -nokeys -clcerts \
+            -out /dev/null
+
+      - name: Print signing diagnostics
+        run: |
+          set -euo pipefail
+          tizen cli-config -l
+          tizen security-profiles list
 
       - name: Build signed WGT
         run: |
