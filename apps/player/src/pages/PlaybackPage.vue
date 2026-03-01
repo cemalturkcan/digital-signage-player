@@ -69,10 +69,6 @@ function finishPlaybackAndReturnToSelection(): void {
   void router.push('/')
 }
 
-function handleExitPlayback(): void {
-  finishPlaybackAndReturnToSelection()
-}
-
 function getRoutePlaylistId(): string {
   const value = route.params.id
 
@@ -80,7 +76,7 @@ function getRoutePlaylistId(): string {
     return value[0] ?? ''
   }
 
-  return typeof value === 'string' ? value : ''
+  return value
 }
 
 async function ensurePlaylistFromRoute(): Promise<void> {
@@ -251,7 +247,7 @@ onUnmounted(() => {
       </div>
 
       <div class="playback-page_exit">
-        <ExitPlaybackButton @exit="handleExitPlayback" />
+        <ExitPlaybackButton @exit="finishPlaybackAndReturnToSelection" />
       </div>
     </div>
   </div>
