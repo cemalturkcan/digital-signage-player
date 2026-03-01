@@ -161,6 +161,14 @@ jobs:
           echo "hashed_wgt_path=$HASHED_WGT_PATH" >> "$GITHUB_OUTPUT"
           echo "checksum_path=$CHECKSUM_PATH" >> "$GITHUB_OUTPUT"
 
+      - name: Upload Tizen CLI logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tizen-cli-logs-${{ steps.meta.outputs.short_sha }}
+          path: ~/tizen-studio-data/cli/logs/**
+          if-no-files-found: ignore
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
