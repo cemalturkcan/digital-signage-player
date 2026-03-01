@@ -214,6 +214,31 @@ The build script auto-detects WSL and converts paths for Windows Tizen CLI:
 2. Connect to TV IP: `sdb connect <tv-ip>`
 3. Install: `tizen install -n digital_signage_player_0.1.0.wgt -t <device-id>`
 
+### GitHub Release Build (Tizen)
+
+Repository now includes a release workflow: `.github/workflows/tizen-release.yml`.
+
+- Trigger: push tag `v*` (for example `v0.1.0`) or run manually from Actions.
+- Output: signed `.wgt` + `.sha256` uploaded to workflow artifacts and GitHub Release.
+- Safety check: tag must match `apps/player/package.json` version.
+
+Required repository secrets:
+
+- `TIZEN_AUTHOR_CERT_B64` (base64 of author `.p12`)
+- `TIZEN_AUTHOR_CERT_PASSWORD`
+
+Optional repository variables:
+
+- `TIZEN_PROFILE` (default: `SignageProfile`)
+- `VITE_MQTT_TOPIC_NAMESPACE` (default: `players`)
+
+Tag release example:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
 ## Known Limitations
 
 1. **No Command Persistence**: Commands sent while player offline are lost (no server-side queue)
