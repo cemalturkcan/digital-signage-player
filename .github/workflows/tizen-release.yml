@@ -125,7 +125,7 @@ jobs:
           EOF
 
       - name: Build signed WGT
-        run: pnpm --filter @signage/player build
+        run: pnpm --filter @signage/player... build
 
       - name: Prepare release assets
         id: assets
