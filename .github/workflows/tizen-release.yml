@@ -165,9 +165,7 @@ jobs:
 
       - name: Build signed WGT
         run: |
-          pnpm --filter @signage/contracts exec tsc -b --force
-          pnpm --filter @signage/config exec tsc -b --force
-          pnpm --filter @signage/player build
+          pnpm turbo run build --filter=@signage/player...
 
       - name: Prepare release assets
         id: assets
