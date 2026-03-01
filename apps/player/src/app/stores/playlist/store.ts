@@ -32,45 +32,47 @@ export const usePlaylistStore = defineStore('playlist', {
       this.currentPlaylist = playlist
       this.currentIndex = 0
     },
-    next(): MediaItem | null {
+    nextForPlayback(): MediaItem | null {
       if (!this.currentPlaylist) {
         return null
       }
+
       if (this.currentIndex < this.currentPlaylist.items.length - 1) {
         this.currentIndex += 1
       }
-      return this.currentPlaylist.items[this.currentIndex] ?? null
-    },
-    nextWithLoop(): MediaItem | null {
-      if (!this.currentPlaylist) {
-        return null
-      }
-      if (this.currentIndex < this.currentPlaylist.items.length - 1) {
-        this.currentIndex += 1
-      }
-      else if (this.currentPlaylist.items.length > 0) {
+      else if (this.currentPlaylist.loop !== false && this.currentPlaylist.items.length > 0) {
         this.currentIndex = 0
       }
       else {
         return null
       }
+
       return this.currentPlaylist.items[this.currentIndex] ?? null
     },
-    prevWithLoop(): MediaItem | null {
+
+    prevForPlayback(): MediaItem | null {
       if (!this.currentPlaylist) {
         return null
       }
+
       if (this.currentIndex > 0) {
         this.currentIndex -= 1
       }
-      else if (this.currentPlaylist.items.length > 0) {
+      else if (this.currentPlaylist.loop !== false && this.currentPlaylist.items.length > 0) {
         this.currentIndex = this.currentPlaylist.items.length - 1
       }
       else {
         return null
       }
+
       return this.currentPlaylist.items[this.currentIndex] ?? null
     },
+
+    clearPlaylist(): void {
+      this.currentPlaylist = null
+      this.currentIndex = 0
+    },
+
     resetIndex(): void {
       this.currentIndex = 0
     },

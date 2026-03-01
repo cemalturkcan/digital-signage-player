@@ -9,8 +9,9 @@ CREATE TABLE IF NOT EXISTS devices (
 
 CREATE TABLE IF NOT EXISTS playlists (
   id SERIAL PRIMARY KEY,
-  device_id VARCHAR(255) NOT NULL,
+  device_id VARCHAR(255),
   name VARCHAR(255) NOT NULL,
+  loop BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_playlists_device_id
@@ -24,7 +25,7 @@ CREATE TABLE IF NOT EXISTS playlist_items (
   playlist_id INTEGER NOT NULL,
   media_url TEXT NOT NULL,
   media_type VARCHAR(50) NOT NULL,
-  duration INTEGER DEFAULT 10,
+  duration INTEGER,
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -39,6 +40,19 @@ CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION normalize_playlist_item_duration()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.media_type = 'image' THEN
+    NEW.duration := COALESCE(NEW.duration, 5);
+  ELSIF NEW.media_type = 'video' THEN
+    NEW.duration := NULL;
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -60,3 +74,9 @@ CREATE TRIGGER update_playlist_items_updated_at
   BEFORE UPDATE ON playlist_items
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS normalize_playlist_item_duration_trigger ON playlist_items;
+CREATE TRIGGER normalize_playlist_item_duration_trigger
+  BEFORE INSERT OR UPDATE ON playlist_items
+  FOR EACH ROW
+  EXECUTE FUNCTION normalize_playlist_item_duration();

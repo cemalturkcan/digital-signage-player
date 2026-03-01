@@ -1,5 +1,6 @@
 import type { CommandEnvelope, CommandResultEnvelope, CommandType } from '@signage/contracts'
 import { isCommandType, validateCommandEnvelope } from '@signage/contracts'
+import { COMMAND_ERROR_CODES } from '@/app/commands/constants'
 
 export interface CommandHandler {
   handle: (command: CommandEnvelope) => Promise<CommandResultEnvelope>
@@ -30,7 +31,7 @@ async function execute(envelope: unknown): Promise<CommandResultEnvelope> {
       status: 'error',
       timestamp: now,
       error: {
-        code: 'INVALID_PAYLOAD',
+        code: COMMAND_ERROR_CODES.INVALID_PAYLOAD,
         message: validation.error ?? 'Command validation failed',
       },
     }
@@ -46,7 +47,7 @@ async function execute(envelope: unknown): Promise<CommandResultEnvelope> {
       status: 'error',
       timestamp: now,
       error: {
-        code: 'UNSUPPORTED_COMMAND',
+        code: COMMAND_ERROR_CODES.UNSUPPORTED_COMMAND,
         message: `Unsupported command type: ${command.command}`,
       },
     }
@@ -61,7 +62,7 @@ async function execute(envelope: unknown): Promise<CommandResultEnvelope> {
       status: 'error',
       timestamp: now,
       error: {
-        code: 'NO_HANDLER',
+        code: COMMAND_ERROR_CODES.NO_HANDLER,
         message: `No handler registered for command type: ${command.command}`,
       },
     }

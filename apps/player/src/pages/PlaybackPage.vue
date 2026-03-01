@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import type { MediaItem } from '@signage/contracts'
 import { computed, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { resolvePlayableMediaSource } from '@/app/cache/media-cache'
+import { activatePlaylist, fetchPlaylists } from '@/app/runtime/runtime'
 import { useDeviceStore } from '@/app/stores/device/store'
+import { useLibraryStore } from '@/app/stores/library/store'
 import { usePlayerStore } from '@/app/stores/player/store'
 import { usePlaylistStore } from '@/app/stores/playlist/store'
+import ExitPlaybackButton from '@/components/playback/ExitPlaybackButton.vue'
 import TransportControls from '@/components/playback/TransportControls.vue'
 import Player from '@/components/Player.vue'
 
@@ -15,7 +19,10 @@ interface PlayerRef {
 
 const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
+const libraryStore = useLibraryStore()
 const deviceStore = useDeviceStore()
+const route = useRoute()
+const router = useRouter()
 
 const playerRef = ref<PlayerRef | null>(null)
 const imageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -45,6 +52,62 @@ function clearActiveMediaSource(): void {
   activeMediaRelease.value = null
 }
 
+function getImageDurationSeconds(item: MediaItem): number {
+  if (typeof item.duration === 'number' && Number.isFinite(item.duration) && item.duration > 0) {
+    return item.duration
+  }
+
+  return IMAGE_DURATION_SECONDS
+}
+
+function finishPlaybackAndReturnToSelection(): void {
+  clearImageTimer()
+  clearActiveMediaSource()
+  playerStore.stop()
+  playlistStore.clearPlaylist()
+  libraryStore.clearSelection()
+  void router.push('/')
+}
+
+function handleExitPlayback(): void {
+  finishPlaybackAndReturnToSelection()
+}
+
+function getRoutePlaylistId(): string {
+  const value = route.params.id
+
+  if (Array.isArray(value)) {
+    return value[0] ?? ''
+  }
+
+  return typeof value === 'string' ? value : ''
+}
+
+async function ensurePlaylistFromRoute(): Promise<void> {
+  const playlistId = getRoutePlaylistId()
+  if (!playlistId) {
+    await router.replace('/')
+    return
+  }
+
+  if (playlistStore.currentPlaylist?.id === playlistId) {
+    return
+  }
+
+  let targetPlaylist = libraryStore.playlists.find(playlist => playlist.id === playlistId)
+  if (!targetPlaylist) {
+    const playlists = await fetchPlaylists()
+    targetPlaylist = playlists.find(playlist => playlist.id === playlistId)
+  }
+
+  if (!targetPlaylist) {
+    await router.replace('/')
+    return
+  }
+
+  await activatePlaylist(targetPlaylist)
+}
+
 async function playItem(item: MediaItem): Promise<void> {
   const token = ++playbackToken.value
   switchingSource.value = true
@@ -70,11 +133,14 @@ async function playItem(item: MediaItem): Promise<void> {
     if (item.type !== 'image')
       return
 
-    imageTimer.value = setTimeout(() => {
-      if (token !== playbackToken.value)
-        return
-      void nextItem()
-    }, IMAGE_DURATION_SECONDS * 1000)
+    imageTimer.value = setTimeout(
+      () => {
+        if (token !== playbackToken.value)
+          return
+        void nextItem()
+      },
+      getImageDurationSeconds(item) * 1000,
+    )
   }
   finally {
     if (token === playbackToken.value)
@@ -83,15 +149,17 @@ async function playItem(item: MediaItem): Promise<void> {
 }
 
 async function nextItem(): Promise<void> {
-  const next = playlistStore.nextWithLoop()
-  if (!next)
+  const next = playlistStore.nextForPlayback()
+  if (!next) {
+    finishPlaybackAndReturnToSelection()
     return
+  }
 
   await playItem(next)
 }
 
 async function prevItem(): Promise<void> {
-  const previous = playlistStore.prevWithLoop()
+  const previous = playlistStore.prevForPlayback()
   if (!previous)
     return
 
@@ -111,6 +179,14 @@ function handleMediaError(): void {
 
   void nextItem()
 }
+
+watch(
+  () => route.params.id,
+  () => {
+    void ensurePlaylistFromRoute()
+  },
+  { immediate: true },
+)
 
 watch(
   () => playlistStore.currentItem,
@@ -173,6 +249,10 @@ onUnmounted(() => {
       <div class="playback-page_controls">
         <TransportControls @next="nextItem" @previous="prevItem" />
       </div>
+
+      <div class="playback-page_exit">
+        <ExitPlaybackButton @exit="handleExitPlayback" />
+      </div>
     </div>
   </div>
 </template>
@@ -204,5 +284,11 @@ onUnmounted(() => {
   left: 50%;
   bottom: var(--space-tv-page);
   transform: translateX(-50%);
+}
+
+.playback-page_exit {
+  position: absolute;
+  left: var(--space-tv-page);
+  top: var(--space-tv-page);
 }
 </style>

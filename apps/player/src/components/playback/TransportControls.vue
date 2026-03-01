@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import BackwardIcon from '@/components/player/icons/BackwardIcon.vue'
 import ForwardIcon from '@/components/player/icons/ForwardIcon.vue'
 
@@ -6,6 +7,8 @@ const emit = defineEmits<{
   (e: 'previous'): void
   (e: 'next'): void
 }>()
+
+const { t } = useI18n()
 
 function handlePrevious(): void {
   emit('previous')
@@ -18,11 +21,21 @@ function handleNext(): void {
 
 <template>
   <div class="transport-controls">
-    <button class="transport-controls_button" type="button" @click="handlePrevious">
+    <button
+      class="transport-controls_button"
+      type="button"
+      :aria-label="t('previousMedia')"
+      @click="handlePrevious"
+    >
       <BackwardIcon />
     </button>
 
-    <button class="transport-controls_button" type="button" @click="handleNext">
+    <button
+      class="transport-controls_button"
+      type="button"
+      :aria-label="t('nextMedia')"
+      @click="handleNext"
+    >
       <ForwardIcon />
     </button>
   </div>

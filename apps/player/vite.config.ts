@@ -1,4 +1,5 @@
 import { resolve } from 'node:path'
+import VueI18n from '@intlify/unplugin-vue-i18n/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
@@ -6,7 +7,15 @@ export default defineConfig(({ mode }) => {
   const isTizen = mode === 'tizen'
 
   return {
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      VueI18n({
+        runtimeOnly: true,
+        compositionOnly: true,
+        fullInstall: true,
+        include: [resolve(__dirname, './src/locales/**')],
+      }),
+    ],
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),

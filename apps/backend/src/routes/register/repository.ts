@@ -43,10 +43,6 @@ export interface RegisterRepository {
 
 export const registerRepository: RegisterRepository = {
   async findOrCreate(device: Pick<DeviceRecord, 'deviceId'>): Promise<FindOrCreateResult> {
-    if (db === null) {
-      throw new Error('Database not connected')
-    }
-
     const existingResult = await db.query<DeviceRow>(SELECT_DEVICE_BY_ID, [device.deviceId])
 
     if (existingResult.rows.length > 0) {

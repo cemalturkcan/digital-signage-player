@@ -26,17 +26,11 @@ const COMMIT = 'COMMIT'
 const ROLLBACK = 'ROLLBACK'
 
 async function getAppliedMigrations(): Promise<Set<string>> {
-  if (db === null) {
-    throw new Error('Database not connected')
-  }
   const result = await db.query<MigrationRecord>(SELECT_MIGRATIONS)
   return new Set(result.rows.map((r: MigrationRecord) => r.version))
 }
 
 async function applyMigration(version: string, upSql: string): Promise<void> {
-  if (db === null) {
-    throw new Error('Database not connected')
-  }
   const client = await db.connect()
   try {
     await client.query(BEGIN)
@@ -55,9 +49,6 @@ async function applyMigration(version: string, upSql: string): Promise<void> {
 }
 
 async function runMigrations(): Promise<void> {
-  if (db === null) {
-    throw new Error('Database not connected')
-  }
   logger.info('Running migrations')
   await db.query(CREATE_MIGRATIONS_TABLE)
 
@@ -82,9 +73,6 @@ async function runMigrations(): Promise<void> {
 }
 
 async function rollbackMigration(version: string): Promise<void> {
-  if (db === null) {
-    throw new Error('Database not connected')
-  }
   const migrationsDir = fileURLToPath(new URL('../../../migrations', import.meta.url))
   const downPath = join(migrationsDir, `${version}.down.sql`)
 

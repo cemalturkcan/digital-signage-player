@@ -28,9 +28,11 @@
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "vue": "^3.5.29",
+    "vue-i18n": "^11.2.8",
     "vue-router": "^5.0.3"
   },
   "devDependencies": {
+    "@intlify/unplugin-vue-i18n": "^11.0.7",
     "@types/node": "^25.3.1",
     "@vitejs/plugin-vue": "^6.0.4",
     "tsx": "^4.20.6",

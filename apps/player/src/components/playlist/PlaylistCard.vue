@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { Playlist } from '@signage/contracts'
+import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/format'
 
 interface PlaylistCardProps {
   playlist: Playlist
@@ -14,15 +16,7 @@ const emit = defineEmits<{
   (e: 'select', playlist: Playlist): void
 }>()
 
-function formatDate(timestamp: number): string {
-  if (!timestamp)
-    return 'Unknown'
-
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(timestamp)
-}
+const { t } = useI18n()
 
 function handleSelect(): void {
   emit('select', props.playlist)
@@ -37,16 +31,23 @@ function handleSelect(): void {
   >
     <div class="playlist-card_head">
       <h3 class="playlist-card_title">
-        Playlist {{ playlist.id }}
+        {{ t('playlistTitle', { id: playlist.id }) }}
       </h3>
-      <span class="playlist-card_badge">{{ playlist.items.length }} items</span>
+      <div class="playlist-card_badges">
+        <span class="playlist-card_badge">{{
+          t('playlistItems', { count: playlist.items.length })
+        }}</span>
+        <span v-if="playlist.loop === true" class="playlist-card_badge">{{
+          t('playlistLoop')
+        }}</span>
+      </div>
     </div>
 
     <p class="playlist-card_meta">
-      Updated: {{ formatDate(playlist.updatedAt) }}
+      {{ t('updatedDate', { date: formatDate(playlist.updatedAt) }) }}
     </p>
     <p class="playlist-card_meta">
-      Created: {{ formatDate(playlist.createdAt) }}
+      {{ t('createdDate', { date: formatDate(playlist.createdAt) }) }}
     </p>
   </button>
 </template>
@@ -56,10 +57,11 @@ function handleSelect(): void {
   width: 100%;
   border: var(--border-width-thin) solid var(--border-tv);
   border-radius: var(--radius-tv-card);
-  background: linear-gradient(180deg, var(--surface-tv-elevated), var(--surface-tv));
+  background: linear-gradient(160deg, var(--surface-tv-elevated), var(--surface-tv));
   color: var(--text-tv);
-  padding: var(--space-tv-card);
+  padding: clamp(var(--size-4), 3vw, var(--space-tv-card));
   text-align: left;
+  cursor: pointer;
   transition:
     border-color var(--motion-fast) ease,
     background var(--motion-fast) ease;
@@ -68,26 +70,38 @@ function handleSelect(): void {
 .playlist-card:focus-visible,
 .playlist-card:hover {
   border-color: var(--border-tv-strong);
-  background: linear-gradient(180deg, var(--surface-tv-accent), var(--surface-tv));
+  background: linear-gradient(160deg, var(--surface-tv-accent), var(--surface-tv));
+  outline: none;
 }
 
 .playlist-card--active {
   border-color: var(--border-tv-strong);
-  background: linear-gradient(180deg, var(--surface-tv-accent-strong), var(--surface-tv));
+  background: linear-gradient(160deg, var(--surface-tv-accent-strong), var(--surface-tv));
 }
 
 .playlist-card_head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--size-3);
-  margin-bottom: var(--size-2);
+  margin-bottom: var(--size-3);
 }
 
 .playlist-card_title {
-  font-size: var(--size-6);
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: clamp(var(--size-5), 5vw, var(--size-6));
   line-height: var(--line-height-tight);
   font-weight: var(--font-weight-bold);
+}
+
+.playlist-card_badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--size-2);
 }
 
 .playlist-card_badge {
@@ -102,5 +116,7 @@ function handleSelect(): void {
 .playlist-card_meta {
   font-size: var(--font-size-sm);
   color: var(--text-tv-muted);
+  overflow-wrap: anywhere;
+  line-height: 1.6;
 }
 </style>
