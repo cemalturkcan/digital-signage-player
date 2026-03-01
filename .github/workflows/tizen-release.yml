@@ -1,0 +1,152 @@
+name: Tizen Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (example: v0.1.0). Empty uses player package version.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Tizen CLI
+        env:
+          TIZEN_STUDIO_VERSION: '6.1'
+        run: |
+          set -euo pipefail
+          INSTALLER="web-cli_Tizen_Studio_${TIZEN_STUDIO_VERSION}_ubuntu-64.bin"
+          INSTALLER_URL="https://download.tizen.org/sdk/Installer/tizen-studio_${TIZEN_STUDIO_VERSION}/${INSTALLER}"
+
+          curl -fsSL -o "$RUNNER_TEMP/$INSTALLER" "$INSTALLER_URL"
+          chmod +x "$RUNNER_TEMP/$INSTALLER"
+          "$RUNNER_TEMP/$INSTALLER" --accept-license "$HOME/tizen-studio"
+
+          echo "$HOME/tizen-studio/tools/ide/bin" >> "$GITHUB_PATH"
+          echo "$HOME/tizen-studio/tools" >> "$GITHUB_PATH"
+
+      - name: Resolve release metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          PLAYER_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('apps/player/package.json','utf8')).version")
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            INPUT_TAG="${{ github.event.inputs.release_tag }}"
+            if [ -n "$INPUT_TAG" ]; then
+              TAG="$INPUT_TAG"
+            else
+              TAG="v$PLAYER_VERSION"
+            fi
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+
+          EXPECTED_TAG="v$PLAYER_VERSION"
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then
+            echo "Tag ($TAG) and apps/player version ($PLAYER_VERSION) mismatch."
+            echo "Expected tag: $EXPECTED_TAG"
+            exit 1
+          fi
+
+          echo "version=$PLAYER_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "wgt_path=apps/player/digital_signage_player_${PLAYER_VERSION}.wgt" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare signing secrets
+        env:
+          TIZEN_AUTHOR_CERT_B64: ${{ secrets.TIZEN_AUTHOR_CERT_B64 }}
+          TIZEN_AUTHOR_CERT_PASSWORD: ${{ secrets.TIZEN_AUTHOR_CERT_PASSWORD }}
+          TIZEN_PROFILE: ${{ vars.TIZEN_PROFILE }}
+          VITE_MQTT_TOPIC_NAMESPACE: ${{ vars.VITE_MQTT_TOPIC_NAMESPACE }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TIZEN_AUTHOR_CERT_B64:-}" ]; then
+            echo "Missing secret: TIZEN_AUTHOR_CERT_B64"
+            exit 1
+          fi
+
+          if [ -z "${TIZEN_AUTHOR_CERT_PASSWORD:-}" ]; then
+            echo "Missing secret: TIZEN_AUTHOR_CERT_PASSWORD"
+            exit 1
+          fi
+
+          mkdir -p "$RUNNER_TEMP/tizen"
+          echo "$TIZEN_AUTHOR_CERT_B64" | base64 -d > "$RUNNER_TEMP/tizen/author.p12"
+
+          PROFILE_NAME="${TIZEN_PROFILE:-SignageProfile}"
+          TOPIC_NAMESPACE="${VITE_MQTT_TOPIC_NAMESPACE:-players}"
+
+          cat > apps/player/.env.tizen <<EOF
+          TIZEN_PROFILE=$PROFILE_NAME
+          TIZEN_AUTHOR_CERT_PASSWORD=$TIZEN_AUTHOR_CERT_PASSWORD
+          TIZEN_AUTHOR_CERT_PATH=$RUNNER_TEMP/tizen/author.p12
+          VITE_RUNTIME_NAME=tizen
+          VITE_MQTT_TOPIC_NAMESPACE=$TOPIC_NAMESPACE
+          EOF
+
+      - name: Build signed WGT
+        run: pnpm --filter @signage/player build
+
+      - name: Prepare release assets
+        id: assets
+        run: |
+          set -euo pipefail
+          WGT_PATH="${{ steps.meta.outputs.wgt_path }}"
+
+          if [ ! -f "$WGT_PATH" ]; then
+            echo "WGT file not found: $WGT_PATH"
+            exit 1
+          fi
+
+          CHECKSUM_PATH="${WGT_PATH}.sha256"
+          sha256sum "$WGT_PATH" > "$CHECKSUM_PATH"
+
+          echo "checksum_path=$CHECKSUM_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tizen-wgt-${{ steps.meta.outputs.version }}
+          path: |
+            ${{ steps.meta.outputs.wgt_path }}
+            ${{ steps.assets.outputs.checksum_path }}
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Tizen Player ${{ steps.meta.outputs.version }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.meta.outputs.wgt_path }}
+            ${{ steps.assets.outputs.checksum_path }}
