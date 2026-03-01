@@ -1,0 +1,61 @@
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Allow docker/.env to be tracked (contains safe defaults)
+!docker/.env
+
+# Allow apps .env files with safe defaults
+!apps/backend/.env
+!apps/player/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Package files (built)
+*.wgt
+*.ipk
+
+# Tizen local certs/profile
+.tizen/
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Ignore backup-like files (explicit policy)
+*bkp*
+*backup*
+*old*
+
+.turbo

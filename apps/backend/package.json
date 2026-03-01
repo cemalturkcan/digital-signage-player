@@ -1,0 +1,38 @@
+{
+  "name": "@signage/backend",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node --env-file=.env dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "^1.2.2",
+    "@signage/config": "workspace:*",
+    "@signage/contracts": "workspace:*",
+    "dotenv": "^16.4.7",
+    "hono": "^4.12.3",
+    "mqtt": "^5.15.0",
+    "pg": "^8.13.3",
+    "pino": "^9.14.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.1",
+    "@types/pg": "^8.11.11",
+    "@types/pino": "^7.0.5",
+    "pino-pretty": "^13.1.3",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
