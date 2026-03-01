@@ -27,7 +27,7 @@ export function getRegisterDeviceId(request: unknown): string | undefined {
 }
 
 export const RegisterRequestSchema = z.object({
-  deviceId: z.string('deviceId required').trim().min(1, 'deviceId required'),
+  deviceId: z.string().trim().min(1, 'deviceId required'),
   deviceInfo: z.record(z.string(), z.unknown()).optional(),
   capabilities: z
     .object({

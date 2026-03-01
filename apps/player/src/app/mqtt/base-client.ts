@@ -1,24 +1,16 @@
 import type { MqttClient } from 'mqtt'
 import mqtt from 'mqtt'
 
-export interface MqttBaseClientService {
-  client: MqttClient | null
-  connected: boolean
-  connect: (brokerUrl: string, options?: mqtt.IClientOptions) => Promise<void>
-  disconnect: () => Promise<void>
-  publish: (topic: string, payload: string, qos?: 0 | 1 | 2) => Promise<void>
-  subscribe: (topic: string, qos?: 0 | 1 | 2) => Promise<void>
-}
+let mqttClient: MqttClient | null = null
 
-const mqttBaseClientState: Pick<MqttBaseClientService, 'client' | 'connected'> = {
-  client: null,
-  connected: false,
+export function getClient(): MqttClient | null {
+  return mqttClient
 }
 
 async function waitForConnect(client: MqttClient): Promise<void> {
   return new Promise((resolve, reject) => {
     let onConnect: () => void
-    const onError: (err: Error) => void = (err: Error) => {
+    const onError = (err: Error) => {
       client.off('connect', onConnect)
       reject(err)
     }
@@ -33,129 +25,45 @@ async function waitForConnect(client: MqttClient): Promise<void> {
   })
 }
 
-async function endClient(client: MqttClient): Promise<void> {
-  return new Promise((resolve) => {
-    client.end(false, {}, () => resolve())
-  })
-}
-
-async function publishWithCallback(
-  client: MqttClient,
-  topic: string,
-  payload: string,
-  qos: 0 | 1 | 2,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    client.publish(topic, payload, { qos }, (err) => {
-      if (err) {
-        reject(err)
-      }
-      else {
-        resolve()
-      }
-    })
-  })
-}
-
-async function subscribeWithCallback(
-  client: MqttClient,
-  topic: string,
-  qos: 0 | 1 | 2,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    client.subscribe(topic, { qos }, (err) => {
-      if (err) {
-        reject(err)
-      }
-      else {
-        resolve()
-      }
-    })
-  })
-}
-function attachConnectionStateHandlers(client: MqttClient, state: { connected: boolean }): void {
-  client.on('connect', () => {
-    state.connected = true
-  })
-
-  client.on('close', () => {
-    state.connected = false
-  })
-
-  client.on('offline', () => {
-    state.connected = false
-  })
-
-  client.on('error', () => {
-    state.connected = false
-  })
-}
-
-async function connect(brokerUrl: string, options?: mqtt.IClientOptions): Promise<void> {
-  if (mqttBaseClientState.client?.connected) {
+export async function connectClient(brokerUrl: string, options?: mqtt.IClientOptions): Promise<void> {
+  if (mqttClient?.connected)
     return
-  }
 
   const client = mqtt.connect(brokerUrl, options)
-
-  mqttBaseClientState.client = client
-  attachConnectionStateHandlers(client, mqttBaseClientState)
+  mqttClient = client
 
   try {
     await waitForConnect(client)
-    mqttBaseClientState.connected = true
   }
   catch (err) {
-    mqttBaseClientState.client = null
-    mqttBaseClientState.connected = false
+    mqttClient = null
     throw err
   }
 }
 
-async function disconnect(): Promise<void> {
-  const client = mqttBaseClientState.client
-  if (!client) {
+export async function disconnectClient(): Promise<void> {
+  const client = mqttClient
+  if (!client)
     return
-  }
 
-  await endClient(client)
-  mqttBaseClientState.connected = false
-  mqttBaseClientState.client = null
+  await new Promise<void>(resolve => client.end(false, {}, () => resolve()))
+  mqttClient = null
 }
 
-async function publish(topic: string, payload: string, qos: 0 | 1 | 2 = 1): Promise<void> {
-  const client = mqttBaseClientState.client
-  if (!client || !mqttBaseClientState.connected) {
+export async function mqttPublish(topic: string, payload: string, qos: 0 | 1 | 2 = 1): Promise<void> {
+  if (!mqttClient?.connected)
     throw new Error('MQTT client not connected')
-  }
 
-  await publishWithCallback(client, topic, payload, qos)
+  await new Promise<void>((resolve, reject) => {
+    mqttClient!.publish(topic, payload, { qos }, err => (err ? reject(err) : resolve()))
+  })
 }
 
-async function subscribe(topic: string, qos: 0 | 1 | 2 = 1): Promise<void> {
-  const client = mqttBaseClientState.client
-  if (!client || !mqttBaseClientState.connected) {
+export async function mqttSubscribe(topic: string, qos: 0 | 1 | 2 = 1): Promise<void> {
+  if (!mqttClient?.connected)
     throw new Error('MQTT client not connected')
-  }
 
-  await subscribeWithCallback(client, topic, qos)
-}
-
-export const mqttBaseClientService: MqttBaseClientService = {
-  get client() {
-    return mqttBaseClientState.client
-  },
-  set client(client) {
-    mqttBaseClientState.client = client
-  },
-  get connected() {
-    return mqttBaseClientState.connected
-  },
-  set connected(connected) {
-    mqttBaseClientState.connected = connected
-  },
-  connect,
-  disconnect,
-  publish,
-  subscribe,
+  await new Promise<void>((resolve, reject) => {
+    mqttClient!.subscribe(topic, { qos }, err => (err ? reject(err) : resolve()))
+  })
 }

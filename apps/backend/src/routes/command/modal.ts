@@ -16,8 +16,6 @@ export const COMMAND_TYPES = [
   'pause',
   'set_volume',
   'screenshot',
-  'update_config',
-  'ping',
 ] as const
 
 const CommandTypeSchema = z.enum(COMMAND_TYPES)
