@@ -46,7 +46,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Tizen CLI
+        id: tizen-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/tizen-studio
+          key: tizen-cli-${{ runner.os }}-6.1
+
       - name: Install Tizen CLI
+        if: steps.tizen-cache.outputs.cache-hit != 'true'
         env:
           TIZEN_STUDIO_VERSION: '6.1'
         run: |
@@ -58,6 +66,8 @@ jobs:
           chmod +x "$RUNNER_TEMP/$INSTALLER"
           "$RUNNER_TEMP/$INSTALLER" --accept-license "$HOME/tizen-studio"
 
+      - name: Add Tizen CLI to PATH
+        run: |
           echo "$HOME/tizen-studio/tools/ide/bin" >> "$GITHUB_PATH"
           echo "$HOME/tizen-studio/tools" >> "$GITHUB_PATH"
 
@@ -125,7 +135,10 @@ jobs:
           EOF
 
       - name: Build signed WGT
-        run: pnpm --filter @signage/player... build
+        run: |
+          pnpm --filter @signage/contracts exec tsc -b --force
+          pnpm --filter @signage/config exec tsc -b --force
+          pnpm --filter @signage/player build
 
       - name: Prepare release assets
         id: assets
