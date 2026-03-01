@@ -505,7 +505,15 @@ function main(): void {
 
   configureProfilesPath(generatedProfilesPath)
 
-  packageWgt(profileName, version)
+  try {
+    packageWgt(profileName, version)
+  } finally {
+    if (generatedProfilesPath !== profilesPath) {
+      try {
+        configureProfilesPath(profilesPath)
+      } catch {}
+    }
+  }
 }
 
 try {
