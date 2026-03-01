@@ -18,37 +18,41 @@ async function main(): Promise<void> {
   const globalStore = useGlobalStore()
   globalStore.showLoading('Initializing...')
 
-  const result = await bootstrap({
-    onStateChange: (state) => {
-      globalStore.setStatus(state)
-      switch (state) {
-        case 'registering':
-          globalStore.showLoading('Registering device...')
-          break
-        case 'connecting_mqtt':
-          globalStore.showLoading('Connecting to MQTT...')
-          break
-        case 'connected':
-          globalStore.hideLoading()
-          break
-        case 'error':
-          globalStore.showLoading('Offline mode...')
-          break
-      }
-    },
-    onError: (error) => {
-      globalStore.setStatus(error.message)
-    },
-  })
-
-  await initializePlayerRuntime(result)
-
-  app.provide('bootstrapResult', result)
   app.mount('#app')
 
   window.addEventListener('beforeunload', () => {
     disposePlayerRuntime()
   })
+
+  try {
+    const result = await bootstrap({
+      onStateChange: (state) => {
+        globalStore.setStatus(state)
+        switch (state) {
+          case 'registering':
+            globalStore.showLoading('Registering device...')
+            break
+          case 'connecting_mqtt':
+            globalStore.showLoading('Connecting to MQTT...')
+            break
+          case 'connected':
+            globalStore.hideLoading()
+            break
+          case 'error':
+            globalStore.showLoading('Offline mode...')
+            break
+        }
+      },
+      onError: (error) => {
+        globalStore.setStatus(error.message)
+      },
+    })
+
+    await initializePlayerRuntime(result)
+  }
+  catch (error) {
+    globalStore.showError(error instanceof Error ? error.message : 'Initialization failed')
+  }
 }
 
 main().catch((err) => {
