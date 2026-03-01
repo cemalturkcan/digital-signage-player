@@ -2,6 +2,15 @@ name: Tizen Release
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'apps/player/**'
+      - 'packages/contracts/**'
+      - 'packages/config/**'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - '.github/workflows/tizen-release.yml'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -57,27 +66,29 @@ jobs:
         run: |
           set -euo pipefail
           PLAYER_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('apps/player/package.json','utf8')).version")
+          EVENT_NAME="${{ github.event_name }}"
+          RELEASE_ENABLED=false
+          TAG=""
+          SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-8)"
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "push" ] && [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            RELEASE_ENABLED=true
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             INPUT_TAG="${{ github.event.inputs.release_tag }}"
             if [ -n "$INPUT_TAG" ]; then
               TAG="$INPUT_TAG"
-            else
-              TAG="v$PLAYER_VERSION"
+              RELEASE_ENABLED=true
             fi
-          else
-            TAG="${GITHUB_REF_NAME}"
           fi
 
-          EXPECTED_TAG="v$PLAYER_VERSION"
-          if [ "$TAG" != "$EXPECTED_TAG" ]; then
-            echo "Tag ($TAG) and apps/player version ($PLAYER_VERSION) mismatch."
-            echo "Expected tag: $EXPECTED_TAG"
-            exit 1
-          fi
+          ARTIFACT_NAME="tizen-wgt-${SHORT_SHA}"
 
           echo "version=$PLAYER_VERSION" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "release_enabled=$RELEASE_ENABLED" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
           echo "wgt_path=apps/player/digital_signage_player_${PLAYER_VERSION}.wgt" >> "$GITHUB_OUTPUT"
 
       - name: Prepare signing secrets
@@ -121,32 +132,38 @@ jobs:
         run: |
           set -euo pipefail
           WGT_PATH="${{ steps.meta.outputs.wgt_path }}"
+          SHORT_SHA="${{ steps.meta.outputs.short_sha }}"
 
           if [ ! -f "$WGT_PATH" ]; then
             echo "WGT file not found: $WGT_PATH"
             exit 1
           fi
 
-          CHECKSUM_PATH="${WGT_PATH}.sha256"
-          sha256sum "$WGT_PATH" > "$CHECKSUM_PATH"
+          HASHED_WGT_PATH="apps/player/digital_signage_player_${SHORT_SHA}.wgt"
+          cp "$WGT_PATH" "$HASHED_WGT_PATH"
 
+          CHECKSUM_PATH="${HASHED_WGT_PATH}.sha256"
+          sha256sum "$HASHED_WGT_PATH" > "$CHECKSUM_PATH"
+
+          echo "hashed_wgt_path=$HASHED_WGT_PATH" >> "$GITHUB_OUTPUT"
           echo "checksum_path=$CHECKSUM_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tizen-wgt-${{ steps.meta.outputs.version }}
+          name: ${{ steps.meta.outputs.artifact_name }}
           path: |
-            ${{ steps.meta.outputs.wgt_path }}
+            ${{ steps.assets.outputs.hashed_wgt_path }}
             ${{ steps.assets.outputs.checksum_path }}
           if-no-files-found: error
 
       - name: Create GitHub release
+        if: steps.meta.outputs.release_enabled == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
-          name: Tizen Player ${{ steps.meta.outputs.version }}
+          name: Tizen Player ${{ steps.meta.outputs.short_sha }}
           generate_release_notes: true
           files: |
-            ${{ steps.meta.outputs.wgt_path }}
+            ${{ steps.assets.outputs.hashed_wgt_path }}
             ${{ steps.assets.outputs.checksum_path }}
