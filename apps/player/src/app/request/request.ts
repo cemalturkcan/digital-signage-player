@@ -3,6 +3,7 @@ import { BACKEND_URL } from '@/config'
 
 const axiosInstance = axios.create({
   baseURL: BACKEND_URL,
+  timeout: 8000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -68,7 +69,7 @@ function toHttpError(error: unknown): HttpError {
   const responseData = error.response?.data
   const status = error.response?.status
   const message = isApiEnvelope(responseData)
-    ? responseData.meta?.message ?? error.message
+    ? (responseData.meta?.message ?? error.message)
     : error.message
 
   const httpError: HttpError = new Error(message)

@@ -26,10 +26,30 @@ export interface BootstrapOptions {
   onError?: (error: Error) => void
 }
 
+const INITIAL_MQTT_CONNECT_TIMEOUT_MS = 5000
+
 function buildRegistrationPayload(deviceId: string): RegistrationRequest {
   return {
     deviceId,
   }
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return await new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Operation timed out after ${timeoutMs}ms`))
+    }, timeoutMs)
+
+    promise
+      .then((result) => {
+        clearTimeout(timer)
+        resolve(result)
+      })
+      .catch((error) => {
+        clearTimeout(timer)
+        reject(error)
+      })
+  })
 }
 
 export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> {
@@ -42,7 +62,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
   }
 
   const deviceId = deviceStore.getDeviceId()
-  let registration: RegistrationResponse | null = null
+  const cachedRegistration = deviceStore.registration
+  let registration: RegistrationResponse | null = cachedRegistration
 
   try {
     setState('registering')
@@ -55,19 +76,24 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
   catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
     options?.onError?.(err)
-    setState('error')
-    return {
-      config: {
-        deviceId,
-      },
-      registration: null,
-      state: 'error',
+
+    if (!registration) {
+      setState('error')
+      return {
+        config: {
+          deviceId,
+        },
+        registration: null,
+        state: 'error',
+      }
     }
+
+    setState('registered')
   }
 
   try {
     setState('connecting_mqtt')
-    await mqttClientService.connect(registration)
+    await withTimeout(mqttClientService.connect(registration), INITIAL_MQTT_CONNECT_TIMEOUT_MS)
     setState('connected')
   }
   catch {
