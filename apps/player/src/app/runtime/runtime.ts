@@ -1,7 +1,5 @@
 import type {
   CommandEnvelope,
-  CommandResultEnvelope,
-  CommandType,
   Playlist,
 } from '@signage/contracts'
 import type { Bootstrap } from '@/app/bootstrap/bootstrap'
@@ -10,46 +8,18 @@ import { syncMediaCache } from '@/app/cache/media-cache'
 import { readPlaylistCache, writePlaylistCache } from '@/app/cache/playlist-cache'
 import { commandBus } from '@/app/commands/bus'
 import { COMMAND_ERROR_CODES } from '@/app/commands/constants'
+import { CommandHandlerError, playerCommandRegistry } from '@/app/commands/registry'
+import { translate } from '@/app/modules/i18n'
 import { mqttClientService } from '@/app/mqtt/client'
 import { createPlatformAdapter } from '@/app/platform/factory'
-import { getPlaylistsByDeviceId } from '@/app/request/requests/playlist'
+import { getPlaylistsByDeviceId } from '@/app/request/playlist'
 import { useGlobalStore } from '@/app/stores/global/store'
 import { useLibraryStore } from '@/app/stores/library/store'
 import { usePlayerStore } from '@/app/stores/player/store'
 import { usePlaylistStore } from '@/app/stores/playlist/store'
-import { translate } from '@/modules/i18n'
-
-const processedCommands = new Set<string>()
 
 let currentDeviceId = ''
 let mqttMessageHandler: ((topic: string, message: Uint8Array) => void) | null = null
-let commandRegistered = false
-
-function buildSuccessResult(command: CommandEnvelope, payload?: unknown): CommandResultEnvelope {
-  return {
-    type: 'command_result',
-    command: command.command,
-    correlationId: command.commandId,
-    status: 'success',
-    timestamp: Date.now(),
-    payload,
-  }
-}
-
-function buildErrorResult(
-  command: CommandEnvelope,
-  code: string,
-  message: string,
-): CommandResultEnvelope {
-  return {
-    type: 'command_result',
-    command: command.command,
-    correlationId: command.commandId,
-    status: 'error',
-    timestamp: Date.now(),
-    error: { code, message },
-  }
-}
 
 async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -193,114 +163,57 @@ async function handleRestartPlayer(): Promise<void> {
     }
   }
 
-  const fallbackPlaylist = playlists[0]
-  await activatePlaylist(fallbackPlaylist)
+  await activatePlaylist(playlists[0])
 }
 
-async function handlePlay(): Promise<void> {
-  const playerStore = usePlayerStore()
-  playerStore.play()
-}
-
-async function handlePause(): Promise<void> {
-  const playerStore = usePlayerStore()
-  playerStore.pause()
-}
-
-async function handleSetVolume(params?: Record<string, unknown>): Promise<void> {
-  const playerStore = usePlayerStore()
-  const level = params?.level as number
-  playerStore.setVolume(level)
-}
-
-async function handleScreenshot(command: CommandEnvelope): Promise<CommandResultEnvelope> {
+function registerCommandHandlers(): void {
   const playerStore = usePlayerStore()
 
-  try {
-    const blob = await playerStore.captureScreenshot()
-    const base64 = await blobToBase64(blob)
-    return buildSuccessResult(command, { base64, mimeType: blob.type || 'image/png' })
-  }
-  catch {
-    return buildErrorResult(
-      command,
-      COMMAND_ERROR_CODES.SCREENSHOT_FAILED,
-      translate('failedToCaptureScreenshot'),
-    )
-  }
-}
-
-async function executeCommand(command: CommandEnvelope): Promise<CommandResultEnvelope> {
-  if (processedCommands.has(command.commandId))
-    return buildSuccessResult(command, { duplicate: true })
-
-  processedCommands.add(command.commandId)
-  if (processedCommands.size > 1000) {
-    const oldest = Array.from(processedCommands).slice(0, 500)
-    oldest.forEach(id => processedCommands.delete(id))
-  }
-
-  try {
-    switch (command.command) {
-      case 'reload_playlist':
-        await handleReloadPlaylist()
-        return buildSuccessResult(command)
-      case 'restart_player':
-        await handleRestartPlayer()
-        return buildSuccessResult(command)
-      case 'play':
-        await handlePlay()
-        return buildSuccessResult(command)
-      case 'pause':
-        await handlePause()
-        return buildSuccessResult(command)
-      case 'set_volume':
-        await handleSetVolume(command.params)
-        return buildSuccessResult(command)
-      case 'screenshot':
-        return await handleScreenshot(command)
-      case 'ping':
-        return buildSuccessResult(command)
-      default:
-        return buildErrorResult(
-          command,
-          COMMAND_ERROR_CODES.UNSUPPORTED_COMMAND,
-          translate('unsupportedCommand', { command: command.command }),
-        )
-    }
-  }
-  catch (error) {
-    return buildErrorResult(
-      command,
-      COMMAND_ERROR_CODES.EXECUTION_ERROR,
-      error instanceof Error ? error.message : translate('unknownError'),
-    )
-  }
-}
-
-function registerCommandHandler(): void {
-  if (commandRegistered)
-    return
+  playerCommandRegistry.register(
+    {
+      command: 'reload_playlist',
+      handle: async () => handleReloadPlaylist(),
+    },
+    {
+      command: 'restart_player',
+      handle: async () => handleRestartPlayer(),
+    },
+    {
+      command: 'play',
+      handle: async () => playerStore.play(),
+    },
+    {
+      command: 'pause',
+      handle: async () => playerStore.pause(),
+    },
+    {
+      command: 'set_volume',
+      handle: async (envelope: CommandEnvelope) => {
+        playerStore.setVolume(envelope.params?.level as number)
+      },
+    },
+    {
+      command: 'screenshot',
+      handle: async () => {
+        try {
+          const blob = await playerStore.captureScreenshot()
+          const base64 = await blobToBase64(blob)
+          return { base64, mimeType: blob.type || 'image/png' }
+        }
+        catch {
+          throw new CommandHandlerError(
+            COMMAND_ERROR_CODES.SCREENSHOT_FAILED,
+            translate('failedToCaptureScreenshot'),
+          )
+        }
+      },
+    },
+  )
 
   commandBus.register({
-    supports: (type: string): boolean => {
-      const supported: CommandType[] = [
-        'reload_playlist',
-        'restart_player',
-        'play',
-        'pause',
-        'set_volume',
-        'screenshot',
-        'ping',
-      ]
-      return supported.includes(type as CommandType)
-    },
-    handle: async (command: CommandEnvelope): Promise<CommandResultEnvelope> => {
-      return executeCommand(command)
-    },
+    supports: () => true,
+    handle: (envelope: CommandEnvelope) => playerCommandRegistry.execute(envelope),
   })
-
-  commandRegistered = true
 }
 
 async function handleMqttMessage(message: Uint8Array, responseTopic: string): Promise<void> {
@@ -312,7 +225,7 @@ async function handleMqttMessage(message: Uint8Array, responseTopic: string): Pr
   catch {
     await mqttClientService.publish(responseTopic, {
       type: 'command_result',
-      command: 'ping',
+      command: 'reload_playlist',
       correlationId: 'unknown',
       status: 'error',
       timestamp: Date.now(),
@@ -329,17 +242,19 @@ async function handleMqttMessage(message: Uint8Array, responseTopic: string): Pr
   await mqttClientService.publish(resolvedResponseTopic, result)
 }
 
+const VALID_REPLY_TOPIC = /^[\w/-]+$/
+
 function getReplyTopic(envelope: unknown, fallbackTopic: string): string {
-  if (typeof envelope !== 'object' || envelope === null) {
+  if (typeof envelope !== 'object' || envelope === null)
     return fallbackTopic
-  }
 
   const value = envelope as Record<string, unknown>
-  if (typeof value.replyTopic !== 'string' || value.replyTopic.trim().length === 0) {
-    return fallbackTopic
-  }
+  const topic = value.replyTopic
 
-  return value.replyTopic
+  if (typeof topic !== 'string' || topic.trim().length === 0 || !VALID_REPLY_TOPIC.test(topic))
+    return fallbackTopic
+
+  return topic
 }
 
 function getFallbackResponseTopic(): string {
@@ -352,15 +267,14 @@ async function setupMqtt(): Promise<void> {
 
   const commandTopic = `signage/${currentDeviceId}/commands`
 
-  if (mqttMessageHandler) {
+  if (mqttMessageHandler)
     mqttClientService.offMessage(mqttMessageHandler)
-  }
 
   mqttMessageHandler = (topic: string, message: Uint8Array) => {
     if (topic !== commandTopic)
       return
 
-    void handleMqttMessage(message, getFallbackResponseTopic())
+    handleMqttMessage(message, getFallbackResponseTopic()).catch(console.error)
   }
 
   mqttClientService.onMessage(mqttMessageHandler)
@@ -372,18 +286,15 @@ async function restoreSelectedPlaylist(playlists: Playlist[]): Promise<void> {
   const playlistStore = usePlaylistStore()
 
   const selectedPlaylistId = libraryStore.selectedPlaylistId
-  if (!selectedPlaylistId) {
+  if (!selectedPlaylistId)
     return
-  }
 
   const selectedPlaylist = playlists.find(playlist => playlist.id === selectedPlaylistId)
-  if (!selectedPlaylist) {
+  if (!selectedPlaylist)
     return
-  }
 
-  if (playlistStore.currentPlaylist?.id === selectedPlaylist.id) {
+  if (playlistStore.currentPlaylist?.id === selectedPlaylist.id)
     return
-  }
 
   await activatePlaylist(selectedPlaylist)
 }
@@ -394,11 +305,10 @@ export async function initializePlayerRuntime(bootstrapResult: Bootstrap): Promi
   const platformAdapter = createPlatformAdapter()
   await platformAdapter.initialize()
 
-  registerCommandHandler()
+  registerCommandHandlers()
 
-  if (bootstrapResult.registration) {
+  if (bootstrapResult.registration)
     await setupMqtt()
-  }
 
   const playlists = await fetchPlaylists()
   await restoreSelectedPlaylist(playlists)
