@@ -1,17 +1,34 @@
-import type { usePlayerStore } from '@/app/stores/player/store'
-import { createTizenAdapter as createTizenAdapterImpl } from './tizen/adapter'
+import type { PlatformAdapter } from '@/app/platform/types'
+import { createBrowserPlatformAdapter } from '@/app/platform/browser/adapter'
+import { createTizenPlatformAdapter } from '@/app/platform/tizen/adapter'
 
-export type PlayerStore = ReturnType<typeof usePlayerStore>
+type RuntimeName = 'tizen' | 'web'
 
-export interface TizenAdapter {
-  initialize: () => Promise<void>
-  isAvailable: () => boolean
-  createPlayer: () => PlayerStore
-  getDeviceInfo: () => Record<string, unknown>
-  setVolume: (level: number) => void
-  getVolume: () => number
+let singletonAdapter: PlatformAdapter | null = null
+
+const adapterByRuntime: Record<RuntimeName, () => PlatformAdapter> = {
+  tizen: createTizenPlatformAdapter,
+  web: createBrowserPlatformAdapter,
 }
 
-export function createTizenAdapter(): TizenAdapter {
-  return createTizenAdapterImpl()
+function resolveRuntimeName(): RuntimeName {
+  if (import.meta.env.MODE === 'tizen') {
+    return 'tizen'
+  }
+  if (typeof window === 'undefined') {
+    return 'web'
+  }
+  return 'tizen' in window ? 'tizen' : 'web'
+}
+
+export function createPlatformAdapter(): PlatformAdapter {
+  if (singletonAdapter) {
+    return singletonAdapter
+  }
+
+  const runtime = resolveRuntimeName()
+  const createAdapter = adapterByRuntime[runtime] ?? adapterByRuntime.web
+  singletonAdapter = createAdapter()
+
+  return singletonAdapter
 }

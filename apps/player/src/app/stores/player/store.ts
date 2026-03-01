@@ -1,6 +1,6 @@
 import type { MediaItem } from '@signage/contracts'
 import { defineStore } from 'pinia'
-import { createTizenAdapter, getTizenScreenshotSupport } from '@/app/platform/tizen/adapter'
+import { createPlatformAdapter } from '@/app/platform/factory'
 
 export type PlaybackState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error'
 
@@ -40,22 +40,15 @@ export const usePlayerStore = defineStore('player', {
     setVolume(level: number): void {
       const clamped = Math.max(0, Math.min(100, level))
       this.volume = clamped
-      const adapter = createTizenAdapter()
+      const adapter = createPlatformAdapter()
       adapter.setVolume(clamped)
     },
     async captureScreenshot(): Promise<Blob> {
-      const support = getTizenScreenshotSupport()
-      if (support.supported && support.capture) {
-        const dataUrl = support.capture()
-        if (dataUrl) {
-          try {
-            const response = await fetch(dataUrl)
-            return await response.blob()
-          }
-          catch {
-          }
-        }
-      }
+      const adapter = createPlatformAdapter()
+      const blob = await adapter.captureScreenshot()
+      if (blob)
+        return blob
+
       return generateFallbackScreenshot()
     },
   },

@@ -32,21 +32,16 @@ async function main(): Promise<void> {
           globalStore.hideLoading()
           break
         case 'error':
-          globalStore.showError('Failed to initialize')
+          globalStore.showLoading('Offline mode...')
           break
       }
     },
     onError: (error) => {
-      globalStore.showError(error.message)
+      globalStore.setStatus(error.message)
     },
   })
 
-  if (result.state === 'error') {
-    globalStore.showError('Bootstrap failed')
-  }
-  else {
-    await initializePlayerRuntime(result)
-  }
+  await initializePlayerRuntime(result)
 
   app.provide('bootstrapResult', result)
   app.mount('#app')

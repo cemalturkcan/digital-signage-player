@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { MediaItem } from '@signage/contracts'
 import { computed, onUnmounted, ref, watch } from 'vue'
+import { resolvePlayableMediaSource } from '@/app/cache/media-cache'
+import { useDeviceStore } from '@/app/stores/device/store'
 import { usePlayerStore } from '@/app/stores/player/store'
 import { usePlaylistStore } from '@/app/stores/playlist/store'
 import TransportControls from '@/components/playback/TransportControls.vue'
@@ -13,11 +15,13 @@ interface PlayerRef {
 
 const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
+const deviceStore = useDeviceStore()
 
 const playerRef = ref<PlayerRef | null>(null)
 const imageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const switchingSource = ref(false)
 const playbackToken = ref(0)
+const activeMediaRelease = ref<(() => void) | null>(null)
 
 const IMAGE_DURATION_SECONDS = 5
 
@@ -33,13 +37,31 @@ function clearImageTimer(): void {
   imageTimer.value = null
 }
 
+function clearActiveMediaSource(): void {
+  if (!activeMediaRelease.value)
+    return
+
+  activeMediaRelease.value()
+  activeMediaRelease.value = null
+}
+
 async function playItem(item: MediaItem): Promise<void> {
   const token = ++playbackToken.value
   switchingSource.value = true
   clearImageTimer()
+  clearActiveMediaSource()
+
+  const source = await resolvePlayableMediaSource(deviceStore.getDeviceId(), item.url)
+  if (token !== playbackToken.value) {
+    source.release()
+    return
+  }
+
+  activeMediaRelease.value = source.release
+  const itemToPlay: MediaItem = source.url === item.url ? item : { ...item, url: source.url }
 
   try {
-    await playerStore.load(item)
+    await playerStore.load(itemToPlay)
     if (token !== playbackToken.value)
       return
 
@@ -123,6 +145,7 @@ watch(
 onUnmounted(() => {
   playbackToken.value += 1
   clearImageTimer()
+  clearActiveMediaSource()
 })
 </script>
 
@@ -141,6 +164,7 @@ onUnmounted(() => {
         ref="playerRef"
         :src="currentItem.url"
         :controls="false"
+        :loop="false"
         class="playback-page_media"
         @ended="handleVideoEnded"
         @error="handleMediaError"

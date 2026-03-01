@@ -4,10 +4,13 @@ import type {
   CommandType,
   Playlist,
 } from '@signage/contracts'
-import type { Buffer } from 'node:buffer'
 import type { Bootstrap } from '@/app/bootstrap/bootstrap'
+import { computeHash } from '@/app/cache/hash'
+import { syncMediaCache } from '@/app/cache/media-cache'
+import { readPlaylistCache, writePlaylistCache } from '@/app/cache/playlist-cache'
 import { commandBus } from '@/app/commands/bus'
 import { mqttClientService } from '@/app/mqtt/client'
+import { createPlatformAdapter } from '@/app/platform/factory'
 import { getPlaylistsByDeviceId } from '@/app/request/requests/playlist'
 import { useGlobalStore } from '@/app/stores/global/store'
 import { useLibraryStore } from '@/app/stores/library/store'
@@ -17,7 +20,7 @@ import { usePlaylistStore } from '@/app/stores/playlist/store'
 const processedCommands = new Set<string>()
 
 let currentDeviceId = ''
-let mqttMessageHandler: ((topic: string, message: Buffer) => void) | null = null
+let mqttMessageHandler: ((topic: string, message: Uint8Array) => void) | null = null
 let commandRegistered = false
 
 function buildSuccessResult(command: CommandEnvelope, payload?: unknown): CommandResultEnvelope {
@@ -82,6 +85,10 @@ export async function activatePlaylist(playlist: Playlist): Promise<void> {
 }
 
 export async function fetchPlaylists(): Promise<Playlist[]> {
+  return fetchPlaylistsWithPolicy()
+}
+
+async function fetchPlaylistsWithPolicy(options?: { networkFirst?: boolean }): Promise<Playlist[]> {
   const globalStore = useGlobalStore()
   const libraryStore = useLibraryStore()
 
@@ -90,24 +97,67 @@ export async function fetchPlaylists(): Promise<Playlist[]> {
     return []
   }
 
+  const networkFirst = options?.networkFirst === true
+  const cached = readPlaylistCache(currentDeviceId)
+
+  if (!networkFirst && cached) {
+    libraryStore.setPlaylists(cached.response.content)
+    globalStore.hideLoading()
+    globalStore.clearError()
+
+    void refreshPlaylistsFromNetwork(cached.hash)
+
+    return cached.response.content
+  }
+
+  globalStore.showLoading('Loading playlists...')
+  const fromNetwork = await refreshPlaylistsFromNetwork(cached?.hash)
+  if (fromNetwork) {
+    return fromNetwork
+  }
+
+  if (cached) {
+    libraryStore.setPlaylists(cached.response.content)
+    globalStore.hideLoading()
+    globalStore.clearError()
+    return cached.response.content
+  }
+
+  globalStore.hideLoading()
+  globalStore.showError('Failed to load playlists')
+  libraryStore.setPlaylists([])
+  return []
+}
+
+async function refreshPlaylistsFromNetwork(previousHash?: string): Promise<Playlist[] | null> {
+  const globalStore = useGlobalStore()
+  const libraryStore = useLibraryStore()
+
   try {
-    globalStore.showLoading('Loading playlists...')
     const response = await getPlaylistsByDeviceId(currentDeviceId)
     const playlists = response.content
-    libraryStore.setPlaylists(playlists)
+    const nextHash = writePlaylistCache(currentDeviceId, response)
+    const effectiveHash = nextHash ?? computeHash(response)
+
+    void syncMediaCache(currentDeviceId, playlists, effectiveHash)
+
+    if (!previousHash || previousHash !== effectiveHash) {
+      libraryStore.setPlaylists(playlists)
+    }
+
     globalStore.hideLoading()
+    globalStore.clearError()
+
     return playlists
   }
-  catch (error) {
-    globalStore.showError(error instanceof Error ? error.message : 'Failed to load playlists')
-    libraryStore.setPlaylists([])
-    return []
+  catch {
+    return null
   }
 }
 
 async function handleReloadPlaylist(): Promise<void> {
   const libraryStore = useLibraryStore()
-  const playlists = await fetchPlaylists()
+  const playlists = await fetchPlaylistsWithPolicy({ networkFirst: true })
 
   if (!libraryStore.selectedPlaylistId)
     return
@@ -241,11 +291,11 @@ function registerCommandHandler(): void {
   commandRegistered = true
 }
 
-async function handleMqttMessage(message: Buffer, responseTopic: string): Promise<void> {
+async function handleMqttMessage(message: Uint8Array, responseTopic: string): Promise<void> {
   let envelope: unknown
 
   try {
-    envelope = JSON.parse(message.toString())
+    envelope = JSON.parse(new TextDecoder().decode(message))
   }
   catch {
     await mqttClientService.publish(responseTopic, {
@@ -270,36 +320,61 @@ async function setupMqtt(): Promise<void> {
   const commandTopic = `signage/${currentDeviceId}/commands`
   const responseTopic = `signage/${currentDeviceId}/responses`
 
-  await mqttClientService.subscribe(commandTopic)
+  if (mqttMessageHandler) {
+    mqttClientService.offMessage(mqttMessageHandler)
+  }
 
-  const client = mqttClientService.client
-  if (!client)
-    return
-
-  mqttMessageHandler = (topic: string, message: Buffer) => {
+  mqttMessageHandler = (topic: string, message: Uint8Array) => {
     if (topic !== commandTopic)
       return
+
     void handleMqttMessage(message, responseTopic)
   }
 
-  client.on('message', mqttMessageHandler)
+  mqttClientService.onMessage(mqttMessageHandler)
+  await mqttClientService.subscribe(commandTopic)
+}
+
+async function restoreSelectedPlaylist(playlists: Playlist[]): Promise<void> {
+  const libraryStore = useLibraryStore()
+  const playlistStore = usePlaylistStore()
+
+  const selectedPlaylistId = libraryStore.selectedPlaylistId
+  if (!selectedPlaylistId) {
+    return
+  }
+
+  const selectedPlaylist = playlists.find(playlist => playlist.id === selectedPlaylistId)
+  if (!selectedPlaylist) {
+    return
+  }
+
+  if (playlistStore.currentPlaylist?.id === selectedPlaylist.id) {
+    return
+  }
+
+  await activatePlaylist(selectedPlaylist)
 }
 
 export async function initializePlayerRuntime(bootstrapResult: Bootstrap): Promise<void> {
   currentDeviceId = bootstrapResult.config.deviceId
 
+  const platformAdapter = createPlatformAdapter()
+  await platformAdapter.initialize()
+
   registerCommandHandler()
 
-  if (bootstrapResult.state === 'connected')
+  if (bootstrapResult.registration) {
     await setupMqtt()
+  }
 
-  await fetchPlaylists()
+  const playlists = await fetchPlaylists()
+  await restoreSelectedPlaylist(playlists)
 }
 
 export function disposePlayerRuntime(): void {
-  const client = mqttClientService.client
-  if (client && mqttMessageHandler)
-    client.off('message', mqttMessageHandler)
+  if (mqttMessageHandler)
+    mqttClientService.offMessage(mqttMessageHandler)
 
   mqttMessageHandler = null
 }

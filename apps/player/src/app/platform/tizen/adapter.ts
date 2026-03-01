@@ -1,20 +1,9 @@
-import type { usePlayerStore } from '@/app/stores/player/store'
-
-export type PlayerStore = ReturnType<typeof usePlayerStore>
-
-export interface TizenAdapter {
-  initialize: () => Promise<void>
-  isAvailable: () => boolean
-  createPlayer: () => PlayerStore
-  getDeviceInfo: () => Record<string, unknown>
-  setVolume: (level: number) => void
-  getVolume: () => number
-}
+import type { PlatformAdapter } from '@/app/platform/types'
 
 interface TizenWindow {
   tizen?: {
     tvfw?: {
-      setVolume?: (v: number) => void
+      setVolume?: (value: number) => void
       getVolume?: () => number
       captureScreen?: () => string
     }
@@ -27,11 +16,6 @@ interface TizenWindow {
       getVersion?: () => string
     }
   }
-  webapis?: {
-    productinfo?: {
-      getModelCode?: () => string
-    }
-  }
 }
 
 let inMemoryVolume = 100
@@ -40,23 +24,36 @@ function getTizen(): TizenWindow['tizen'] {
   if (typeof window === 'undefined') {
     return undefined
   }
+
   return (window as TizenWindow).tizen
 }
 
-export function createTizenAdapter(): TizenAdapter {
+async function dataUrlToBlob(dataUrl: string): Promise<Blob | null> {
+  try {
+    const response = await fetch(dataUrl)
+    return await response.blob()
+  }
+  catch {
+    return null
+  }
+}
+
+export function createTizenPlatformAdapter(): PlatformAdapter {
   return {
     async initialize(): Promise<void> {
       const tizen = getTizen()
-      if (tizen?.tvfw?.getVolume) {
-        try {
-          const vol = tizen.tvfw.getVolume()
-          if (typeof vol === 'number') {
-            inMemoryVolume = Math.max(0, Math.min(100, vol))
-          }
+      if (!tizen?.tvfw?.getVolume) {
+        return
+      }
+
+      try {
+        const volume = tizen.tvfw.getVolume()
+        if (typeof volume === 'number') {
+          inMemoryVolume = Math.max(0, Math.min(100, volume))
         }
-        catch {
-          // Use default in-memory volume
-        }
+      }
+      catch {
+        // keep in-memory fallback volume
       }
     },
 
@@ -64,98 +61,101 @@ export function createTizenAdapter(): TizenAdapter {
       return typeof getTizen() !== 'undefined'
     },
 
-    createPlayer(): PlayerStore {
-      throw new Error('Player creation not supported: use usePlayerStore directly')
-    },
-
     getDeviceInfo(): Record<string, unknown> {
       const tizen = getTizen()
       const info: Record<string, unknown> = {
-        platform: 'browser',
-        model: 'unknown',
-        version: 'unknown',
+        platform: 'tizen',
       }
+
       if (!tizen) {
         return info
       }
-      info.platform = 'tizen'
+
       if (tizen.productinfo?.getModel) {
         try {
           info.model = tizen.productinfo.getModel()
         }
         catch {
-          // Keep default
+          // ignore unavailable data
         }
       }
+
       if (tizen.productinfo?.getVersion) {
         try {
           info.version = tizen.productinfo.getVersion()
         }
         catch {
-          // Keep default
+          // ignore unavailable data
         }
       }
+
       if (tizen.systeminfo?.getTotalMemory) {
         try {
           info.totalMemory = tizen.systeminfo.getTotalMemory()
         }
         catch {
-          // Omit if unavailable
+          // ignore unavailable data
         }
       }
+
       return info
     },
 
     setVolume(level: number): void {
-      const clamped = Math.max(0, Math.min(100, level))
-      inMemoryVolume = clamped
+      const volume = Math.max(0, Math.min(100, level))
+      inMemoryVolume = volume
+
       const tizen = getTizen()
-      if (tizen?.tvfw?.setVolume) {
-        try {
-          tizen.tvfw.setVolume(clamped)
-        }
-        catch {
-          // State already updated in memory
-        }
+      if (!tizen?.tvfw?.setVolume) {
+        return
+      }
+
+      try {
+        tizen.tvfw.setVolume(volume)
+      }
+      catch {
+        // in-memory fallback already applied
       }
     },
 
     getVolume(): number {
       const tizen = getTizen()
-      if (tizen?.tvfw?.getVolume) {
-        try {
-          const vol = tizen.tvfw.getVolume()
-          if (typeof vol === 'number') {
-            inMemoryVolume = Math.max(0, Math.min(100, vol))
-          }
-        }
-        catch {
-          // Return in-memory value
+      if (!tizen?.tvfw?.getVolume) {
+        return inMemoryVolume
+      }
+
+      try {
+        const volume = tizen.tvfw.getVolume()
+        if (typeof volume === 'number') {
+          inMemoryVolume = Math.max(0, Math.min(100, volume))
         }
       }
+      catch {
+        // keep in-memory fallback
+      }
+
       return inMemoryVolume
     },
-  }
-}
 
-export function getTizenScreenshotSupport(): { supported: boolean, capture?: () => string | null } {
-  const tizen = getTizen()
-  if (!tizen) {
-    return { supported: false }
-  }
-  const caps = tizen.systeminfo?.getCapabilities?.()
-  if (caps?.screenShotSupport && tizen.tvfw?.captureScreen) {
-    return {
-      supported: true,
-      capture: (): string | null => {
-        try {
-          return tizen.tvfw?.captureScreen?.() ?? null
-        }
-        catch {
+    async captureScreenshot(): Promise<Blob | null> {
+      const tizen = getTizen()
+      const supportsScreenshot = tizen?.systeminfo?.getCapabilities?.()?.screenShotSupport
+
+      if (!supportsScreenshot || !tizen?.tvfw?.captureScreen) {
+        return null
+      }
+
+      try {
+        const dataUrl = tizen.tvfw.captureScreen()
+        if (!dataUrl) {
           return null
         }
-      },
-    }
+
+        return await dataUrlToBlob(dataUrl)
+      }
+      catch {
+        return null
+      }
+    },
   }
-  return { supported: false }
 }

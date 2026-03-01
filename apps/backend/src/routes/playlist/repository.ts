@@ -48,11 +48,11 @@ const DEFAULT_PLAYLIST: Playlist = {
     {
       id: 'default-4',
       type: 'image',
-      url: 'https://cdn.cemalturkcan.com/videos/image3.mp4',
+      url: 'https://cdn.cemalturkcan.com/images/image3.jpg',
       order: 4,
     },
     {
-      id: 'default-4',
+      id: 'default-5',
       type: 'video',
       url: 'https://cdn.cemalturkcan.com/videos/video3.mp4',
       order: 5,
