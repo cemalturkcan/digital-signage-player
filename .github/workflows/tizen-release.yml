@@ -127,12 +127,23 @@ jobs:
           TOPIC_NAMESPACE="${VITE_MQTT_TOPIC_NAMESPACE:-players}"
 
           cat > apps/player/.env.tizen <<EOF
-          TIZEN_PROFILE=$PROFILE_NAME
-          TIZEN_AUTHOR_CERT_PASSWORD=$TIZEN_AUTHOR_CERT_PASSWORD
-          TIZEN_AUTHOR_CERT_PATH=$RUNNER_TEMP/tizen/author.p12
+          TIZEN_PROFILE="$PROFILE_NAME"
+          TIZEN_AUTHOR_CERT_PASSWORD="$TIZEN_AUTHOR_CERT_PASSWORD"
+          TIZEN_AUTHOR_CERT_PATH="$RUNNER_TEMP/tizen/author.p12"
           VITE_RUNTIME_NAME=tizen
-          VITE_MQTT_TOPIC_NAMESPACE=$TOPIC_NAMESPACE
+          VITE_MQTT_TOPIC_NAMESPACE="$TOPIC_NAMESPACE"
           EOF
+
+      - name: Validate author certificate
+        env:
+          TIZEN_AUTHOR_CERT_PASSWORD: ${{ secrets.TIZEN_AUTHOR_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          openssl pkcs12 \
+            -in "$RUNNER_TEMP/tizen/author.p12" \
+            -passin "pass:${TIZEN_AUTHOR_CERT_PASSWORD}" \
+            -nokeys -clcerts \
+            -out /dev/null
 
       - name: Build signed WGT
         run: |
@@ -168,6 +179,25 @@ jobs:
           name: tizen-cli-logs-${{ steps.meta.outputs.short_sha }}
           path: ~/tizen-studio-data/cli/logs/**
           if-no-files-found: ignore
+
+      - name: Print latest Tizen CLI log on failure
+        if: failure()
+        run: |
+          set +e
+          LOG_DIR="$HOME/tizen-studio-data/cli/logs"
+          if [ ! -d "$LOG_DIR" ]; then
+            echo "Tizen CLI log directory not found: $LOG_DIR"
+            exit 0
+          fi
+
+          LATEST_LOG=$(ls -1t "$LOG_DIR" | head -n 1)
+          if [ -z "$LATEST_LOG" ]; then
+            echo "No Tizen CLI log file found"
+            exit 0
+          fi
+
+          echo "Latest Tizen CLI log: $LOG_DIR/$LATEST_LOG"
+          tail -n 300 "$LOG_DIR/$LATEST_LOG"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
