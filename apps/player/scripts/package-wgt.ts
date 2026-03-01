@@ -411,6 +411,8 @@ function ensureSigningProfile(
     throw new Error(`Could not find author certificate file for profile ${profileName}`)
   }
 
+  const { distPath, distCaPath, distPassword } = resolveDistributorDefaults()
+
   try {
     execInherit('tizen', [
       'security-profiles',
@@ -421,6 +423,12 @@ function ensureSigningProfile(
       authorCertPath,
       '-p',
       authorPassword,
+      '-d',
+      distPath,
+      '-dp',
+      distPassword,
+      '-dc',
+      distCaPath,
     ])
   }
   catch {
