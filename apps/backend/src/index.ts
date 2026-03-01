@@ -3,7 +3,7 @@ import { serve } from '@hono/node-server'
 import { connectDb } from '@/app/db/db.js'
 import { migration } from '@/app/db/migrate.js'
 import { logger } from '@/app/logger/logger.js'
-import { connectMqtt } from '@/app/mqtt/base-service.js'
+import { messageBusService } from '@/app/message-bus/service.js'
 import { createApp } from '@/app/server/create-app.js'
 import { HOST, PORT } from '@/config.js'
 import '@/app/command-processor/service.js'
@@ -12,7 +12,7 @@ async function main(): Promise<void> {
   logger.info('Starting application')
 
   await connectDb()
-  await connectMqtt()
+  await messageBusService.connect()
   await migration.migrate()
 
   const app = await createApp()

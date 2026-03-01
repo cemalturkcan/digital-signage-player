@@ -4,17 +4,18 @@ export interface CommandEnvelope {
   command: CommandType
   timestamp: number
   params?: Record<string, unknown>
+  replyTopic?: string
 }
 
-export type CommandType
-  = 'reload_playlist'
-    | 'restart_player'
-    | 'play'
-    | 'pause'
-    | 'set_volume'
-    | 'screenshot'
-    | 'update_config'
-    | 'ping'
+export type CommandType =
+  | 'reload_playlist'
+  | 'restart_player'
+  | 'play'
+  | 'pause'
+  | 'set_volume'
+  | 'screenshot'
+  | 'update_config'
+  | 'ping'
 
 export interface ScreenshotCommandParams {
   uploadUrl: string
@@ -59,14 +60,14 @@ export interface EventEnvelope {
   payload?: Record<string, unknown>
 }
 
-export type EventType
-  = 'playback_started'
-    | 'playback_ended'
-    | 'playback_error'
-    | 'media_loaded'
-    | 'network_status'
-    | 'storage_warning'
-    | 'screenshot_captured'
+export type EventType =
+  | 'playback_started'
+  | 'playback_ended'
+  | 'playback_error'
+  | 'media_loaded'
+  | 'network_status'
+  | 'storage_warning'
+  | 'screenshot_captured'
 
 const VALID_COMMANDS: CommandType[] = [
   'reload_playlist',
@@ -109,6 +110,10 @@ export function validateCommandEnvelope(envelope: unknown): ValidationResult {
 
   if (!isCommandType(e.command)) {
     return { valid: false, error: `unknown command: ${e.command}` }
+  }
+
+  if (typeof e.replyTopic !== 'undefined' && typeof e.replyTopic !== 'string') {
+    return { valid: false, error: 'replyTopic must be string when provided' }
   }
 
   if (e.command === 'set_volume') {

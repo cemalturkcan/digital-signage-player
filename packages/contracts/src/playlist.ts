@@ -1,5 +1,6 @@
 export interface Playlist {
   id: string
+  loop?: boolean
   items: MediaItem[]
   createdAt: number
   updatedAt: number
@@ -9,7 +10,7 @@ export interface MediaItem {
   id: string
   type: MediaType
   url: string
-  duration?: number
+  duration?: number | null
   order: number
   checksum?: string
   mimeType?: string

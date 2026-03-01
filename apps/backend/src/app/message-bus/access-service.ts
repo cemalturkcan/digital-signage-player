@@ -1,7 +1,7 @@
 import type { MqttClient } from 'mqtt'
 import type { Buffer } from 'node:buffer'
 import { logger } from '@/app/logger/logger.js'
-import { mqttClient } from './base-service.js'
+import { busClient } from './base.js'
 
 interface DynSecCommand {
   command: string
@@ -22,7 +22,7 @@ function generateCommandId(): string {
   return `cmd_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-export interface MqttProvisioningService {
+export interface MessageBusAccessService {
   provisionDevice: (deviceId: string, username: string, password: string) => Promise<void>
 }
 
@@ -50,19 +50,52 @@ async function publishWithCallback(
   })
 }
 
-class MqttProvisioningServiceImpl implements MqttProvisioningService {
+async function subscribeWithCallback(
+  client: MqttClient,
+  topic: string,
+  qos: 0 | 1 | 2 = 1,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    client.subscribe(topic, { qos }, (err) => {
+      if (err) {
+        reject(err)
+        return
+      }
+
+      resolve()
+    })
+  })
+}
+
+class MessageBusAccessServiceImpl implements MessageBusAccessService {
   private pendingCommands = new Map<string, PendingCommand>()
+
+  private responseTopicSubscribed = false
 
   private client: MqttClient
 
   constructor() {
-    this.client = mqttClient
+    this.client = busClient
 
     this.client.on('connect', () => {
-      this.client.subscribe(RESPONSE_TOPIC, { qos: 1 })
+      this.responseTopicSubscribed = false
+      void this.ensureResponseTopicSubscription()
     })
 
     this.client.on('message', this.handleMessage)
+
+    if (this.client.connected) {
+      void this.ensureResponseTopicSubscription()
+    }
+  }
+
+  private async ensureResponseTopicSubscription(): Promise<void> {
+    if (this.responseTopicSubscribed) {
+      return
+    }
+
+    await subscribeWithCallback(this.client, RESPONSE_TOPIC, 1)
+    this.responseTopicSubscribed = true
   }
 
   private handleMessage = (topic: string, payload: Buffer) => {
@@ -102,6 +135,8 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
       throw new Error('MQTT client not connected')
     }
 
+    await this.ensureResponseTopicSubscription()
+
     const correlationData = generateCommandId()
     const responsePromise = this.waitForResponse(correlationData)
 
@@ -124,11 +159,25 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
     const response = await responsePromise
     const cmdResponse = response.responses?.[0]
     if (cmdResponse?.error) {
-      if (cmdResponse.error.includes('already exists')) {
+      if (this.isIgnorableDynsecError(command.command, cmdResponse.error)) {
         return
       }
       throw new Error(cmdResponse.error)
     }
+  }
+
+  private isIgnorableDynsecError(commandName: string, message: string): boolean {
+    const normalized = message.toLowerCase()
+
+    if (commandName === 'addClientRole' && normalized === 'internal error') {
+      return true
+    }
+
+    return (
+      normalized.includes('already exists')
+      || normalized.includes('already has')
+      || normalized.includes('already in')
+    )
   }
 
   async provisionDevice(deviceId: string, username: string, password: string): Promise<void> {
@@ -154,6 +203,15 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
       rolename: roleName,
       acltype: 'publishClientSend',
       topic: `${baseTopic}/responses`,
+      priority: 0,
+      allow: true,
+    })
+
+    await this.sendCommand({
+      command: 'addRoleACL',
+      rolename: roleName,
+      acltype: 'publishClientSend',
+      topic: 'backend/+/responses/+',
       priority: 0,
       allow: true,
     })
@@ -196,4 +254,4 @@ class MqttProvisioningServiceImpl implements MqttProvisioningService {
   }
 }
 
-export const mqttProvisioningService: MqttProvisioningService = new MqttProvisioningServiceImpl()
+export const messageBusAccessService: MessageBusAccessService = new MessageBusAccessServiceImpl()
