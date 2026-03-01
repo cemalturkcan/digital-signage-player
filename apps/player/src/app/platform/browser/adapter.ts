@@ -1,4 +1,5 @@
 import type { PlatformAdapter } from '@/app/platform/types'
+import { captureAppScreenshot } from '@/app/platform/screenshot'
 
 let inMemoryVolume = 100
 
@@ -25,7 +26,7 @@ export function createBrowserPlatformAdapter(): PlatformAdapter {
     },
 
     async captureScreenshot(): Promise<Blob | null> {
-      return null
+      return await captureAppScreenshot()
     },
   }
 }

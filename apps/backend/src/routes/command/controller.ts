@@ -5,7 +5,9 @@ import { commandService } from '@/routes/command/service.js'
 
 export const commandController = {
   async postCommand(c: Context) {
-    const request = await c.req.json<DispatchCommandRequest>()
+    const request = (
+      c.req as unknown as { valid: (target: 'json') => DispatchCommandRequest }
+    ).valid('json')
     const result = await commandService.send(request)
     return Res(result)
   },

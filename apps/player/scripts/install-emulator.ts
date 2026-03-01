@@ -32,15 +32,22 @@ function main(): void {
   const inputWgtPath = process.argv[2]
   const wgtPath = resolveWgtInput(rootDir, inputWgtPath)
   const packageId = process.env.APP_PACKAGE_ID || getAppPackageId(path.join(rootDir, 'config.xml'))
+  const shouldUninstallFirst = process.env.TIZEN_UNINSTALL_BEFORE_INSTALL === 'true'
 
   console.log(`Installing WGT: ${wgtPath}`)
   const targetSerial = waitForTargetSerial(sdbCommand)
   console.log(`Target serial: ${targetSerial}`)
 
-  try {
-    execInherit(sdbCommand, ['-s', targetSerial, 'uninstall', packageId])
+  if (shouldUninstallFirst) {
+    console.log(`Uninstall enabled. Removing package before install: ${packageId}`)
+    try {
+      execInherit(sdbCommand, ['-s', targetSerial, 'uninstall', packageId])
+    }
+    catch {}
   }
-  catch {}
+  else {
+    console.log('Preserving app data: skipping uninstall before install')
+  }
 
   try {
     installWithSdb(sdbCommand, targetSerial, wgtPath)

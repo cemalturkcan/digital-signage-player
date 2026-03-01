@@ -3,6 +3,7 @@ import type { Buffer } from 'node:buffer'
 import process from 'node:process'
 import { t } from '@/app/i18n/index.js'
 import { busClient, mqttPublish, mqttSubscribe } from './base.js'
+import { commandTopicFor } from './topics.js'
 
 interface PendingCommand {
   replyTopic: string
@@ -21,10 +22,6 @@ function replyTopicFor(commandId: string): string {
   return `${replyTopicRoot()}/${commandId}`
 }
 
-function commandTopicFor(deviceId: string): string {
-  return `signage/${deviceId}/commands`
-}
-
 function isCommandResultEnvelope(value: unknown): value is CommandResultEnvelope {
   if (!value || typeof value !== 'object')
     return false
@@ -40,7 +37,11 @@ function isCommandResultEnvelope(value: unknown): value is CommandResultEnvelope
 }
 
 export interface CommandDispatcher {
-  dispatch: (deviceId: string, command: CommandEnvelope, timeoutMs: number) => Promise<CommandResultEnvelope>
+  dispatch: (
+    deviceId: string,
+    command: CommandEnvelope,
+    timeoutMs: number,
+  ) => Promise<CommandResultEnvelope>
 }
 
 class CommandDispatcherImpl implements CommandDispatcher {
@@ -76,12 +77,7 @@ class CommandDispatcherImpl implements CommandDispatcher {
     this.pending.delete(parsed.correlationId)
     clearTimeout(entry.timeout)
 
-    if (parsed.status === 'success') {
-      entry.resolve(parsed)
-    }
-    else {
-      entry.reject(new Error(parsed.error?.message ?? t('command_execution_failed_on_device')))
-    }
+    entry.resolve(parsed)
   }
 
   private async ensureReplySubscription(): Promise<void> {
@@ -92,7 +88,11 @@ class CommandDispatcherImpl implements CommandDispatcher {
     this.subscribedReplyRoot = true
   }
 
-  private waitForResponse(commandId: string, replyTopic: string, timeoutMs: number): Promise<CommandResultEnvelope> {
+  private waitForResponse(
+    commandId: string,
+    replyTopic: string,
+    timeoutMs: number,
+  ): Promise<CommandResultEnvelope> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(commandId)
@@ -103,7 +103,11 @@ class CommandDispatcherImpl implements CommandDispatcher {
     })
   }
 
-  async dispatch(deviceId: string, command: CommandEnvelope, timeoutMs: number): Promise<CommandResultEnvelope> {
+  async dispatch(
+    deviceId: string,
+    command: CommandEnvelope,
+    timeoutMs: number,
+  ): Promise<CommandResultEnvelope> {
     if (!busClient.connected)
       throw new Error(t('mqtt_client_not_connected'))
 

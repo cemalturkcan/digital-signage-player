@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly MODE: string
   readonly VITE_API_BASE_URL?: string
   readonly VITE_MQTT_BROKER_URL?: string
+  readonly VITE_MQTT_TOPIC_NAMESPACE?: string
+  readonly VITE_RUNTIME_NAME?: 'tizen' | 'web'
 }
 
 interface ImportMeta {
