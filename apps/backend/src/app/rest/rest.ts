@@ -81,7 +81,7 @@ export function ErrorRes(error: Err): Response {
   const [code, message] = getError(error)
   const status = getHttpStatus(code)
 
-  logger.error({ code, message, originError: error.originError }, 'Request error')
+  logger.error({ code, message, err: error.originError }, 'Request error')
 
   return Response.json(jsonResponse(null, code, message), { status })
 }

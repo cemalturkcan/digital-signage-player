@@ -12,6 +12,7 @@ export const MQTT_HOST = process.env.MQTT_HOST ?? 'localhost'
 export const MQTT_PORT = Number(process.env.MQTT_PORT ?? 1883)
 export const MQTT_USERNAME = process.env.MQTT_USERNAME ?? ''
 export const MQTT_PASSWORD = process.env.MQTT_PASSWORD ?? ''
+export const MQTT_TOPIC_NAMESPACE = process.env.MQTT_TOPIC_NAMESPACE ?? 'players'
 
 if (!validProtocols.includes(MQTT_PROTOCOL)) {
   throw new Error(

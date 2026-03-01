@@ -89,11 +89,11 @@ curl "http://localhost:3000/api/playlist?deviceId=test-device-001"
 ```bash
 # Terminal 1: Subscribe to responses
 mosquitto_sub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/test-device-001/responses
+  -t players/test-device-001/responses
 
 # Terminal 2: Send ping command
 mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/test-device-001/commands \
+  -t players/test-device-001/commands \
   -m '{"type":"command","commandId":"cmd-001","command":"ping","timestamp":'$(date +%s%3N)'}'
 
 # Expected in Terminal 1:
@@ -115,11 +115,11 @@ mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
 ```bash
 # Terminal 1: Subscribe to responses
 mosquitto_sub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/test-device-001/responses
+  -t players/test-device-001/responses
 
 # Terminal 2: Send screenshot command (returns base64 image in response)
 mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/test-device-001/commands \
+  -t players/test-device-001/commands \
   -m '{
     "type": "command",
     "commandId": "cmd-screenshot-001",
@@ -149,7 +149,7 @@ mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
 
 ```bash
 mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/test-device-001/commands \
+  -t players/test-device-001/commands \
   -m '{
     "type": "command",
     "commandId": "cmd-vol-001",

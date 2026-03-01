@@ -3,16 +3,16 @@
 ## Topic Structure
 
 ```
-signage/{deviceId}/{category}
+players/{deviceId}/{category}
 ```
 
 ### Topics
 
 | Purpose   | Topic Pattern                  | Direction        |
 | --------- | ------------------------------ | ---------------- |
-| Commands  | `signage/{deviceId}/commands`  | Backend → Player |
-| Responses | `signage/{deviceId}/responses` | Player → Backend |
-| Events    | `signage/{deviceId}/events`    | Player → Backend |
+| Commands  | `players/{deviceId}/commands`  | Backend → Player |
+| Responses | `players/{deviceId}/responses` | Player → Backend |
+| Events    | `players/{deviceId}/events`    | Player → Backend |
 
 ## Message Envelopes
 
@@ -150,7 +150,7 @@ Note: Command history is in-memory only; duplicates are not detected across play
 ### Playlist Reload
 
 ```
-Backend → signage/player-001/commands
+Backend → players/player-001/commands
 {
   "type": "command",
   "commandId": "cmd-001",
@@ -158,7 +158,7 @@ Backend → signage/player-001/commands
   "timestamp": 1709000000000
 }
 
-Player → signage/player-001/responses
+Player → players/player-001/responses
 {
   "type": "command_result",
   "command": "reload_playlist",
@@ -171,7 +171,7 @@ Player → signage/player-001/responses
 ### Screenshot
 
 ```
-Backend → signage/player-001/commands
+Backend → players/player-001/commands
 {
   "type": "command",
   "commandId": "cmd-002",
@@ -179,7 +179,7 @@ Backend → signage/player-001/commands
   "timestamp": 1709000000000
 }
 
-Player → signage/player-001/responses
+Player → players/player-001/responses
 {
   "type": "command_result",
   "command": "screenshot",
@@ -196,7 +196,7 @@ Player → signage/player-001/responses
 ### Volume Control
 
 ```
-Backend → signage/player-001/commands
+Backend → players/player-001/commands
 {
   "type": "command",
   "commandId": "cmd-003",
@@ -221,10 +221,10 @@ Backend → signage/player-001/commands
 ```bash
 # Subscribe to responses
 mosquitto_sub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/player-001/responses
+  -t players/player-001/responses
 
 # Send command
 mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/player-001/commands \
+  -t players/player-001/commands \
   -m '{"type":"command","commandId":"'$(uuidgen)'","command":"ping","timestamp":'$(date +%s%3N)'}'
 ```

@@ -88,9 +88,9 @@ pnpm typecheck    # Type check only
 
 ### Topic Pattern
 
-- Commands: `signage/{deviceId}/commands`
-- Responses: `signage/{deviceId}/responses`
-- Events: `signage/{deviceId}/events`
+- Commands: `players/{deviceId}/commands`
+- Responses: `players/{deviceId}/responses`
+- Events: `players/{deviceId}/events`
 
 ### Command Payload Example
 
@@ -137,12 +137,12 @@ pnpm typecheck    # Type check only
 ```bash
 # Using mosquitto_pub
 mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/test-device-001/commands \
+  -t players/test-device-001/commands \
   -m '{"type":"command","commandId":"cmd-001","command":"ping","timestamp":'$(date +%s%3N)'}'
 
 # Screenshot command - returns base64 image in response payload
 mosquitto_pub -h localhost -p 1883 -u admin -P admin1234567 \
-  -t signage/test-device-001/commands \
+  -t players/test-device-001/commands \
   -m '{"type":"command","commandId":"cmd-002","command":"screenshot","timestamp":'$(date +%s%3N)'}'
 ```
 
@@ -187,6 +187,8 @@ cd apps/player
 # TIZEN_CLI=C:/tizen-studio/tools/ide/bin/tizen.bat
 # TIZEN_PROFILE=SignageProfile
 # TIZEN_AUTHOR_CERT_PASSWORD=yourpassword
+# VITE_RUNTIME_NAME=tizen
+# VITE_MQTT_TOPIC_NAMESPACE=players
 
 pnpm build
 # Output: digital_signage_player_0.1.0.wgt

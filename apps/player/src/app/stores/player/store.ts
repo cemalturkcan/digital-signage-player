@@ -49,35 +49,7 @@ export const usePlayerStore = defineStore('player', {
       if (blob)
         return blob
 
-      return generateFallbackScreenshot()
+      throw new Error('Screenshot capture unavailable')
     },
   },
 })
-
-function generateFallbackScreenshot(): Blob {
-  const canvas = document.createElement('canvas')
-  canvas.width = 640
-  canvas.height = 360
-  const ctx = canvas.getContext('2d')
-  if (ctx) {
-    ctx.fillStyle = '#1a1a1a'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = '#ffffff'
-    ctx.font = '16px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('Screenshot not available', canvas.width / 2, canvas.height / 2)
-    const now = new Date().toISOString()
-    ctx.font = '12px sans-serif'
-    ctx.fillStyle = '#888888'
-    ctx.fillText(now, canvas.width / 2, canvas.height / 2 + 24)
-  }
-  const dataUrl = canvas.toDataURL('image/png')
-  const byteString = atob(dataUrl.split(',')[1])
-  const mimeString = 'image/png'
-  const ab = new ArrayBuffer(byteString.length)
-  const ia = new Uint8Array(ab)
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i)
-  }
-  return new Blob([ab], { type: mimeString })
-}

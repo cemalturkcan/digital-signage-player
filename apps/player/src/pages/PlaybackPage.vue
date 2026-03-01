@@ -260,10 +260,7 @@ onUnmounted(() => {
       />
 
       <Transition name="controls-fade">
-        <div
-          v-if="controlsVisible"
-          class="playback-page_exit"
-        >
+        <div v-if="controlsVisible" class="playback-page_exit">
           <ExitPlaybackButton @exit="finishPlaybackAndReturnToSelection" />
         </div>
       </Transition>

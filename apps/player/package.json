@@ -24,6 +24,7 @@
     "@signage/contracts": "workspace:*",
     "@unocss/reset": "^66.6.2",
     "axios": "^1.13.5",
+    "html2canvas": "^1.4.1",
     "mqtt": "^5.15.0",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
