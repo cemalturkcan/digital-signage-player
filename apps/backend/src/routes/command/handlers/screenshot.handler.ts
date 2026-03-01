@@ -47,16 +47,22 @@ async function saveFile(
 
 function getExtension(mimeType?: string): string {
   switch (mimeType) {
-    case 'image/jpeg': return 'jpg'
-    case 'image/webp': return 'webp'
-    default: return 'png'
+    case 'image/jpeg':
+      return 'jpg'
+    case 'image/webp':
+      return 'webp'
+    default:
+      return 'png'
   }
 }
 
 export const screenshotHandler: ICommandResultHandler = {
   command: 'screenshot',
 
-  async handle(request: DispatchCommandRequest, result: CommandResultEnvelope): Promise<CommandResultEnvelope> {
+  async handle(
+    request: DispatchCommandRequest,
+    result: CommandResultEnvelope,
+  ): Promise<CommandResultEnvelope> {
     if (result.status !== 'success')
       return result
 
@@ -69,7 +75,10 @@ export const screenshotHandler: ICommandResultHandler = {
 
     return {
       ...result,
-      payload: { ...saved, mimeType: payload.mimeType ?? 'image/png' },
+      payload: {
+        ...saved,
+        mimeType: payload.mimeType ?? 'image/png',
+      },
     }
   },
 }

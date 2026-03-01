@@ -13,18 +13,24 @@ export interface CommandService {
 export const commandService: CommandService = {
   async send(request: DispatchCommandRequest): Promise<ServiceResponse<CommandResultEnvelope>> {
     try {
+      const timeoutMs
+        = request.command === 'screenshot' ? Math.max(request.timeoutMs, 20000) : request.timeoutMs
+
       const commandResult = await messageBusService.send(
         request.deviceId,
         request.command,
         request.params,
-        request.timeoutMs,
+        timeoutMs,
       )
 
       const result = await commandResultRegistry.dispatch(request, commandResult)
       return ok(result)
     }
     catch (error) {
-      return unexpected(error, error instanceof Error ? error.message : t('command_dispatch_failed'))
+      return unexpected(
+        error,
+        error instanceof Error ? error.message : t('command_dispatch_failed'),
+      )
     }
   },
 }
