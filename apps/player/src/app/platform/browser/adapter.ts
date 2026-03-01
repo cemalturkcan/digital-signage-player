@@ -4,9 +4,7 @@ let inMemoryVolume = 100
 
 export function createBrowserPlatformAdapter(): PlatformAdapter {
   return {
-    async initialize(): Promise<void> {
-      // No-op for browser fallback
-    },
+    async initialize(): Promise<void> {},
 
     isAvailable(): boolean {
       return typeof window !== 'undefined'

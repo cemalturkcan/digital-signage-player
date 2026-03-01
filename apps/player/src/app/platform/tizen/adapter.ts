@@ -48,13 +48,9 @@ export function createTizenPlatformAdapter(): PlatformAdapter {
 
       try {
         const volume = tizen.tvfw.getVolume()
-        if (typeof volume === 'number') {
-          inMemoryVolume = Math.max(0, Math.min(100, volume))
-        }
+        inMemoryVolume = Math.max(0, Math.min(100, volume))
       }
-      catch {
-        // keep in-memory fallback volume
-      }
+      catch {}
     },
 
     isAvailable(): boolean {
@@ -75,27 +71,21 @@ export function createTizenPlatformAdapter(): PlatformAdapter {
         try {
           info.model = tizen.productinfo.getModel()
         }
-        catch {
-          // ignore unavailable data
-        }
+        catch {}
       }
 
       if (tizen.productinfo?.getVersion) {
         try {
           info.version = tizen.productinfo.getVersion()
         }
-        catch {
-          // ignore unavailable data
-        }
+        catch {}
       }
 
       if (tizen.systeminfo?.getTotalMemory) {
         try {
           info.totalMemory = tizen.systeminfo.getTotalMemory()
         }
-        catch {
-          // ignore unavailable data
-        }
+        catch {}
       }
 
       return info
@@ -113,9 +103,7 @@ export function createTizenPlatformAdapter(): PlatformAdapter {
       try {
         tizen.tvfw.setVolume(volume)
       }
-      catch {
-        // in-memory fallback already applied
-      }
+      catch {}
     },
 
     getVolume(): number {
@@ -130,9 +118,7 @@ export function createTizenPlatformAdapter(): PlatformAdapter {
           inMemoryVolume = Math.max(0, Math.min(100, volume))
         }
       }
-      catch {
-        // keep in-memory fallback
-      }
+      catch {}
 
       return inMemoryVolume
     },

@@ -1,19 +1,12 @@
 import type { CommandEnvelope, CommandResultEnvelope, CommandType } from '@signage/contracts'
-import { messageBusAccessService } from '@/app/message-bus/access-service.js'
-import { connectBus, disconnectBus } from '@/app/message-bus/base.js'
-import { messageBusSendService } from '@/app/message-bus/send-service.js'
+import { connectBus, disconnectBus, generateId } from '@/app/message-bus/base.js'
+import { commandDispatcher } from '@/app/message-bus/dispatcher.js'
+import { deviceProvisioner } from '@/app/message-bus/provisioning.js'
 
-function generateCommandId(): string {
-  return `cmd_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-}
-
-function createCommandEnvelope(
-  command: CommandType,
-  params?: Record<string, unknown>,
-): CommandEnvelope {
+function createCommandEnvelope(command: CommandType, params?: Record<string, unknown>): CommandEnvelope {
   return {
     type: 'command',
-    commandId: generateCommandId(),
+    commandId: generateId(),
     command,
     timestamp: Date.now(),
     params,
@@ -33,24 +26,19 @@ export interface MessageBusService {
 }
 
 export const messageBusService: MessageBusService = {
-  connect(): Promise<void> {
-    return connectBus()
-  },
-
-  disconnect(): Promise<void> {
-    return disconnectBus()
-  },
+  connect: connectBus,
+  disconnect: disconnectBus,
 
   provisionDevice(deviceId: string, username: string, password: string): Promise<void> {
-    return messageBusAccessService.provisionDevice(deviceId, username, password)
+    return deviceProvisioner.provisionDevice(deviceId, username, password)
   },
 
-  async send(
+  send(
     deviceId: string,
     command: CommandType,
     params: Record<string, unknown> | undefined,
     timeoutMs: number,
   ): Promise<CommandResultEnvelope> {
-    return messageBusSendService.send(deviceId, createCommandEnvelope(command, params), timeoutMs)
+    return commandDispatcher.dispatch(deviceId, createCommandEnvelope(command, params), timeoutMs)
   },
 }

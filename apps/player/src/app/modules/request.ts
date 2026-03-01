@@ -63,7 +63,9 @@ function unwrapResponse<T>(payload: unknown): T {
 
 function toHttpError(error: unknown): HttpError {
   if (!axios.isAxiosError(error)) {
-    return error as HttpError
+    if (error instanceof Error)
+      return error as HttpError
+    return new Error(String(error))
   }
 
   const responseData = error.response?.data

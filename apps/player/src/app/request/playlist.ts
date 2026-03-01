@@ -1,5 +1,5 @@
 import type { Playlist, PlaylistResponse } from '@signage/contracts'
-import { getRequest } from '@/app/request/request'
+import { getRequest } from '@/app/modules/request'
 
 const PLAYLIST_PAGE_SIZE = 100
 
@@ -28,7 +28,7 @@ export async function getPlaylistsByDeviceId(deviceId: string): Promise<Playlist
   return {
     ...firstPage,
     size: content.length,
-    total: content.length,
+    total: firstPage.total,
     currentPage: 1,
     totalPages: 1,
     content,

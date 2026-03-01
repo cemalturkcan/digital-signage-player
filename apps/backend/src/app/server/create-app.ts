@@ -1,3 +1,4 @@
+import { serveStatic } from '@hono/node-server/serve-static'
 import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { cors } from 'hono/cors'
@@ -36,6 +37,7 @@ export async function createApp(): Promise<OpenAPIHono> {
 
   app.use('*', cors({ origin: CORS_ORIGINS }))
   app.use('*', httpLogger())
+  app.use('/public/*', serveStatic({ root: './' }))
 
   registerApiRoutes(app)
 

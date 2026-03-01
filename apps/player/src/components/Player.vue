@@ -38,9 +38,7 @@ async function play(): Promise<void> {
   try {
     await videoRef.value.play()
   }
-  catch {
-    // Ignore autoplay interruptions
-  }
+  catch {}
 }
 
 function pause(): void {
