@@ -1,0 +1,42 @@
+{
+  "name": "@signage/player",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "dev:mock": "vite --mode mock",
+    "build": "tsx scripts/package-wgt.ts",
+    "wgt:install": "tsx scripts/install-emulator.ts",
+    "wgt:run": "tsx scripts/run-emulator.ts",
+    "wgt:deploy": "pnpm run build && pnpm run wgt:install",
+    "wgt:deploy:run": "pnpm run wgt:deploy && pnpm run wgt:run",
+    "preview": "vite preview",
+    "typecheck": "pnpm run typecheck:app && pnpm run typecheck:scripts",
+    "typecheck:app": "vue-tsc --noEmit",
+    "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit",
+    "lint": "eslint src scripts",
+    "lint:fix": "eslint src scripts --fix",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@signage/config": "workspace:*",
+    "@signage/contracts": "workspace:*",
+    "@unocss/reset": "^66.6.2",
+    "axios": "^1.13.5",
+    "mqtt": "^5.15.0",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
+    "vue": "^3.5.29",
+    "vue-router": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.1",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18",
+    "vue-tsc": "^3.2.5"
+  }
+}

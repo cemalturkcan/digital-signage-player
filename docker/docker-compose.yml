@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-postgres}
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - '1883:1883'
+      - '9001:9001'
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+    environment:
+      - MOSQUITTO_DYNSEC_PASSWORD=${MQTT_DYNSEC_PASSWORD:-admin1234567}
+    command: >
+      sh -c '
+        exec mosquitto -c /mosquitto/config/mosquitto.conf
+      '
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mosquitto_pub -h localhost -p 1883 -u admin -P $${MOSQUITTO_DYNSEC_PASSWORD:-admin1234567} -t healthcheck -m ok',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - HOST=${HOST}
+      - MQTT_PROTOCOL=${MQTT_PROTOCOL}
+      - MQTT_HOST=${MQTT_HOST}
+      - MQTT_PORT=${MQTT_PORT}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+    env_file:
+      - ./.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
