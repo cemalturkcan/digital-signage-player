@@ -218,9 +218,17 @@ The build script auto-detects WSL and converts paths for Windows Tizen CLI:
 
 Repository now includes a release workflow: `.github/workflows/tizen-release.yml`.
 
-- Trigger: push tag `v*` (for example `v0.1.0`) or run manually from Actions.
-- Output: signed `.wgt` + `.sha256` uploaded to workflow artifacts and GitHub Release.
-- Safety check: tag must match `apps/player/package.json` version.
+- Trigger:
+  - `main` push (only when player-related files change): builds signed `.wgt` and uploads workflow artifact.
+  - tag `v*` push (for example `v0.1.0`): builds signed `.wgt`, uploads artifact, and creates GitHub Release.
+  - manual run from Actions: artifact-only by default; set `release_tag` to create a Release.
+- Output: hash-named signed `.wgt` + `.sha256` uploaded to workflow artifacts.
+
+Versioning behavior:
+
+- `config.xml` / widget version stays unchanged from project config.
+- CI always publishes hash-based asset names (example: `digital_signage_player_a1b2c3d4.wgt`).
+- Release names and artifact names use commit short hash.
 
 Required repository secrets:
 
