@@ -72,9 +72,5 @@ export const usePlaylistStore = defineStore('playlist', {
       this.currentPlaylist = null
       this.currentIndex = 0
     },
-
-    resetIndex(): void {
-      this.currentIndex = 0
-    },
   },
 })

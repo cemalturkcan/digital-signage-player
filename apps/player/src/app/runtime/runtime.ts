@@ -74,7 +74,6 @@ export async function activatePlaylist(playlist: Playlist): Promise<void> {
 
   libraryStore.selectPlaylist(playlist.id)
   await playlistStore.loadPlaylist(playlist)
-  playlistStore.resetIndex()
 
   const firstItem = getFirstItem(playlist)
   if (!firstItem) {
