@@ -50,25 +50,6 @@ export const usePlaylistStore = defineStore('playlist', {
 
       return this.currentPlaylist.items[this.currentIndex] ?? null
     },
-
-    prevForPlayback(): MediaItem | null {
-      if (!this.currentPlaylist) {
-        return null
-      }
-
-      if (this.currentIndex > 0) {
-        this.currentIndex -= 1
-      }
-      else if (this.currentPlaylist.loop !== false && this.currentPlaylist.items.length > 0) {
-        this.currentIndex = this.currentPlaylist.items.length - 1
-      }
-      else {
-        return null
-      }
-
-      return this.currentPlaylist.items[this.currentIndex] ?? null
-    },
-
     clearPlaylist(): void {
       this.currentPlaylist = null
       this.currentIndex = 0
