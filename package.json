@@ -12,7 +12,10 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "wgt:build": "pnpm --filter @signage/player run build",
+    "wgt:deploy": "pnpm --filter @signage/player run wgt:deploy",
+    "wgt:deploy:run": "pnpm --filter @signage/player run wgt:deploy:run"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.6.1",
