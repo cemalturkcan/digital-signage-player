@@ -82,6 +82,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-and-push-image
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -106,5 +109,5 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}
           ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-          registry_auth: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          registry_auth: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
           env_file: ./envfile

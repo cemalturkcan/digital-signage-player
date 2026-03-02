@@ -20,6 +20,17 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    "wgt:build": {
+      "outputs": ["*.wgt"]
+    },
+    "wgt:install": {
+      "cache": false,
+      "dependsOn": ["wgt:build"]
+    },
+    "wgt:install:run": {
+      "cache": false,
+      "dependsOn": ["wgt:build"]
+    },
     "clean": {
       "cache": false
     }
