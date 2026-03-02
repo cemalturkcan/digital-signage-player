@@ -117,7 +117,7 @@ services:
         window: 120s
       labels:
         - traefik.enable=true
-        - traefik.http.routers.signage-backend.rule=Host(`${BACKEND_DOMAIN:-panel.example.com}`) && PathPrefix(`/api`)
+        - traefik.http.routers.signage-backend.rule=Host(`${BACKEND_DOMAIN:-signage.cemalturkcan.com}`) && PathPrefix(`/api`)
         - traefik.http.routers.signage-backend.entrypoints=websecure
         - traefik.http.routers.signage-backend.tls.certresolver=main
         - traefik.http.services.signage-backend.loadbalancer.server.port=3000
