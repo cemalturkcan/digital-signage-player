@@ -19,6 +19,7 @@ export interface MqttConnectionConfig {
   host: string
   port: number
   ssl: boolean
+  path: string
   clientId: string
   username: string
   password: string
