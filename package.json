@@ -13,9 +13,9 @@
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write .",
-    "wgt:build": "pnpm --filter @signage/player run build",
-    "wgt:deploy": "pnpm --filter @signage/player run wgt:deploy",
-    "wgt:deploy:run": "pnpm --filter @signage/player run wgt:deploy:run"
+    "wgt:build": "turbo run wgt:build --filter=@signage/player",
+    "wgt:install": "turbo run wgt:install --filter=@signage/player",
+    "wgt:install:run": "turbo run wgt:install:run --filter=@signage/player"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.6.1",
