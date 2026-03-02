@@ -362,16 +362,40 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
 
   const caPath = caCandidates.find(candidate => fs.existsSync(candidate)) || ''
 
-  if (configuredPassword && configuredPassword !== 'tizenpkcs12passfordsigner') {
+  const candidatePasswords = [configuredPassword, 'tizenpkcs12passfordsigner', '']
+  const uniqueCandidatePasswords = candidatePasswords.filter(
+    (value, index, array) => array.indexOf(value) === index,
+  )
+
+  let resolvedPassword = configuredPassword
+  if (commandExists('openssl')) {
+    let matched = ''
+    for (const candidatePassword of uniqueCandidatePasswords) {
+      try {
+        validatePkcs12Password(certPath, candidatePassword, 'distributor')
+        matched = candidatePassword
+        break
+      }
+      catch {}
+    }
+
+    if (matched === '') {
+      throw new Error(`Could not validate distributor signer certificate password for ${certPath}`)
+    }
+
+    resolvedPassword = matched
+  }
+
+  if (configuredPassword && configuredPassword !== resolvedPassword) {
     console.warn(
-      'Ignoring TIZEN_DISTRIBUTOR_CERT_PASSWORD for default distributor certificate. Using Tizen default password.',
+      'Ignoring TIZEN_DISTRIBUTOR_CERT_PASSWORD for default distributor certificate. Using detected compatible password.',
     )
   }
 
   return {
     certPath,
     caPath,
-    password: 'tizenpkcs12passfordsigner',
+    password: resolvedPassword,
   }
 }
 
@@ -383,7 +407,7 @@ function validatePkcs12Password(certPath: string, password: string, label: strin
   const nullOutput = process.platform === 'win32' ? 'NUL' : '/dev/null'
 
   try {
-    execInherit('openssl', [
+    execCapture('openssl', [
       'pkcs12',
       '-legacy',
       '-in',
@@ -433,9 +457,11 @@ function upsertSigningProfile(
     '-f',
     '-d',
     distributor.certPath,
-    '-dp',
-    distributor.password,
   ]
+
+  if (distributor.password) {
+    args.push('-dp', distributor.password)
+  }
 
   if (distributor.caPath) {
     args.push('-dc', distributor.caPath)
