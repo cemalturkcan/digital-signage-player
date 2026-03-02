@@ -50,13 +50,56 @@ services:
     image: eclipse-mosquitto:2
     command: >
       sh -c '
-        printf "listener 1883\nallow_anonymous true\n" > /mosquitto/config/mosquitto.conf &&
-        mosquitto -c /mosquitto/config/mosquitto.conf
+        pass="$${MQTT_PASSWORD}";
+        test -n "$${pass}";
+
+        if [ ! -f /mosquitto/config/dynamic-security.json ]; then
+          mosquitto_ctrl dynsec init /mosquitto/config/dynamic-security.json admin "$${pass}";
+        fi;
+
+        cat > /mosquitto/config/mosquitto.conf <<EOF
+        per_listener_settings true
+        allow_anonymous false
+        listener 1883
+        protocol mqtt
+        listener 9001
+        protocol websockets
+        plugin /usr/lib/mosquitto_dynamic_security.so
+        plugin_opt_config_file /mosquitto/config/dynamic-security.json
+        persistence true
+        persistence_location /mosquitto/data/
+        log_dest stdout
+        EOF
+
+        mosquitto -c /mosquitto/config/mosquitto.conf &
+        pid=$$!;
+
+        until mosquitto_ctrl -h localhost -p 1883 -u admin -P "$${pass}" dynsec getClient admin >/dev/null 2>&1; do
+          sleep 1;
+        done;
+
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$${pass}" dynsec createRole backend_dispatcher >/dev/null 2>&1 || true;
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$${pass}" dynsec addRoleACL backend_dispatcher publishClientSend "#" allow >/dev/null 2>&1 || true;
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$${pass}" dynsec addRoleACL backend_dispatcher publishClientReceive "#" allow >/dev/null 2>&1 || true;
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$${pass}" dynsec addRoleACL backend_dispatcher subscribePattern "#" allow >/dev/null 2>&1 || true;
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$${pass}" dynsec addRoleACL backend_dispatcher unsubscribePattern "#" allow >/dev/null 2>&1 || true;
+        mosquitto_ctrl -h localhost -p 1883 -u admin -P "$${pass}" dynsec addClientRole admin backend_dispatcher -1 >/dev/null 2>&1 || true;
+
+        wait "$${pid}"
       '
+    environment:
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
     volumes:
       - mosquitto_config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.signage-mqtt.rule=Host(`signage.cemalturkcan.com`)
+        - traefik.http.routers.signage-mqtt.entrypoints=websecure
+        - traefik.http.routers.signage-mqtt.tls.certresolver=main
+        - traefik.http.services.signage-mqtt.loadbalancer.server.port=9001
     healthcheck:
       test: ['CMD-SHELL', 'mosquitto_pub -h localhost -p 1883 -t healthcheck -m ok']
       interval: 10s
@@ -75,9 +118,9 @@ services:
       - MQTT_USERNAME=${MQTT_USERNAME}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
       - MQTT_TOPIC_NAMESPACE=players
-      - MQTT_CLIENT_HOST=mosquitto
-      - MQTT_CLIENT_PORT=9001
-      - MQTT_CLIENT_SSL=false
+      - MQTT_CLIENT_HOST=signage.cemalturkcan.com
+      - MQTT_CLIENT_PORT=443
+      - MQTT_CLIENT_SSL=true
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=postgres
