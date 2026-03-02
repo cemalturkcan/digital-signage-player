@@ -361,10 +361,17 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
   }
 
   const caPath = caCandidates.find(candidate => fs.existsSync(candidate)) || ''
+
+  if (configuredPassword && configuredPassword !== 'tizenpkcs12passfordsigner') {
+    console.warn(
+      'Ignoring TIZEN_DISTRIBUTOR_CERT_PASSWORD for default distributor certificate. Using Tizen default password.',
+    )
+  }
+
   return {
     certPath,
     caPath,
-    password: configuredPassword || 'tizenpkcs12passfordsigner',
+    password: 'tizenpkcs12passfordsigner',
   }
 }
 
