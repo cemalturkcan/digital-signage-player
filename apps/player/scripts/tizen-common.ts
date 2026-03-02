@@ -11,6 +11,18 @@ const isWindows = process.platform === 'win32'
 export const rootDir = path.resolve(scriptDir, '..')
 export const distDir = path.join(rootDir, 'dist')
 
+function quoteForCmd(arg: string): string {
+  // Escape for cmd.exe: wrap in quotes, escape quotes by doubling, escape % by doubling
+  if (arg.startsWith('"') && arg.endsWith('"')) {
+    return arg
+  }
+
+  if (!arg.includes(' ') && !arg.includes('"') && !arg.includes('%')) {
+    return arg
+  }
+  return `"${arg.replace(/"/g, '""').replace(/%/g, '%%')}"`
+}
+
 function runRaw(command: string, args: string[], options: Record<string, unknown> = {}) {
   const isWin = process.platform === 'win32'
 
@@ -26,10 +38,32 @@ function runRaw(command: string, args: string[], options: Record<string, unknown
     }
   }
 
+  // On Windows, avoid shell:true with args (DEP0190 warning).
+  // Build a command line and execute via cmd.exe /d /s /c with shell:false.
+  if (isWin) {
+    const quotedCommand = quoteForCmd(command)
+    const quotedArgs = args.map(quoteForCmd)
+    const cmdLine = [quotedCommand, ...quotedArgs].join(' ')
+
+    const result = spawnSync('cmd.exe', ['/d', '/s', '/c', cmdLine], {
+      encoding: 'utf8',
+      cwd: rootDir,
+      shell: false,
+      env,
+      ...options,
+    })
+
+    if (result.error) {
+      throw result.error
+    }
+
+    return result
+  }
+
   const result = spawnSync(command, args, {
     encoding: 'utf8',
     cwd: rootDir,
-    shell: isWin,
+    shell: false,
     env,
     ...options,
   })
