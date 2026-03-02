@@ -3,7 +3,7 @@ import type { ServiceResponse } from '@/app/rest/rest.js'
 import type { DeviceRecord } from '@/routes/register/modal.js'
 import { messageBusService } from '@/app/message-bus/service.js'
 import { ok, unexpected } from '@/app/rest/rest.js'
-import { MQTT_CLIENT_HOST, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
+import { MQTT_CLIENT_HOST, MQTT_CLIENT_PATH, MQTT_CLIENT_PORT, MQTT_CLIENT_SSL } from '@/config.js'
 import { registerRepository } from '@/routes/register/repository.js'
 
 function buildMqttConfig(device: DeviceRecord): RegistrationResponse['mqtt'] {
@@ -11,6 +11,7 @@ function buildMqttConfig(device: DeviceRecord): RegistrationResponse['mqtt'] {
     host: MQTT_CLIENT_HOST,
     port: MQTT_CLIENT_PORT,
     ssl: MQTT_CLIENT_SSL,
+    path: MQTT_CLIENT_PATH,
     clientId: device.deviceId,
     username: device.mqttUsername,
     password: device.mqttPassword,
@@ -43,12 +44,11 @@ export const registerService: RegisterService = {
       await messageBusService.provisionDevice(
         device.deviceId,
         device.mqttUsername,
-        device.mqttPassword,
+        device.mqttPassword
       )
 
       return ok(buildRegistrationResponse(device))
-    }
-    catch (error) {
+    } catch (error) {
       return unexpected(error, 'Failed to register device')
     }
   },
