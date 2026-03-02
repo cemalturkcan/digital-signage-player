@@ -6,13 +6,10 @@ RUN npm install -g pnpm@8.15.1
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/backend/package.json apps/backend/
 COPY packages/contracts/package.json packages/contracts/
-COPY packages/config/package.json packages/config/
 
 # Copy source files of workspace packages (needed for build)
 COPY packages/contracts/src packages/contracts/src
 COPY packages/contracts/tsconfig.json packages/contracts/
-COPY packages/config/src packages/config/src
-COPY packages/config/tsconfig.json packages/config/
 COPY apps/backend/src apps/backend/src
 COPY apps/backend/tsconfig.json apps/backend/
 COPY apps/backend/migrations apps/backend/migrations
@@ -25,7 +22,6 @@ RUN pnpm install --frozen-lockfile
 
 # Build workspace packages in dependency order
 RUN pnpm --filter @signage/contracts build
-RUN pnpm --filter @signage/config build
 
 # Build backend (workspace packages are now available)
 RUN pnpm --filter @signage/backend build
