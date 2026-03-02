@@ -35,9 +35,6 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.2.2
         version: 1.2.2(hono@4.12.3)(zod@4.3.6)
-      '@signage/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@signage/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -87,9 +84,6 @@ importers:
 
   apps/player:
     dependencies:
-      '@signage/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@signage/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -145,12 +139,6 @@ importers:
       vue-tsc:
         specifier: ^3.2.5
         version: 3.2.5(typescript@5.9.3)
-
-  packages/config:
-    devDependencies:
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
 
   packages/contracts:
     devDependencies:

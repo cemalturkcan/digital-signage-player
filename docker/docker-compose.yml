@@ -1,15 +1,15 @@
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:18
     ports:
-      - '${DB_PORT:-5432}:5432'
+      - '${DB_PORT}:5432'
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-postgres}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,12 +22,12 @@ services:
     volumes:
       - ./mosquitto/config:/mosquitto/config
     environment:
-      - MOSQUITTO_DYNSEC_PASSWORD=${MQTT_DYNSEC_PASSWORD:-admin1234567}
+      - MOSQUITTO_DYNSEC_PASSWORD=${MQTT_DYNSEC_PASSWORD}
     command: >
       sh -c '
         mosquitto -c /mosquitto/config/mosquitto.conf &
         pid=$$!
-        pass=$${MOSQUITTO_DYNSEC_PASSWORD:-admin1234567}
+        pass=$${MOSQUITTO_DYNSEC_PASSWORD}
 
         until mosquitto_ctrl -h localhost -p 1883 -u admin -P "$$pass" dynsec getClient admin >/dev/null 2>&1; do
           sleep 1
@@ -47,7 +47,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'mosquitto_pub -h localhost -p 1883 -u admin -P $${MOSQUITTO_DYNSEC_PASSWORD:-admin1234567} -t healthcheck -m ok',
+          'mosquitto_pub -h localhost -p 1883 -u admin -P $${MOSQUITTO_DYNSEC_PASSWORD} -t healthcheck -m ok',
         ]
       interval: 5s
       timeout: 5s
@@ -58,7 +58,7 @@ services:
       context: ..
       dockerfile: apps/backend/Dockerfile
     ports:
-      - '${PORT:-3000}:${PORT:-3000}'
+      - '${PORT}:${PORT}'
     environment:
       - NODE_ENV=${NODE_ENV}
       - PORT=${PORT}
@@ -68,6 +68,11 @@ services:
       - MQTT_PORT=${MQTT_PORT}
       - MQTT_USERNAME=${MQTT_USERNAME}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
     env_file:
       - ./.env
     depends_on:
