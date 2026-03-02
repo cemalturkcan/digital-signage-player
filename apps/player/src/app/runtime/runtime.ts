@@ -14,6 +14,7 @@ import { eventPublisher } from '@/app/mqtt/event-publisher'
 import { commandTopicFor, responseTopicFor } from '@/app/mqtt/topics'
 import { createPlatformAdapter } from '@/app/platform/factory'
 import { getPlaylistsByDeviceId } from '@/app/request/playlist'
+import { useDeviceStore } from '@/app/stores/device/store'
 import { useGlobalStore } from '@/app/stores/global/store'
 import { useLibraryStore } from '@/app/stores/library/store'
 import { usePlayerStore } from '@/app/stores/player/store'
@@ -177,27 +178,28 @@ export async function fetchPlaylists(): Promise<Playlist[]> {
 async function fetchPlaylistsWithPolicy(options?: { networkFirst?: boolean }): Promise<Playlist[]> {
   const globalStore = useGlobalStore()
   const libraryStore = useLibraryStore()
+  const deviceId = currentDeviceId || useDeviceStore().deviceId || ''
 
-  if (!currentDeviceId) {
+  if (!deviceId) {
     libraryStore.setPlaylists([])
     return []
   }
 
   const networkFirst = options?.networkFirst === true
-  const cached = readPlaylistCache(currentDeviceId)
+  const cached = readPlaylistCache(deviceId)
 
   if (!networkFirst && cached) {
     libraryStore.setPlaylists(cached.response.content)
     globalStore.hideLoading()
     globalStore.clearError()
 
-    void refreshPlaylistsFromNetwork(cached.hash)
+    void refreshPlaylistsFromNetwork(deviceId, cached.hash)
 
     return cached.response.content
   }
 
   globalStore.showLoading(translate('loadingPlaylists'))
-  const fromNetwork = await refreshPlaylistsFromNetwork(cached?.hash)
+  const fromNetwork = await refreshPlaylistsFromNetwork(deviceId, cached?.hash)
   if (fromNetwork) {
     return fromNetwork
   }
@@ -215,17 +217,20 @@ async function fetchPlaylistsWithPolicy(options?: { networkFirst?: boolean }): P
   return []
 }
 
-async function refreshPlaylistsFromNetwork(previousHash?: string): Promise<Playlist[] | null> {
+async function refreshPlaylistsFromNetwork(
+  deviceId: string,
+  previousHash?: string,
+): Promise<Playlist[] | null> {
   const globalStore = useGlobalStore()
   const libraryStore = useLibraryStore()
 
   try {
-    const response = await getPlaylistsByDeviceId(currentDeviceId)
+    const response = await getPlaylistsByDeviceId(deviceId)
     const playlists = response.content
-    const nextHash = writePlaylistCache(currentDeviceId, response)
+    const nextHash = writePlaylistCache(deviceId, response)
     const effectiveHash = nextHash ?? computeHash(response)
 
-    void syncMediaCache(currentDeviceId, playlists, effectiveHash)
+    void syncMediaCache(deviceId, playlists, effectiveHash)
 
     if (!previousHash || previousHash !== effectiveHash) {
       libraryStore.setPlaylists(playlists)
