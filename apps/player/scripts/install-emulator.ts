@@ -54,10 +54,24 @@ function main(): void {
   }
   catch (error) {
     const output = error instanceof Error ? error.message : String(error)
+    const shouldHandleAuthorMismatch = output.includes('error] val[-11]')
     const shouldRetry = output.includes('error] val[-12]')
 
-    if (!shouldRetry) {
+    if (!shouldRetry && !shouldHandleAuthorMismatch) {
       throw new Error('Install failed (sdb did not report success).')
+    }
+
+    if (shouldHandleAuthorMismatch) {
+      console.log(
+        'Install failed due to author certificate mismatch. Uninstalling existing app and retrying...',
+      )
+      try {
+        execInherit(sdbCommand, ['-s', targetSerial, 'uninstall', packageId])
+      }
+      catch {}
+      installWithSdb(sdbCommand, targetSerial, wgtPath)
+      console.log('Install completed')
+      return
     }
 
     console.log('Install reported certificate/signature validation error. Retrying once...')
