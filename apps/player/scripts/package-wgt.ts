@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import * as fs from 'node:fs'
-import * as path from 'node:path'
 import * as os from 'node:os'
+import * as path from 'node:path'
 import * as process from 'node:process'
 import {
   commandExists,
@@ -20,6 +20,12 @@ const envFilePath = path.join(rootDir, '.env.tizen')
 const packageJsonPath = path.join(rootDir, 'package.json')
 const configXmlPath = path.join(rootDir, 'config.xml')
 
+interface DistributorSigningInfo {
+  certPath: string
+  caPath: string
+  password: string
+}
+
 function resolveProfilesPath(): string {
   try {
     const output = execCapture('tizen', ['cli-config', '-l'])
@@ -34,14 +40,11 @@ function resolveProfilesPath(): string {
         return profilesPath
       }
     }
-  } catch {}
+  }
+  catch {}
 
-  return path.join(
-    process.env.USERPROFILE ?? process.env.HOME ?? '',
-    'tizen-studio-data',
-    'profile',
-    'profiles.xml'
-  )
+  const homeDir = process.env.USERPROFILE ?? process.env.HOME ?? os.homedir()
+  return path.join(homeDir, 'tizen-studio-data', 'profile', 'profiles.xml')
 }
 
 function resolveTizenDataDir(profilesPath: string): string {
@@ -63,7 +66,8 @@ function configureProfilesPath(profilesPath: string): void {
 
   try {
     execInherit('tizen', ['cli-config', `profiles.path=${profilesPath}`])
-  } catch {}
+  }
+  catch {}
 }
 
 function resolveCertificateGeneratorDir(): string {
@@ -83,18 +87,31 @@ function resolveCertificateGeneratorDir(): string {
   throw new Error('Could not locate Tizen certificate-generator directory')
 }
 
-type DistributorSigningInfo = {
-  certPath: string
-  caPath: string
-  password: string
-}
+function resolveAuthorCertPath(
+  profileName: string,
+  configuredPath: string,
+  tizenDataDir: string,
+): string {
+  const candidates = [
+    configuredPath
+      ? path.isAbsolute(configuredPath)
+        ? configuredPath
+        : path.resolve(rootDir, configuredPath)
+      : '',
+    path.join(rootDir, `${profileName}.p12`),
+    path.join(tizenDataDir, 'keystore', 'author', `${profileName}.p12`),
+    path.join(tizenDataDir, 'keystore', 'author', 'SignageProfile.p12'),
+  ].filter(Boolean)
 
-function xmlEscape(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  throw new Error(
+    `Author certificate not found for profile '${profileName}'. Set TIZEN_AUTHOR_CERT_PATH or place p12 under ${path.join(tizenDataDir, 'keystore', 'author')}`,
+  )
 }
 
 function resolveDistributorSigningInfo(): DistributorSigningInfo {
@@ -129,24 +146,21 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
 
   const certificateGeneratorDir = resolveCertificateGeneratorDir()
   const distributorDir = path.join(certificateGeneratorDir, 'certificates', 'distributor')
-
   const certCandidates = [
     path.join(distributorDir, 'tizen-distributor-signer.p12'),
     path.join(distributorDir, 'tizen-distributor-signer-new.p12'),
   ]
-
   const caCandidates = [
     path.join(distributorDir, 'tizen-distributor-ca.cer'),
     path.join(distributorDir, 'tizen-distributor-ca-new.cer'),
   ]
 
-  const certPath = certCandidates.find((candidate) => fs.existsSync(candidate)) || ''
+  const certPath = certCandidates.find(candidate => fs.existsSync(candidate)) || ''
   if (!certPath) {
     throw new Error(`Could not locate distributor signer certificate in ${distributorDir}`)
   }
 
-  const caPath = caCandidates.find((candidate) => fs.existsSync(candidate)) || ''
-
+  const caPath = caCandidates.find(candidate => fs.existsSync(candidate)) || ''
   return {
     certPath,
     caPath,
@@ -174,9 +188,18 @@ function validatePkcs12Password(certPath: string, password: string, label: strin
       '-out',
       nullOutput,
     ])
-  } catch {
+  }
+  catch {
     throw new Error(`Invalid ${label} certificate password for ${certPath}`)
   }
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
 }
 
 function writeSigningProfileFile(
@@ -184,7 +207,7 @@ function writeSigningProfileFile(
   profileName: string,
   authorCertPath: string,
   authorPassword: string,
-  distributor: DistributorSigningInfo
+  distributor: DistributorSigningInfo,
 ): void {
   const parentDir = path.dirname(profilesPath)
   if (!fs.existsSync(parentDir)) {
@@ -204,223 +227,6 @@ function writeSigningProfileFile(
   ].join('\n')
 
   fs.writeFileSync(profilesPath, xml, 'utf8')
-  console.log(`Signing profile file written: ${profilesPath}`)
-}
-
-function getDeveloperCaPassword(certificateGeneratorDir: string): string {
-  const confPath = path.join(certificateGeneratorDir, 'certificates', 'developer', 'conf.ini')
-  if (!fs.existsSync(confPath)) {
-    throw new Error(`Developer CA config not found: ${confPath}`)
-  }
-
-  const conf = fs.readFileSync(confPath, 'utf8')
-  const match = conf.match(/PASSWD_OF_ISSUER_FOR_DEV\s*=\s*(.+)/)
-  if (!match) {
-    throw new Error('Could not resolve developer CA password from conf.ini')
-  }
-
-  return match[1].trim()
-}
-
-function resolveOpenSslCommand(): string {
-  if (commandExists('openssl')) {
-    return 'openssl'
-  }
-
-  const candidates = [
-    path.join(process.env.TIZEN_STUDIO_HOME ?? '', 'tools', 'msys2', 'usr', 'bin', 'openssl.exe'),
-    path.join('C:\\', 'tizen-studio', 'tools', 'msys2', 'usr', 'bin', 'openssl.exe'),
-    path.join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'usr', 'bin', 'openssl.exe'),
-    path.join(
-      process.env.ProgramFiles ?? 'C:\\Program Files',
-      'Git',
-      'mingw64',
-      'bin',
-      'openssl.exe'
-    ),
-  ]
-
-  for (const candidate of candidates) {
-    if (candidate && fs.existsSync(candidate)) {
-      return candidate
-    }
-  }
-
-  throw new Error(
-    'OpenSSL is not available in PATH and no bundled fallback was found. Install OpenSSL or Git for Windows.'
-  )
-}
-
-function generateAuthorCertWithOpenSsl(
-  authorPath: string,
-  profileName: string,
-  authorName: string,
-  authorPassword: string
-): string {
-  const openSslCommand = resolveOpenSslCommand()
-
-  const certificateGeneratorDir = resolveCertificateGeneratorDir()
-  const developerDir = path.join(certificateGeneratorDir, 'certificates', 'developer')
-  const developerCaCertPath = path.join(developerDir, 'tizen-developer-ca.cer')
-  const developerCaKeyPath = path.join(developerDir, 'tizen-developer-ca-privatekey.pem')
-
-  if (!fs.existsSync(developerCaCertPath) || !fs.existsSync(developerCaKeyPath)) {
-    throw new Error('Required Tizen developer CA files are missing')
-  }
-
-  const developerCaPassword = getDeveloperCaPassword(certificateGeneratorDir)
-  const keyPath = path.join(authorPath, `${profileName}-key.pem`)
-  const csrPath = path.join(authorPath, `${profileName}.csr`)
-  const certPath = path.join(authorPath, `${profileName}-cert.pem`)
-  const outputP12Path = path.join(authorPath, `${profileName}.p12`)
-
-  const subject = '/C=US/ST=CA/L=SF/O=Signage/OU=Dev/CN=SignageAuthor/emailAddress=dev@example.com'
-
-  execInherit(openSslCommand, [
-    'req',
-    '-new',
-    '-newkey',
-    'rsa:2048',
-    '-keyout',
-    keyPath,
-    '-out',
-    csrPath,
-    '-nodes',
-    '-subj',
-    subject,
-  ])
-
-  execInherit(openSslCommand, [
-    'x509',
-    '-req',
-    '-in',
-    csrPath,
-    '-CA',
-    developerCaCertPath,
-    '-CAkey',
-    developerCaKeyPath,
-    '-CAcreateserial',
-    '-out',
-    certPath,
-    '-days',
-    '3650',
-    '-sha256',
-    '-passin',
-    `pass:${developerCaPassword}`,
-  ])
-
-  execInherit(openSslCommand, [
-    'pkcs12',
-    '-export',
-    '-out',
-    outputP12Path,
-    '-inkey',
-    keyPath,
-    '-in',
-    certPath,
-    '-certfile',
-    developerCaCertPath,
-    '-passout',
-    `pass:${authorPassword}`,
-    '-name',
-    authorName,
-  ])
-
-  for (const tempPath of [keyPath, csrPath, certPath, `${developerCaCertPath}.srl`]) {
-    if (fs.existsSync(tempPath)) {
-      fs.unlinkSync(tempPath)
-    }
-  }
-
-  return outputP12Path
-}
-
-function resolveAuthorCertPath(
-  profileName: string,
-  configuredPath: string,
-  tizenDataDir: string
-): string {
-  if (configuredPath) {
-    const absoluteConfigured = path.isAbsolute(configuredPath)
-      ? configuredPath
-      : path.resolve(rootDir, configuredPath)
-    if (fs.existsSync(absoluteConfigured)) {
-      return absoluteConfigured
-    }
-  }
-
-  const rootCert = path.join(rootDir, `${profileName}.p12`)
-  if (fs.existsSync(rootCert)) {
-    return rootCert
-  }
-
-  const homeCert = path.join(tizenDataDir, 'keystore', 'author', `${profileName}.p12`)
-  if (fs.existsSync(homeCert)) {
-    return homeCert
-  }
-
-  return ''
-}
-
-function ensureAuthorCertificate(
-  profileName: string,
-  authorName: string,
-  authorPassword: string,
-  configuredAuthorCertPath: string,
-  tizenDataDir: string
-): string {
-  console.log(`Resolving author certificate for profile: ${profileName}`)
-
-  let authorCertPath = resolveAuthorCertPath(profileName, configuredAuthorCertPath, tizenDataDir)
-  if (!authorCertPath) {
-    const absoluteConfigured = configuredAuthorCertPath
-      ? path.isAbsolute(configuredAuthorCertPath)
-        ? configuredAuthorCertPath
-        : path.resolve(rootDir, configuredAuthorCertPath)
-      : ''
-    const authorPath = absoluteConfigured
-      ? absoluteConfigured.toLowerCase().endsWith('.p12')
-        ? path.dirname(absoluteConfigured)
-        : absoluteConfigured
-      : path.join(tizenDataDir, 'keystore', 'author')
-
-    if (!fs.existsSync(authorPath)) {
-      fs.mkdirSync(authorPath, { recursive: true })
-    }
-
-    try {
-      execInherit('tizen', [
-        'certificate',
-        '-a',
-        authorName,
-        '-p',
-        authorPassword,
-        '-f',
-        profileName,
-        '--',
-        authorPath,
-      ])
-    } catch {
-      console.log('tizen certificate failed, trying OpenSSL fallback...')
-      generateAuthorCertWithOpenSsl(authorPath, profileName, authorName, authorPassword)
-    }
-
-    authorCertPath = resolveAuthorCertPath(profileName, configuredAuthorCertPath, tizenDataDir)
-
-    if (!authorCertPath) {
-      const keytoolHint = commandExists('keytool') ? '' : ' keytool is not available in PATH.'
-      const opensslHint = commandExists('openssl') ? '' : ' OpenSSL is not available in PATH.'
-      throw new Error(
-        `Could not generate author certificate for profile ${profileName}.${keytoolHint}${opensslHint}`
-      )
-    }
-  }
-
-  if (!authorCertPath) {
-    throw new Error(`Could not find author certificate file for profile ${profileName}`)
-  }
-
-  return authorCertPath
 }
 
 function packageWgt(profileName: string, version: string): void {
@@ -429,21 +235,43 @@ function packageWgt(profileName: string, version: string): void {
   }
 
   if (!fs.existsSync(distDir)) {
-    throw new Error("dist/ not found. Run 'vite build --mode tizen' first.")
+    throw new Error('dist/ not found. Run \'vite build --mode tizen\' first.')
   }
 
-  console.log('Copying config.xml to dist/')
   fs.copyFileSync(configXmlPath, path.join(distDir, 'config.xml'))
+
+  const packageStartMs = Date.now()
 
   console.log(`Packaging WGT with profile: ${profileName}`)
   execInherit('tizen', ['package', '-t', 'wgt', '-s', profileName, '--', distDir])
 
-  const wgtFiles = fs.readdirSync(distDir).filter((name) => name.endsWith('.wgt'))
-  if (wgtFiles.length === 0) {
+  const candidateDirs = [distDir, rootDir]
+  const candidates: string[] = []
+
+  for (const candidateDir of candidateDirs) {
+    if (!fs.existsSync(candidateDir)) {
+      continue
+    }
+
+    for (const name of fs.readdirSync(candidateDir)) {
+      if (!name.endsWith('.wgt')) {
+        continue
+      }
+
+      const fullPath = path.join(candidateDir, name)
+      const modifiedMs = fs.statSync(fullPath).mtimeMs
+      if (modifiedMs >= packageStartMs - 1000) {
+        candidates.push(fullPath)
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
     throw new Error('WGT file not found after packaging')
   }
 
-  const sourcePath = path.join(distDir, wgtFiles[0])
+  candidates.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)
+  const sourcePath = candidates[0]
   const outputName = `digital_signage_player_${version}.wgt`
   const outputPath = path.join(rootDir, outputName)
 
@@ -459,20 +287,16 @@ function packageWgt(profileName: string, version: string): void {
 function main(): void {
   loadDotEnvFile(envFilePath)
 
-  ensureCommand('tizen', "'tizen' command not found in PATH. Add Tizen CLI to your PATH and retry.")
-  ensureCommand('npx', "'npx' command not found in PATH.")
+  ensureCommand('tizen', '\'tizen\' command not found in PATH. Add Tizen CLI to your PATH and retry.')
+  ensureCommand('npx', '\'npx\' command not found in PATH.')
 
   const profileName = process.env.TIZEN_PROFILE || 'SignageProfile'
   const authorPassword = process.env.TIZEN_AUTHOR_CERT_PASSWORD || 'signage1234'
-  const authorName = process.env.TIZEN_AUTHOR_CERT_NAME || 'SignageAuthor'
   const authorCertPath = process.env.TIZEN_AUTHOR_CERT_PATH || ''
+
   const profilesPath = resolveProfilesPath()
   const tizenDataDir = resolveTizenDataDir(profilesPath)
-  const generatedProfilesPath = path.join(
-    tizenDataDir || os.tmpdir(),
-    'profile',
-    `profiles-${profileName}.xml`
-  )
+  const generatedProfilesPath = path.join(tizenDataDir, 'profile', `profiles-${profileName}.xml`)
 
   const version = getPackageJsonVersion(packageJsonPath)
   console.log('Tizen CLI: tizen (PATH)')
@@ -483,13 +307,7 @@ function main(): void {
   console.log('Building for Tizen...')
   execInherit('npx', ['vite', 'build', '--mode', 'tizen'])
 
-  const resolvedAuthorCertPath = ensureAuthorCertificate(
-    profileName,
-    authorName,
-    authorPassword,
-    authorCertPath,
-    tizenDataDir
-  )
+  const resolvedAuthorCertPath = resolveAuthorCertPath(profileName, authorCertPath, tizenDataDir)
   const distributorSigning = resolveDistributorSigningInfo()
 
   validatePkcs12Password(resolvedAuthorCertPath, authorPassword, 'author')
@@ -500,25 +318,35 @@ function main(): void {
     profileName,
     resolvedAuthorCertPath,
     authorPassword,
-    distributorSigning
+    distributorSigning,
   )
 
   configureProfilesPath(generatedProfilesPath)
 
   try {
     packageWgt(profileName, version)
-  } finally {
+  }
+  finally {
     if (generatedProfilesPath !== profilesPath) {
       try {
         configureProfilesPath(profilesPath)
-      } catch {}
+      }
+      catch {}
+
+      try {
+        if (fs.existsSync(generatedProfilesPath)) {
+          fs.unlinkSync(generatedProfilesPath)
+        }
+      }
+      catch {}
     }
   }
 }
 
 try {
   main()
-} catch (error) {
+}
+catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`ERROR: ${message}`)
   process.exit(1)
