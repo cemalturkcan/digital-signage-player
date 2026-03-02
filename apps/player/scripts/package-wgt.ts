@@ -347,12 +347,12 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
   const certificateGeneratorDir = resolveCertificateGeneratorDir()
   const distributorDir = path.join(certificateGeneratorDir, 'certificates', 'distributor')
   const certCandidates = [
-    path.join(distributorDir, 'tizen-distributor-signer.p12'),
     path.join(distributorDir, 'tizen-distributor-signer-new.p12'),
+    path.join(distributorDir, 'tizen-distributor-signer.p12'),
   ]
   const caCandidates = [
-    path.join(distributorDir, 'tizen-distributor-ca.cer'),
     path.join(distributorDir, 'tizen-distributor-ca-new.cer'),
+    path.join(distributorDir, 'tizen-distributor-ca.cer'),
   ]
 
   const certPath = certCandidates.find(candidate => fs.existsSync(candidate)) || ''
@@ -362,7 +362,7 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
 
   const caPath = caCandidates.find(candidate => fs.existsSync(candidate)) || ''
 
-  const candidatePasswords = [configuredPassword, 'tizenpkcs12passfordsigner', '']
+  const candidatePasswords = [configuredPassword, 'tizenpkcs12passfordsigner']
   const uniqueCandidatePasswords = candidatePasswords.filter(
     (value, index, array) => array.indexOf(value) === index,
   )
@@ -431,6 +431,33 @@ function xmlEscape(value: string): string {
     .replaceAll('"', '&quot;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
+}
+
+function writeSigningProfileFile(
+  profilesPath: string,
+  profileName: string,
+  authorCertPath: string,
+  authorPassword: string,
+  distributor: DistributorSigningInfo,
+): void {
+  const parentDir = path.dirname(profilesPath)
+  if (!fs.existsSync(parentDir)) {
+    fs.mkdirSync(parentDir, { recursive: true })
+  }
+
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?>',
+    `<profiles active="${xmlEscape(profileName)}" version="3.1">`,
+    `  <profile name="${xmlEscape(profileName)}">`,
+    `    <profileitem ca="" distributor="0" key="${xmlEscape(authorCertPath)}" password="${xmlEscape(authorPassword)}" rootca=""/>`,
+    `    <profileitem ca="${xmlEscape(distributor.caPath)}" distributor="1" key="${xmlEscape(distributor.certPath)}" password="${xmlEscape(distributor.password)}" rootca=""/>`,
+    '    <profileitem ca="" distributor="2" key="" password="" rootca=""/>',
+    '  </profile>',
+    '</profiles>',
+    '',
+  ].join('\n')
+
+  fs.writeFileSync(profilesPath, xml, 'utf8')
 }
 
 function upsertSigningProfile(
@@ -580,8 +607,20 @@ async function main(): Promise<void> {
   validatePkcs12Password(resolvedAuthorCertPath, authorPassword, 'author')
   validatePkcs12Password(distributorSigning.certPath, distributorSigning.password, 'distributor')
 
-  configureProfilesPath(generatedProfilesPath)
-  upsertSigningProfile(profileName, resolvedAuthorCertPath, authorPassword, distributorSigning)
+  if (process.platform === 'win32') {
+    configureProfilesPath(generatedProfilesPath)
+    upsertSigningProfile(profileName, resolvedAuthorCertPath, authorPassword, distributorSigning)
+  }
+  else {
+    writeSigningProfileFile(
+      generatedProfilesPath,
+      profileName,
+      resolvedAuthorCertPath,
+      authorPassword,
+      distributorSigning,
+    )
+    configureProfilesPath(generatedProfilesPath)
+  }
 
   try {
     packageWgt(profileName, version)
