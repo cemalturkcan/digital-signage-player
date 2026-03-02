@@ -16,7 +16,7 @@ export const MQTT_TOPIC_NAMESPACE = process.env.MQTT_TOPIC_NAMESPACE ?? 'players
 
 if (!validProtocols.includes(MQTT_PROTOCOL)) {
   throw new Error(
-    `Invalid MQTT_PROTOCOL: ${MQTT_PROTOCOL}. Valid protocols: ${validProtocols.join(', ')}`
+    `Invalid MQTT_PROTOCOL: ${MQTT_PROTOCOL}. Valid protocols: ${validProtocols.join(', ')}`,
   )
 }
 
@@ -40,5 +40,5 @@ export const LOG_PRETTY = process.env.LOG_PRETTY === 'true'
 
 const DEFAULT_CORS_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 export const CORS_ORIGINS = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+  ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
   : DEFAULT_CORS_ORIGINS

@@ -29,7 +29,8 @@ interface DistributorSigningInfo {
 }
 
 function isTruthyEnv(value: string | undefined): boolean {
-  if (!value) return false
+  if (!value)
+    return false
   const normalized = value.toLowerCase().trim()
   return ['1', 'true', 'yes', 'on'].includes(normalized)
 }
@@ -55,11 +56,14 @@ async function promptYesNo(question: string, defaultValue: boolean): Promise<boo
       const trimmed = answer.trim().toLowerCase()
       if (trimmed === '') {
         resolve(defaultValue)
-      } else if (['y', 'yes'].includes(trimmed)) {
+      }
+      else if (['y', 'yes'].includes(trimmed)) {
         resolve(true)
-      } else if (['n', 'no'].includes(trimmed)) {
+      }
+      else if (['n', 'no'].includes(trimmed)) {
         resolve(false)
-      } else {
+      }
+      else {
         resolve(defaultValue)
       }
     })
@@ -80,7 +84,8 @@ function resolveProfilesPath(): string {
         return profilesPath
       }
     }
-  } catch {}
+  }
+  catch {}
 
   const homeDir = process.env.USERPROFILE ?? process.env.HOME ?? os.homedir()
   return path.join(homeDir, 'tizen-studio-data', 'profile', 'profiles.xml')
@@ -101,21 +106,22 @@ function resolveTizenDataDir(profilesPath: string): string {
 }
 
 function configureProfilesPath(profilesPath: string): void {
-  const normalizedProfilesPath =
-    process.platform === 'win32' ? profilesPath.replaceAll('\\', '/') : profilesPath
-  const defaultProfilesConfig =
-    process.platform === 'win32'
+  const normalizedProfilesPath
+    = process.platform === 'win32' ? profilesPath.replaceAll('\\', '/') : profilesPath
+  const defaultProfilesConfig
+    = process.platform === 'win32'
       ? `"default.profiles.path=${normalizedProfilesPath}"`
       : `default.profiles.path=${normalizedProfilesPath}`
   execInherit('tizen', ['cli-config', defaultProfilesConfig])
 
   try {
-    const profilesConfig =
-      process.platform === 'win32'
+    const profilesConfig
+      = process.platform === 'win32'
         ? `"profiles.path=${normalizedProfilesPath}"`
         : `profiles.path=${normalizedProfilesPath}`
     execInherit('tizen', ['cli-config', profilesConfig])
-  } catch {}
+  }
+  catch {}
 }
 
 function resolveCertificateGeneratorDir(): string {
@@ -138,7 +144,7 @@ function resolveCertificateGeneratorDir(): string {
 function resolveAuthorCertPath(
   profileName: string,
   configuredPath: string,
-  tizenDataDir: string
+  tizenDataDir: string,
 ): string {
   const candidates = [
     configuredPath
@@ -158,14 +164,14 @@ function resolveAuthorCertPath(
   }
 
   throw new Error(
-    `Author certificate not found for profile '${profileName}'. Set TIZEN_AUTHOR_CERT_PATH or place p12 under ${path.join(tizenDataDir, 'keystore', 'author')}`
+    `Author certificate not found for profile '${profileName}'. Set TIZEN_AUTHOR_CERT_PATH or place p12 under ${path.join(tizenDataDir, 'keystore', 'author')}`,
   )
 }
 
 function resolveAuthorCertTargetPath(
   profileName: string,
   configuredPath: string,
-  tizenDataDir: string
+  tizenDataDir: string,
 ): string {
   if (configuredPath) {
     return path.isAbsolute(configuredPath) ? configuredPath : path.resolve(rootDir, configuredPath)
@@ -221,7 +227,8 @@ function createAuthorCertificate(profileName: string, targetPath: string, passwo
     if (output.trim()) {
       console.log(output.trim())
     }
-  } catch (firstError) {
+  }
+  catch (firstError) {
     const argsWithoutWorkingDir = [
       'certificate',
       '-a',
@@ -251,11 +258,12 @@ function createAuthorCertificate(profileName: string, targetPath: string, passwo
       if (output.trim()) {
         console.log(output.trim())
       }
-    } catch (secondError) {
+    }
+    catch (secondError) {
       const firstMessage = firstError instanceof Error ? firstError.message : String(firstError)
       const secondMessage = secondError instanceof Error ? secondError.message : String(secondError)
       throw new Error(
-        `Author certificate creation failed. First attempt (with -- output dir): ${firstMessage}. Fallback attempt (cwd=output dir): ${secondMessage}`
+        `Author certificate creation failed. First attempt (with -- output dir): ${firstMessage}. Fallback attempt (cwd=output dir): ${secondMessage}`,
       )
     }
   }
@@ -269,11 +277,12 @@ async function resolveOrCreateAuthorCertPath(
   profileName: string,
   configuredPath: string,
   tizenDataDir: string,
-  authorPassword: string
+  authorPassword: string,
 ): Promise<string> {
   try {
     return resolveAuthorCertPath(profileName, configuredPath, tizenDataDir)
-  } catch {
+  }
+  catch {
     const isAutoCreate = isTruthyEnv(process.env.TIZEN_AUTO_CREATE_AUTHOR_CERT)
     const targetPath = resolveAuthorCertTargetPath(profileName, configuredPath, tizenDataDir)
 
@@ -285,9 +294,9 @@ async function resolveOrCreateAuthorCertPath(
 
     if (isCiEnvironment()) {
       throw new Error(
-        `Author certificate not found for profile '${profileName}'. ` +
-          `Set TIZEN_AUTHOR_CERT_PATH to an existing certificate, ` +
-          `or set TIZEN_AUTO_CREATE_AUTHOR_CERT=1 to auto-create.`
+        `Author certificate not found for profile '${profileName}'. `
+        + `Set TIZEN_AUTHOR_CERT_PATH to an existing certificate, `
+        + `or set TIZEN_AUTO_CREATE_AUTHOR_CERT=1 to auto-create.`,
       )
     }
 
@@ -300,8 +309,8 @@ async function resolveOrCreateAuthorCertPath(
     }
 
     throw new Error(
-      `Author certificate not found for profile '${profileName}'. ` +
-        `Set TIZEN_AUTHOR_CERT_PATH or run with TIZEN_AUTO_CREATE_AUTHOR_CERT=1`
+      `Author certificate not found for profile '${profileName}'. `
+      + `Set TIZEN_AUTHOR_CERT_PATH or run with TIZEN_AUTO_CREATE_AUTHOR_CERT=1`,
     )
   }
 }
@@ -347,16 +356,16 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
     path.join(distributorDir, 'tizen-distributor-ca.cer'),
   ]
 
-  const certPath = certCandidates.find((candidate) => fs.existsSync(candidate)) || ''
+  const certPath = certCandidates.find(candidate => fs.existsSync(candidate)) || ''
   if (!certPath) {
     throw new Error(`Could not locate distributor signer certificate in ${distributorDir}`)
   }
 
-  const caPath = caCandidates.find((candidate) => fs.existsSync(candidate)) || ''
+  const caPath = caCandidates.find(candidate => fs.existsSync(candidate)) || ''
 
   const candidatePasswords = [configuredPassword, 'tizenpkcs12passfordsigner']
   const uniqueCandidatePasswords = candidatePasswords.filter(
-    (value, index, array) => array.indexOf(value) === index
+    (value, index, array) => array.indexOf(value) === index,
   )
 
   let resolvedPassword = configuredPassword
@@ -367,7 +376,8 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
         validatePkcs12Password(certPath, candidatePassword, 'distributor')
         matched = candidatePassword
         break
-      } catch {}
+      }
+      catch {}
     }
 
     if (matched === '') {
@@ -379,7 +389,7 @@ function resolveDistributorSigningInfo(): DistributorSigningInfo {
 
   if (configuredPassword && configuredPassword !== resolvedPassword) {
     console.warn(
-      'Ignoring TIZEN_DISTRIBUTOR_CERT_PASSWORD for default distributor certificate. Using detected compatible password.'
+      'Ignoring TIZEN_DISTRIBUTOR_CERT_PASSWORD for default distributor certificate. Using detected compatible password.',
     )
   }
 
@@ -410,7 +420,8 @@ function validatePkcs12Password(certPath: string, password: string, label: strin
       '-out',
       nullOutput,
     ])
-  } catch {
+  }
+  catch {
     throw new Error(`Invalid ${label} certificate password for ${certPath}`)
   }
 }
@@ -428,7 +439,7 @@ function writeSigningProfileFile(
   profileName: string,
   authorCertPath: string,
   authorPassword: string,
-  distributor: DistributorSigningInfo
+  distributor: DistributorSigningInfo,
 ): void {
   const parentDir = path.dirname(profilesPath)
   if (!fs.existsSync(parentDir)) {
@@ -454,11 +465,12 @@ function upsertSigningProfile(
   profileName: string,
   authorCertPath: string,
   authorPassword: string,
-  distributor: DistributorSigningInfo
+  distributor: DistributorSigningInfo,
 ): void {
   try {
     execInherit('tizen', ['security-profiles', 'remove', '-n', profileName])
-  } catch {}
+  }
+  catch {}
 
   const args = [
     'security-profiles',
@@ -513,7 +525,7 @@ function packageWgt(profileName: string, version: string): void {
   }
 
   if (!fs.existsSync(distDir)) {
-    throw new Error("dist/ not found. Run 'vite build --mode tizen' first.")
+    throw new Error('dist/ not found. Run \'vite build --mode tizen\' first.')
   }
 
   fs.copyFileSync(configXmlPath, path.join(distDir, 'config.xml'))
@@ -572,8 +584,8 @@ async function main(): Promise<void> {
 
   loadDotEnvFile(envFilePath)
 
-  ensureCommand('tizen', "'tizen' command not found in PATH. Add Tizen CLI to your PATH and retry.")
-  ensureCommand('npx', "'npx' command not found in PATH.")
+  ensureCommand('tizen', '\'tizen\' command not found in PATH. Add Tizen CLI to your PATH and retry.')
+  ensureCommand('npx', '\'npx\' command not found in PATH.')
 
   const profileName = process.env.TIZEN_PROFILE ?? 'SignageProfile'
   const authorPassword = process.env.TIZEN_AUTHOR_CERT_PASSWORD ?? 'signage1234'
@@ -596,7 +608,7 @@ async function main(): Promise<void> {
     profileName,
     authorCertPath,
     tizenDataDir,
-    authorPassword
+    authorPassword,
   )
   const distributorSigning = resolveDistributorSigningInfo()
 
@@ -610,47 +622,52 @@ async function main(): Promise<void> {
       configureProfilesPath(generatedProfilesPath)
       isProfilesPathSwitched = true
       upsertSigningProfile(profileName, resolvedAuthorCertPath, authorPassword, distributorSigning)
-    } else {
+    }
+    else {
       writeSigningProfileFile(
         generatedProfilesPath,
         profileName,
         resolvedAuthorCertPath,
         authorPassword,
-        distributorSigning
+        distributorSigning,
       )
       configureProfilesPath(generatedProfilesPath)
       isProfilesPathSwitched = true
     }
 
     packageWgt(profileName, version)
-  } finally {
+  }
+  finally {
     if (generatedProfilesPath !== profilesPath && isProfilesPathSwitched) {
       const fallbackProfilesPath = path.join(tizenDataDir, 'profile', 'profiles.xml')
       const restorePath = fs.existsSync(profilesPath) ? profilesPath : fallbackProfilesPath
 
       if (restorePath === fallbackProfilesPath && !fs.existsSync(profilesPath)) {
         console.warn(
-          `Warning: Original profiles path ${profilesPath} not found. Restoring to ${fallbackProfilesPath}`
+          `Warning: Original profiles path ${profilesPath} not found. Restoring to ${fallbackProfilesPath}`,
         )
         createMinimalProfilesXml(fallbackProfilesPath, profileName)
       }
 
       try {
         configureProfilesPath(restorePath)
-      } catch {}
+      }
+      catch {}
 
       try {
         if (fs.existsSync(generatedProfilesPath)) {
           fs.unlinkSync(generatedProfilesPath)
         }
-      } catch {}
+      }
+      catch {}
     }
   }
 }
 
 try {
   await main()
-} catch (error) {
+}
+catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`ERROR: ${message}`)
   process.exit(1)

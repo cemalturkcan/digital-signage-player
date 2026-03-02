@@ -48,11 +48,13 @@ class MqttClientImpl implements MqttClientService {
     this.brokerUrl = this.resolveBrokerUrl(config)
     this.clearReconnectTimer()
 
-    if (this.connected) return
+    if (this.connected)
+      return
 
     try {
       await this.connectWithCurrentConfig()
-    } catch (error) {
+    }
+    catch (error) {
       this.scheduleReconnect()
       throw error
     }
@@ -74,7 +76,8 @@ class MqttClientImpl implements MqttClientService {
 
   async subscribe(topic: string): Promise<void> {
     this.subscriptions.add(topic)
-    if (this.connected) await mqttSubscribe(topic, 1)
+    if (this.connected)
+      await mqttSubscribe(topic, 1)
   }
 
   onMessage(handler: MqttMessageHandler): void {
@@ -94,7 +97,8 @@ class MqttClientImpl implements MqttClientService {
   }
 
   private async connectWithCurrentConfig(): Promise<void> {
-    if (!this.registration || !this.brokerUrl) throw new Error('MQTT config not initialized')
+    if (!this.registration || !this.brokerUrl)
+      throw new Error('MQTT config not initialized')
 
     await disconnectClient().catch(() => {})
     await connectClient(this.brokerUrl, this.buildOptions(this.registration))
@@ -113,7 +117,8 @@ class MqttClientImpl implements MqttClientService {
   }
 
   private attachClientHandlers(client: MqttClient): void {
-    if (this.boundClient === client) return
+    if (this.boundClient === client)
+      return
 
     this.detachClientHandlers()
 
@@ -127,7 +132,8 @@ class MqttClientImpl implements MqttClientService {
   }
 
   private detachClientHandlers(): void {
-    if (!this.boundClient) return
+    if (!this.boundClient)
+      return
 
     this.boundClient.off('connect', this.handleConnect)
     this.boundClient.off('close', this.handleClose)
@@ -158,11 +164,12 @@ class MqttClientImpl implements MqttClientService {
   }
 
   private scheduleReconnect(): void {
-    if (!this.desiredConnected || this.reconnectTimer) return
+    if (!this.desiredConnected || this.reconnectTimer)
+      return
 
-    const delay =
-      Math.min(RECONNECT_MAX_DELAY_MS, RECONNECT_BASE_DELAY_MS * 2 ** this.reconnectAttempt) +
-      Math.floor(Math.random() * 400)
+    const delay
+      = Math.min(RECONNECT_MAX_DELAY_MS, RECONNECT_BASE_DELAY_MS * 2 ** this.reconnectAttempt)
+        + Math.floor(Math.random() * 400)
     this.reconnectAttempt += 1
 
     this.reconnectTimer = setTimeout(() => {
@@ -172,17 +179,20 @@ class MqttClientImpl implements MqttClientService {
   }
 
   private clearReconnectTimer(): void {
-    if (!this.reconnectTimer) return
+    if (!this.reconnectTimer)
+      return
     clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
   }
 
   private async reconnectWithBackoff(): Promise<void> {
-    if (!this.desiredConnected || !this.registration) return
+    if (!this.desiredConnected || !this.registration)
+      return
 
     try {
       await this.connectWithCurrentConfig()
-    } catch {
+    }
+    catch {
       this.scheduleReconnect()
     }
   }
@@ -211,9 +221,11 @@ class MqttClientImpl implements MqttClientService {
       clean: config.mqtt.clean,
     }
 
-    if (config.mqtt.username) options.username = config.mqtt.username
+    if (config.mqtt.username)
+      options.username = config.mqtt.username
 
-    if (config.mqtt.password) options.password = config.mqtt.password
+    if (config.mqtt.password)
+      options.password = config.mqtt.password
 
     if (config.mqtt.will) {
       options.will = {
