@@ -156,12 +156,24 @@ jobs:
             -nokeys -clcerts \
             -out /dev/null
 
+      - name: Ensure stable Tizen profiles path
+        run: |
+          set -euo pipefail
+          PROFILE_DIR="$HOME/tizen-studio-data/profile"
+          PROFILE_XML="$PROFILE_DIR/profiles.xml"
+          mkdir -p "$PROFILE_DIR"
+          if [ ! -f "$PROFILE_XML" ]; then
+            printf '%s\n' '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' '<profiles active="" version="3.1">' '</profiles>' > "$PROFILE_XML"
+          fi
+          tizen cli-config default.profiles.path="$PROFILE_XML"
+          tizen cli-config profiles.path="$PROFILE_XML" || true
+
       - name: Print signing diagnostics
         run: |
           set -euo pipefail
           java -version
           tizen cli-config -l
-          tizen security-profiles list
+          tizen security-profiles list || echo "Warning: tizen security-profiles list failed (non-fatal)"
 
       - name: Build signed WGT
         run: |
