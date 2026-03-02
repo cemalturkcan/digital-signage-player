@@ -89,6 +89,7 @@ function configureProfilesPath(profilesPath: string): void {
 function resolveCertificateGeneratorDir(): string {
   const candidates = [
     path.join(process.env.TIZEN_STUDIO_HOME ?? '', 'tools', 'certificate-generator'),
+    path.join(process.env.HOME ?? '', 'tizen-studio', 'tools', 'certificate-generator'),
     path.join('C:\\', 'tizen-studio', 'tools', 'certificate-generator'),
     path.join(process.env.USERPROFILE ?? '', 'tizen-studio', 'tools', 'certificate-generator'),
   ].filter(Boolean)
