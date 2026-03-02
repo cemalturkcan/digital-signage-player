@@ -44,6 +44,7 @@ export const RegisterResponseSchema = z.object({
     host: z.string(),
     port: z.number(),
     ssl: z.boolean(),
+    path: z.string(),
     clientId: z.string(),
     username: z.string(),
     password: z.string(),

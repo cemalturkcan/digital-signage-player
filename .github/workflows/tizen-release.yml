@@ -189,6 +189,8 @@ jobs:
           tizen security-profiles list || echo "Warning: tizen security-profiles list failed (non-fatal)"
 
       - name: Build signed WGT
+        env:
+          PLAYER_BUILD_ENV: prod
         run: |
           pnpm turbo run build --filter=@signage/player...
 
