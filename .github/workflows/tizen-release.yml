@@ -107,6 +107,7 @@ jobs:
           TIZEN_AUTHOR_CERT_PASSWORD: ${{ secrets.TIZEN_AUTHOR_CERT_PASSWORD }}
           TIZEN_PROFILE: ${{ vars.TIZEN_PROFILE }}
           VITE_MQTT_TOPIC_NAMESPACE: ${{ vars.VITE_MQTT_TOPIC_NAMESPACE }}
+          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
         run: |
           set -euo pipefail
 
@@ -125,7 +126,8 @@ jobs:
 
           echo "$TIZEN_AUTHOR_CERT_B64" | base64 -d > "$AUTHOR_CERT_PATH"
 
-          PROFILE_NAME="${TIZEN_PROFILE:-SignageProfile}"
+          PROFILE_BASE="${TIZEN_PROFILE:-SignageProfile}"
+          PROFILE_NAME="${PROFILE_BASE}_${SHORT_SHA}"
           TOPIC_NAMESPACE="${VITE_MQTT_TOPIC_NAMESPACE:-players}"
 
           cat > apps/player/.env.tizen <<EOF
