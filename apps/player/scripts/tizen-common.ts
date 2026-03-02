@@ -12,7 +12,6 @@ export const rootDir = path.resolve(scriptDir, '..')
 export const distDir = path.join(rootDir, 'dist')
 
 function quoteForCmd(arg: string): string {
-  // Escape for cmd.exe: wrap in quotes, escape quotes by doubling, escape % by doubling
   if (arg.startsWith('"') && arg.endsWith('"')) {
     return arg
   }
@@ -38,8 +37,6 @@ function runRaw(command: string, args: string[], options: Record<string, unknown
     }
   }
 
-  // On Windows, avoid shell:true with args (DEP0190 warning).
-  // Build a command line and execute via cmd.exe /d /s /c with shell:false.
   if (isWin) {
     const quotedCommand = quoteForCmd(command)
     const quotedArgs = args.map(quoteForCmd)
