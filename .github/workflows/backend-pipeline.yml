@@ -101,13 +101,32 @@ jobs:
           POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
           EOF
 
-      - name: Docker Stack Deploy
-        uses: jtwebman/stack-deploy-action@proposed_registry_login_change
-        with:
-          name: digital-signage
-          file: docker/docker-stack.yaml
-          host: ${{ secrets.DEPLOY_HOST }}
-          user: ${{ secrets.DEPLOY_USER }}
-          ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-          registry_auth: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-          env_file: ./envfile
+      - name: Configure SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' '${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}' > "$HOME/.ssh/id_rsa"
+          chmod 600 "$HOME/.ssh/id_rsa"
+          ssh-keyscan -H '${{ secrets.DEPLOY_HOST }}' >> "$HOME/.ssh/known_hosts"
+
+      - name: Configure remote Docker context
+        run: |
+          set -euo pipefail
+          docker context rm remote || true
+          docker context create remote --docker "host=ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          docker --context remote version
+
+      - name: Log in to GHCR for deploy
+        run: |
+          set -euo pipefail
+          echo '${{ github.token }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
+
+      - name: Deploy Docker stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source ./envfile
+          set +a
+          docker --context remote stack deploy --compose-file docker/docker-stack.yaml --with-registry-auth --prune digital-signage

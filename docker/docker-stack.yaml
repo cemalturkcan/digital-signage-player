@@ -10,7 +10,7 @@ services:
       - --certificatesresolvers.main.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.main.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
       - --certificatesresolvers.main.acme.dnschallenge.delaybeforecheck=20
-      - --certificatesresolvers.main.acme.email=${TRAEFIK_ACME_EMAIL:-admin@example.com}
+      - --certificatesresolvers.main.acme.email=cemalturkcan@gmail.com
       - --certificatesresolvers.main.acme.storage=/letsencrypt/acme.json
       - --log.level=INFO
     ports:
@@ -23,7 +23,7 @@ services:
         published: 443
         target: 443
     environment:
-      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN:-}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
     volumes:
       - letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -35,13 +35,13 @@ services:
   postgres:
     image: postgres:18
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-postgres}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -66,26 +66,26 @@ services:
   backend:
     image: ${BACKEND_IMAGE}
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
-      - PORT=${PORT:-3000}
-      - HOST=${HOST:-0.0.0.0}
-      - MQTT_PROTOCOL=${MQTT_PROTOCOL:-mqtt}
-      - MQTT_HOST=${MQTT_HOST:-mosquitto}
-      - MQTT_PORT=${MQTT_PORT:-1883}
-      - MQTT_USERNAME=${MQTT_USERNAME:-admin}
-      - MQTT_PASSWORD=${MQTT_PASSWORD:-admin1234567}
-      - MQTT_TOPIC_NAMESPACE=${MQTT_TOPIC_NAMESPACE:-players}
-      - MQTT_CLIENT_HOST=${MQTT_CLIENT_HOST:-mosquitto}
-      - MQTT_CLIENT_PORT=${MQTT_CLIENT_PORT:-9001}
-      - MQTT_CLIENT_SSL=${MQTT_CLIENT_SSL:-false}
-      - DB_HOST=${DB_HOST:-postgres}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_NAME=${DB_NAME:-postgres}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - LOG_PRETTY=${LOG_PRETTY:-false}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - MQTT_PROTOCOL=mqtt
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_TOPIC_NAMESPACE=players
+      - MQTT_CLIENT_HOST=mosquitto
+      - MQTT_CLIENT_PORT=9001
+      - MQTT_CLIENT_SSL=false
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - LOG_LEVEL=info
+      - LOG_PRETTY=false
+      - CORS_ORIGINS=
     healthcheck:
       test:
         [
@@ -98,7 +98,7 @@ services:
       start_period: 30s
     deploy:
       mode: replicated
-      replicas: ${BACKEND_REPLICAS:-2}
+      replicas: 2
       update_config:
         parallelism: 1
         delay: 20s
@@ -117,7 +117,7 @@ services:
         window: 120s
       labels:
         - traefik.enable=true
-        - traefik.http.routers.signage-backend.rule=Host(`${BACKEND_DOMAIN:-signage.cemalturkcan.com}`) && PathPrefix(`/api`)
+        - traefik.http.routers.signage-backend.rule=Host(`signage.cemalturkcan.com`) && PathPrefix(`/api`)
         - traefik.http.routers.signage-backend.entrypoints=websecure
         - traefik.http.routers.signage-backend.tls.certresolver=main
         - traefik.http.services.signage-backend.loadbalancer.server.port=3000
