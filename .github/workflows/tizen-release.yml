@@ -83,19 +83,33 @@ jobs:
           set -euo pipefail
           PLAYER_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('apps/player/package.json','utf8')).version")
           EVENT_NAME="${{ github.event_name }}"
-          RELEASE_ENABLED=false
+          RELEASE_ENABLED=true
           TAG=""
+          RELEASE_NAME=""
+          PRERELEASE=true
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-8)"
 
           if [ "$EVENT_NAME" = "push" ] && [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
             TAG="${GITHUB_REF_NAME}"
-            RELEASE_ENABLED=true
+            RELEASE_NAME="Tizen Player ${TAG}"
+            PRERELEASE=false
+          elif [ "$EVENT_NAME" = "push" ] && [ "${GITHUB_REF_NAME:-}" = "main" ]; then
+            TAG="wgt-${PLAYER_VERSION}-${SHORT_SHA}"
+            RELEASE_NAME="Tizen Player ${SHORT_SHA}"
+            PRERELEASE=true
           elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             INPUT_TAG="${{ github.event.inputs.release_tag }}"
             if [ -n "$INPUT_TAG" ]; then
               TAG="$INPUT_TAG"
-              RELEASE_ENABLED=true
+              RELEASE_NAME="Tizen Player ${TAG}"
+              PRERELEASE=false
+            else
+              TAG="wgt-${PLAYER_VERSION}-${SHORT_SHA}"
+              RELEASE_NAME="Tizen Player ${SHORT_SHA}"
+              PRERELEASE=true
             fi
+          else
+            RELEASE_ENABLED=false
           fi
 
           ARTIFACT_NAME="tizen-wgt-${SHORT_SHA}"
@@ -103,6 +117,8 @@ jobs:
           echo "version=$PLAYER_VERSION" >> "$GITHUB_OUTPUT"
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
           echo "release_enabled=$RELEASE_ENABLED" >> "$GITHUB_OUTPUT"
           echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
           echo "wgt_path=apps/player/digital_signage_player_${PLAYER_VERSION}.wgt" >> "$GITHUB_OUTPUT"
@@ -239,7 +255,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
-          name: Tizen Player ${{ steps.meta.outputs.short_sha }}
+          name: ${{ steps.meta.outputs.release_name }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
           generate_release_notes: true
           files: |
             ${{ steps.assets.outputs.hashed_wgt_path }}
