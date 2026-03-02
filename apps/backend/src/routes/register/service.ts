@@ -44,11 +44,12 @@ export const registerService: RegisterService = {
       await messageBusService.provisionDevice(
         device.deviceId,
         device.mqttUsername,
-        device.mqttPassword
+        device.mqttPassword,
       )
 
       return ok(buildRegistrationResponse(device))
-    } catch (error) {
+    }
+    catch (error) {
       return unexpected(error, 'Failed to register device')
     }
   },

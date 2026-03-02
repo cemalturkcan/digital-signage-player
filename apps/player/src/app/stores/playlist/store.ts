@@ -32,6 +32,7 @@ export const usePlaylistStore = defineStore('playlist', {
       this.currentPlaylist = playlist
       this.currentIndex = 0
     },
+
     nextForPlayback(): MediaItem | null {
       if (!this.currentPlaylist) {
         return null
