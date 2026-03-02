@@ -120,7 +120,7 @@ jobs:
       - name: Log in to GHCR for deploy
         run: |
           set -euo pipefail
-          echo '${{ github.token }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
+          echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
 
       - name: Deploy Docker stack
         shell: bash
