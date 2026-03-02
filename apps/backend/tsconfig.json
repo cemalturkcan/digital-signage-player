@@ -12,5 +12,5 @@
     }
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../../packages/contracts" }, { "path": "../../packages/config" }]
+  "references": [{ "path": "../../packages/contracts" }]
 }

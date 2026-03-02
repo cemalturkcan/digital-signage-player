@@ -16,7 +16,6 @@
     "@hono/node-server": "^1.19.9",
     "@hono/swagger-ui": "^0.5.3",
     "@hono/zod-openapi": "^1.2.2",
-    "@signage/config": "workspace:*",
     "@signage/contracts": "workspace:*",
     "dotenv": "^16.4.7",
     "hono": "^4.12.3",
