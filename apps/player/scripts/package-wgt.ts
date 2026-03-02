@@ -607,26 +607,30 @@ async function main(): Promise<void> {
   validatePkcs12Password(resolvedAuthorCertPath, authorPassword, 'author')
   validatePkcs12Password(distributorSigning.certPath, distributorSigning.password, 'distributor')
 
-  if (process.platform === 'win32') {
-    configureProfilesPath(generatedProfilesPath)
-    upsertSigningProfile(profileName, resolvedAuthorCertPath, authorPassword, distributorSigning)
-  }
-  else {
-    writeSigningProfileFile(
-      generatedProfilesPath,
-      profileName,
-      resolvedAuthorCertPath,
-      authorPassword,
-      distributorSigning,
-    )
-    configureProfilesPath(generatedProfilesPath)
-  }
+  let isProfilesPathSwitched = false
 
   try {
+    if (process.platform === 'win32') {
+      configureProfilesPath(generatedProfilesPath)
+      isProfilesPathSwitched = true
+      upsertSigningProfile(profileName, resolvedAuthorCertPath, authorPassword, distributorSigning)
+    }
+    else {
+      writeSigningProfileFile(
+        generatedProfilesPath,
+        profileName,
+        resolvedAuthorCertPath,
+        authorPassword,
+        distributorSigning,
+      )
+      configureProfilesPath(generatedProfilesPath)
+      isProfilesPathSwitched = true
+    }
+
     packageWgt(profileName, version)
   }
   finally {
-    if (generatedProfilesPath !== profilesPath) {
+    if (generatedProfilesPath !== profilesPath && isProfilesPathSwitched) {
       const fallbackProfilesPath = path.join(tizenDataDir, 'profile', 'profiles.xml')
       const restorePath = fs.existsSync(profilesPath) ? profilesPath : fallbackProfilesPath
 
