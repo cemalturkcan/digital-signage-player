@@ -8,7 +8,9 @@ on:
       - 'apps/player/**'
       - 'packages/contracts/**'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'package.json'
+      - 'tsconfig.json'
       - 'apps/player/docker-stack.yaml'
       - '.github/workflows/frontend-pipeline.yml'
   workflow_dispatch:
