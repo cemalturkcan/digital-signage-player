@@ -4,14 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'apps/backend/**'
-      - 'packages/contracts/**'
-      - 'pnpm-lock.yaml'
-      - 'package.json'
-      - 'docker/docker-stack.yaml'
-      - 'apps/backend/docker-stack.yaml'
-      - '.github/workflows/backend-pipeline.yml'
   workflow_dispatch:
 
 jobs:
@@ -130,4 +122,4 @@ jobs:
           set -a
           source ./envfile
           set +a
-          docker --context remote stack deploy --compose-file docker/docker-stack.yaml --compose-file apps/backend/docker-stack.yaml --with-registry-auth digital-signage
+          docker --context remote stack deploy --compose-file docker/docker-stack.yaml --with-registry-auth digital-signage

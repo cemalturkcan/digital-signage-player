@@ -222,9 +222,7 @@ Backend akışı:
 
 1. Backend image GHCR’a push edilir.
 2. Deploy job, image tag’i ile remote Docker context üzerinde stack deploy yapar.
-3. Root stack dosyası + backend stack dosyası birlikte uygulanır:
-   - `docker/docker-stack.yaml`
-   - `apps/backend/docker-stack.yaml`
+3. Root stack dosyası uygulanır: `docker/docker-stack.yaml`
 4. Bu akış frontend image’a bağlı değildir; backend deploy frontend’i `latest` ile çekmez.
 
 Tizen akışı:
