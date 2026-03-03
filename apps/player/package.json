@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "vite --host",
     "dev:mock": "vite --mode mock",
-    "build": "tsx scripts/package-wgt.ts",
-    "wgt:build": "pnpm run build",
+    "build": "vite build --mode prod",
+    "wgt:build": "tsx scripts/package-wgt.ts",
     "wgt:install": "tsx scripts/install-emulator.ts",
     "wgt:run": "tsx scripts/run-emulator.ts",
     "wgt:install:run": "pnpm run wgt:install && pnpm run wgt:run",
