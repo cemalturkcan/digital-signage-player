@@ -147,6 +147,14 @@ players/{deviceId}/events
 players/{deviceId}/status
 ```
 
+### Reply topic ve correlationId akışı
+
+- Her command `commandId` ile gelir, response tarafında aynı değer `correlationId` olarak döner.
+- Backend `POST /api/commands` akışında command payload'ına `replyTopic` ekler:
+  - `backend/<instance-id>/responses/<commandId>`
+- Backend aynı anda `backend/<instance-id>/responses/#` pattern'ine subscribe olur ve doğru `correlationId` geldiğinde request'i tamamlar.
+- Player tarafında `replyTopic` yoksa fallback olarak `players/{deviceId}/responses` kullanılır.
+
 ### QoS
 
 - Commands: QoS 1 (teslim garantisi + idempotent command handling)
@@ -164,6 +172,16 @@ delay = min(30s, 1s * 2^attempt) + random(0-400ms)
 
 Player, `.../status` topic'ine retained `online/offline` bilgisi publish eder. Backend bu bilgiyi tüketip cihaz durumunu günceller.
 
+### Multi-instance notu
+
+Bu projede `$share/...` shared subscription kullanılmıyor. Her backend instance `status` topic pattern'ine ayrı subscribe olur ve presence bilgisini shared DB'ye yazar. Böylece state tek instance memory'sine bağlı kalmaz. (`$share` kullanılsaydı aynı message bir consumer group içinde tek instance'a düşerdi.)
+
+## Panel çalışma modeli
+
+- Panel, active devices listesini `GET /api/devices/active` ile 1 saniye aralıkla poll eder.
+- Komut gönderimi `POST /api/commands` üzerinden backend command bus'a yapılır.
+- `screenshot` sonucu panelde preview olarak gösterilir; görüntü backend `public` path'i üzerinden alınır.
+
 ## Payloads
 
 Komut örneği:
@@ -173,6 +191,7 @@ Komut örneği:
   "type": "command",
   "commandId": "550e8400-e29b-41d4-a716-446655440000",
   "command": "screenshot",
+  "replyTopic": "backend/instance-1/responses/550e8400-e29b-41d4-a716-446655440000",
   "timestamp": 1700000000000
 }
 ```
