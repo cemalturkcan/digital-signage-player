@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from 'hono'
 import { logger } from '@/app/logger/logger.js'
 
-const EXCLUDED_PATHS = ['/health', '/openapi.json', '/docs']
+const EXCLUDED_PATHS = ['/api/health', '/api/openapi.json', '/api/docs']
 
 export function httpLogger(): MiddlewareHandler {
   return async (c, next) => {

@@ -12,7 +12,7 @@ import {
 
 const getPlaylistRoute = createRoute({
   method: 'get',
-  path: '/playlist',
+  path: '/playlists',
   tags: ['Playlist'],
   request: {
     query: PlaylistQuerySchema,
@@ -26,7 +26,7 @@ const getPlaylistRoute = createRoute({
 
 const getPlaylistByIdRoute = createRoute({
   method: 'get',
-  path: '/playlist/{id}',
+  path: '/playlists/{id}',
   tags: ['Playlist'],
   request: {
     params: PlaylistParamsSchema,

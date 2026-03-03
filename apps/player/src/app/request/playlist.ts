@@ -4,7 +4,7 @@ import { getRequest } from '@/app/modules/request'
 const PLAYLIST_PAGE_SIZE = 100
 
 function buildPlaylistUrl(deviceId: string, page: number): string {
-  return `/api/playlist?deviceId=${encodeURIComponent(deviceId)}&page=${page}&pageSize=${PLAYLIST_PAGE_SIZE}`
+  return `/playlists?deviceId=${encodeURIComponent(deviceId)}&page=${page}&pageSize=${PLAYLIST_PAGE_SIZE}`
 }
 
 export async function getPlaylistsByDeviceId(deviceId: string): Promise<PlaylistResponse> {
@@ -18,12 +18,11 @@ export async function getPlaylistsByDeviceId(deviceId: string): Promise<Playlist
 
   const pageNumbers = Array.from({ length: firstPage.totalPages - 1 }, (_, i) => i + 2)
   const remainingPages = await Promise.all(
-    pageNumbers.map(page => getRequest<PlaylistResponse>({ url: buildPlaylistUrl(deviceId, page) })),
+    pageNumbers.map(page =>
+      getRequest<PlaylistResponse>({ url: buildPlaylistUrl(deviceId, page) }),
+    ),
   )
-  const content: Playlist[] = [
-    ...firstPage.content,
-    ...remainingPages.flatMap(p => p.content),
-  ]
+  const content: Playlist[] = [...firstPage.content, ...remainingPages.flatMap(p => p.content)]
 
   return {
     ...firstPage,

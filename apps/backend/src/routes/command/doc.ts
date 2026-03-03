@@ -6,7 +6,7 @@ import { CommandResultSchema, DispatchCommandRequestSchema } from '@/routes/comm
 
 const postCommandRoute = createRoute({
   method: 'post',
-  path: '/command',
+  path: '/commands',
   tags: ['Command'],
   request: {
     body: {

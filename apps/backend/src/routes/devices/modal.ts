@@ -6,7 +6,7 @@ export interface DeviceRecord {
   mqttPassword: string
 }
 
-export function getRegisterDeviceId(request: unknown): string | undefined {
+export function getDeviceRegistrationDeviceId(request: unknown): string | undefined {
   if (!request || typeof request !== 'object') {
     return undefined
   }
@@ -26,7 +26,7 @@ export function getRegisterDeviceId(request: unknown): string | undefined {
   return normalizedDeviceId
 }
 
-export const RegisterRequestSchema = z.object({
+export const DeviceRegistrationRequestSchema = z.object({
   deviceId: z.string().trim().min(1, 'deviceId required'),
   deviceInfo: z.record(z.string(), z.unknown()).optional(),
   capabilities: z
@@ -39,7 +39,7 @@ export const RegisterRequestSchema = z.object({
     .optional(),
 })
 
-export const RegisterResponseSchema = z.object({
+export const DeviceRegistrationResponseSchema = z.object({
   mqtt: z.object({
     host: z.string(),
     port: z.number(),
