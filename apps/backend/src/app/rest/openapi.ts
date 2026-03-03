@@ -9,27 +9,12 @@ import {
   UNAUTHORIZED,
 } from '@/app/rest/codes.js'
 
-const API_BASE_PATH = '/api'
-
-function withApiBasePath<R extends RouteConfig>(route: R): R {
-  const path = route.path
-
-  if (path === API_BASE_PATH || path.startsWith(`${API_BASE_PATH}/`)) {
-    return route
-  }
-
-  return {
-    ...route,
-    path: `${API_BASE_PATH}${path}`,
-  } as R
-}
-
 export function registerHandler<R extends RouteConfig>(
   api: OpenAPIHono,
   route: R,
   handler: any,
 ): void {
-  api.openapi(withApiBasePath(route), handler)
+  api.openapi(route, handler)
 }
 
 const SuccessMetaSchema = z.object({
