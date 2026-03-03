@@ -106,6 +106,67 @@ services:
         - traefik.http.routers.signage-mqtt.priority=200
         - traefik.http.services.signage-mqtt.loadbalancer.server.port=9001
 
+  backend:
+    image: ${BACKEND_IMAGE}
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - MQTT_PROTOCOL=mqtt
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_TOPIC_NAMESPACE=players
+      - MQTT_CLIENT_HOST=signage.cemalturkcan.com
+      - MQTT_CLIENT_PORT=443
+      - MQTT_CLIENT_SSL=true
+      - MQTT_CLIENT_PATH=/mqtt
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - LOG_LEVEL=info
+      - LOG_PRETTY=false
+      - CORS_ORIGINS=
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3000/api/health\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 20s
+        failure_action: rollback
+        order: start-first
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: pause
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.signage-backend.rule=Host(`signage.cemalturkcan.com`) && PathPrefix(`/api`)
+        - traefik.http.routers.signage-backend.entrypoints=websecure
+        - traefik.http.routers.signage-backend.tls.certresolver=main
+        - traefik.http.routers.signage-backend.priority=150
+        - traefik.http.services.signage-backend.loadbalancer.server.port=3000
+
 volumes:
   letsencrypt:
   postgres_data:
