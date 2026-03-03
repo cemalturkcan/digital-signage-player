@@ -25,6 +25,8 @@ const router = useRouter()
 
 const playerRef = ref<PlayerRef | null>(null)
 const imageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+const imageTimerStartedAt = ref<number | null>(null)
+const imageRemainingMs = ref(0)
 const switchingSource = ref(false)
 const playbackToken = ref(0)
 const activeMediaRelease = ref<(() => void) | null>(null)
@@ -50,11 +52,49 @@ const isImage = computed(() => currentItem.value?.type === 'image')
 const isVideo = computed(() => currentItem.value?.type === 'video')
 
 function clearImageTimer(): void {
-  if (!imageTimer.value)
+  if (!imageTimer.value) {
     return
+  }
 
   clearTimeout(imageTimer.value)
   imageTimer.value = null
+  imageTimerStartedAt.value = null
+}
+
+function resetImageTimerState(): void {
+  clearImageTimer()
+  imageRemainingMs.value = 0
+}
+
+function pauseImageTimer(): void {
+  if (!imageTimer.value || imageTimerStartedAt.value === null) {
+    return
+  }
+
+  const elapsedMs = Date.now() - imageTimerStartedAt.value
+  imageRemainingMs.value = Math.max(0, imageRemainingMs.value - elapsedMs)
+  clearImageTimer()
+}
+
+function startImageTimer(token: number): void {
+  if (imageTimer.value || imageRemainingMs.value <= 0) {
+    if (imageRemainingMs.value <= 0) {
+      void nextItem()
+    }
+    return
+  }
+
+  imageTimerStartedAt.value = Date.now()
+  imageTimer.value = setTimeout(() => {
+    if (token !== playbackToken.value) {
+      return
+    }
+
+    imageTimer.value = null
+    imageTimerStartedAt.value = null
+    imageRemainingMs.value = 0
+    void nextItem()
+  }, imageRemainingMs.value)
 }
 
 function clearActiveMediaSource(): void {
@@ -74,7 +114,7 @@ function getImageDurationSeconds(item: MediaItem): number {
 }
 
 function finishPlaybackAndReturnToSelection(): void {
-  clearImageTimer()
+  resetImageTimerState()
   clearActiveMediaSource()
   playerStore.stop()
   playlistStore.clearPlaylist()
@@ -120,7 +160,7 @@ async function ensurePlaylistFromRoute(): Promise<void> {
 async function playItem(item: MediaItem): Promise<void> {
   const token = ++playbackToken.value
   switchingSource.value = true
-  clearImageTimer()
+  resetImageTimerState()
   clearActiveMediaSource()
 
   const deviceId = deviceStore.deviceId
@@ -144,21 +184,17 @@ async function playItem(item: MediaItem): Promise<void> {
 
     playerStore.play()
 
-    if (item.type !== 'image')
+    if (item.type !== 'image') {
       return
+    }
 
-    imageTimer.value = setTimeout(
-      () => {
-        if (token !== playbackToken.value)
-          return
-        void nextItem()
-      },
-      getImageDurationSeconds(item) * 1000,
-    )
+    imageRemainingMs.value = getImageDurationSeconds(item) * 1000
+    startImageTimer(token)
   }
   finally {
-    if (token === playbackToken.value)
+    if (token === playbackToken.value) {
       switchingSource.value = false
+    }
   }
 }
 
@@ -211,8 +247,22 @@ watch(
 watch(
   () => playerStore.state,
   (state) => {
-    if (!isVideo.value)
+    if (isImage.value) {
+      if (state === 'paused') {
+        pauseImageTimer()
+        return
+      }
+
+      if (state === 'playing') {
+        startImageTimer(playbackToken.value)
+      }
+
       return
+    }
+
+    if (!isVideo.value) {
+      return
+    }
 
     if (state === 'playing') {
       void playerRef.value?.play()
@@ -226,7 +276,7 @@ watch(
 
 onUnmounted(() => {
   playbackToken.value += 1
-  clearImageTimer()
+  resetImageTimerState()
   clearActiveMediaSource()
   if (hideControlsTimer)
     clearTimeout(hideControlsTimer)

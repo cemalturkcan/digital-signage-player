@@ -59,7 +59,8 @@ function publishNetworkStatus(reason: string): void {
 }
 
 async function publishPresenceStatus(status: 'online' | 'offline', reason: string): Promise<void> {
-  if (!currentDeviceId || !mqttClientService.connected) return
+  if (!currentDeviceId || !mqttClientService.connected)
+    return
 
   const payload: PresenceEnvelope = {
     type: 'presence',
@@ -70,7 +71,8 @@ async function publishPresenceStatus(status: 'online' | 'offline', reason: strin
 
   try {
     await mqttClientService.publish(statusTopicFor(currentDeviceId), payload, 1, { retain: true })
-  } catch {}
+  }
+  catch {}
 }
 
 function stopPlaybackEventPublishing(): void {
@@ -97,7 +99,7 @@ function setupPlaybackEventPublishing(): void {
       if (nextItem && (!previousItem || previousItem.id !== nextItem.id)) {
         void eventPublisher.publish('media_loaded', toMediaPayload(nextItem))
       }
-    }
+    },
   )
 
   stopPlayerStateWatch = watch(
@@ -113,22 +115,22 @@ function setupPlaybackEventPublishing(): void {
       if (nextState === 'error') {
         void eventPublisher.publish(
           'playback_error',
-          currentItem ? toMediaPayload(currentItem) : undefined
+          currentItem ? toMediaPayload(currentItem) : undefined,
         )
         return
       }
 
       if (
-        previousState === 'playing' &&
-        (nextState === 'idle' || nextState === 'ended') &&
-        currentItem
+        previousState === 'playing'
+        && (nextState === 'idle' || nextState === 'ended')
+        && currentItem
       ) {
         void eventPublisher.publish('playback_ended', {
           ...toMediaPayload(currentItem),
           reason: nextState,
         })
       }
-    }
+    },
   )
 }
 
@@ -237,7 +239,7 @@ async function fetchPlaylistsWithPolicy(options?: { networkFirst?: boolean }): P
 
 async function refreshPlaylistsFromNetwork(
   deviceId: string,
-  previousHash?: string
+  previousHash?: string,
 ): Promise<Playlist[] | null> {
   const globalStore = useGlobalStore()
   const libraryStore = useLibraryStore()
@@ -258,7 +260,8 @@ async function refreshPlaylistsFromNetwork(
     globalStore.clearError()
 
     return playlists
-  } catch {
+  }
+  catch {
     return null
   }
 }
@@ -267,10 +270,12 @@ async function handleReloadPlaylist(): Promise<void> {
   const libraryStore = useLibraryStore()
   const playlists = await fetchPlaylistsWithPolicy({ networkFirst: true })
 
-  if (!libraryStore.selectedPlaylistId) return
+  if (!libraryStore.selectedPlaylistId)
+    return
 
-  const selected = playlists.find((playlist) => playlist.id === libraryStore.selectedPlaylistId)
-  if (!selected) return
+  const selected = playlists.find(playlist => playlist.id === libraryStore.selectedPlaylistId)
+  if (!selected)
+    return
 
   await activatePlaylist(selected)
 }
@@ -291,7 +296,7 @@ async function handleRestartPlayer(): Promise<void> {
 
   const selectedId = libraryStore.selectedPlaylistId
   if (selectedId) {
-    const selectedPlaylist = playlists.find((playlist) => playlist.id === selectedId)
+    const selectedPlaylist = playlists.find(playlist => playlist.id === selectedId)
     if (selectedPlaylist) {
       await activatePlaylist(selectedPlaylist)
       return
@@ -341,14 +346,15 @@ function registerCommandHandlers(): void {
             base64,
             mimeType: blob.type || 'image/png',
           }
-        } catch {
+        }
+        catch {
           throw new CommandHandlerError(
             COMMAND_ERROR_CODES.SCREENSHOT_FAILED,
-            translate('failedToCaptureScreenshot')
+            translate('failedToCaptureScreenshot'),
           )
         }
       },
-    }
+    },
   )
 
   commandBus.register({
@@ -362,7 +368,8 @@ async function handleMqttMessage(message: Uint8Array, responseTopic: string): Pr
 
   try {
     envelope = JSON.parse(new TextDecoder().decode(message))
-  } catch {
+  }
+  catch {
     await mqttClientService.publish(responseTopic, {
       type: 'command_result',
       command: 'reload_playlist',
@@ -385,7 +392,8 @@ async function handleMqttMessage(message: Uint8Array, responseTopic: string): Pr
 const VALID_REPLY_TOPIC = /^[\w/-]+$/
 
 function getReplyTopic(envelope: unknown, fallbackTopic: string): string {
-  if (typeof envelope !== 'object' || envelope === null) return fallbackTopic
+  if (typeof envelope !== 'object' || envelope === null)
+    return fallbackTopic
 
   const value = envelope as Record<string, unknown>
   const topic = value.replyTopic
@@ -401,14 +409,17 @@ function getFallbackResponseTopic(): string {
 }
 
 async function setupMqtt(): Promise<void> {
-  if (!currentDeviceId) return
+  if (!currentDeviceId)
+    return
 
   const commandTopic = commandTopicFor(currentDeviceId)
 
-  if (mqttMessageHandler) mqttClientService.offMessage(mqttMessageHandler)
+  if (mqttMessageHandler)
+    mqttClientService.offMessage(mqttMessageHandler)
 
   mqttMessageHandler = (topic: string, message: Uint8Array) => {
-    if (topic !== commandTopic) return
+    if (topic !== commandTopic)
+      return
 
     handleMqttMessage(message, getFallbackResponseTopic()).catch(console.error)
   }
@@ -422,12 +433,15 @@ async function restoreSelectedPlaylist(playlists: Playlist[]): Promise<void> {
   const playlistStore = usePlaylistStore()
 
   const selectedPlaylistId = libraryStore.selectedPlaylistId
-  if (!selectedPlaylistId) return
+  if (!selectedPlaylistId)
+    return
 
-  const selectedPlaylist = playlists.find((playlist) => playlist.id === selectedPlaylistId)
-  if (!selectedPlaylist) return
+  const selectedPlaylist = playlists.find(playlist => playlist.id === selectedPlaylistId)
+  if (!selectedPlaylist)
+    return
 
-  if (playlistStore.currentPlaylist?.id === selectedPlaylist.id) return
+  if (playlistStore.currentPlaylist?.id === selectedPlaylist.id)
+    return
 
   await activatePlaylist(selectedPlaylist)
 }
@@ -459,7 +473,8 @@ export function disposePlayerRuntime(): void {
   stopNetworkStatusTracking()
   eventPublisher.stopHeartbeat()
 
-  if (mqttMessageHandler) mqttClientService.offMessage(mqttMessageHandler)
+  if (mqttMessageHandler)
+    mqttClientService.offMessage(mqttMessageHandler)
 
   mqttMessageHandler = null
 }
