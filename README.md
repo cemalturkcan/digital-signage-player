@@ -6,6 +6,10 @@ Aşağıda doğrudan demo videosu ve ekran görüntülerini bulabilirsiniz.
 
 ### Demo Video
 
+
+https://github.com/user-attachments/assets/8395ac53-13da-462e-ae19-b47a896b2ef3
+
+
 [![Demo Video](https://github.com/user-attachments/assets/75036b7d-d33a-4f4b-8e5b-caadf377388c)](https://cdn.cemalturkcan.com/videos/screenrecording-2026-03-04_00-05-08_optimized.mp4)
 
 Demo video (direct link): [screenrecording-2026-03-04_00-05-08_optimized.mp4](https://cdn.cemalturkcan.com/videos/screenrecording-2026-03-04_00-05-08_optimized.mp4)
