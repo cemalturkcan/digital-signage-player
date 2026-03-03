@@ -94,8 +94,8 @@ jobs:
             PRERELEASE=false
           elif [ "$EVENT_NAME" = "push" ] && [ "${GITHUB_REF_NAME:-}" = "main" ]; then
             TAG="wgt-${PLAYER_VERSION}-${SHORT_SHA}"
-            RELEASE_NAME="Tizen Player ${SHORT_SHA}"
-            PRERELEASE=true
+            RELEASE_NAME="Tizen Player Latest (${SHORT_SHA})"
+            PRERELEASE=false
           elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             INPUT_TAG="${{ github.event.inputs.release_tag }}"
             if [ -n "$INPUT_TAG" ]; then
@@ -104,8 +104,8 @@ jobs:
               PRERELEASE=false
             else
               TAG="wgt-${PLAYER_VERSION}-${SHORT_SHA}"
-              RELEASE_NAME="Tizen Player ${SHORT_SHA}"
-              PRERELEASE=true
+              RELEASE_NAME="Tizen Player Latest (${SHORT_SHA})"
+              PRERELEASE=false
             fi
           else
             RELEASE_ENABLED=false
@@ -258,6 +258,7 @@ jobs:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: ${{ steps.meta.outputs.release_name }}
           prerelease: ${{ steps.meta.outputs.prerelease }}
+          make_latest: true
           generate_release_notes: true
           files: |
             ${{ steps.assets.outputs.hashed_wgt_path }}
