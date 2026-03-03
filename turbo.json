@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local", "**/.env.tizen"],
+  "globalDependencies": ["**/.env", "**/.env.prod", "**/.env.*local", "**/.env.tizen"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -21,6 +21,7 @@
       "dependsOn": ["^build"]
     },
     "wgt:build": {
+      "dependsOn": ["^build"],
       "outputs": ["*.wgt"]
     },
     "wgt:install": {
