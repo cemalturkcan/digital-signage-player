@@ -78,9 +78,6 @@ function pauseImageTimer(): void {
 
 function startImageTimer(token: number): void {
   if (imageTimer.value || imageRemainingMs.value <= 0) {
-    if (imageRemainingMs.value <= 0) {
-      void nextItem()
-    }
     return
   }
 
@@ -182,13 +179,13 @@ async function playItem(item: MediaItem): Promise<void> {
     if (token !== playbackToken.value)
       return
 
-    playerStore.play()
-
     if (item.type !== 'image') {
+      playerStore.play()
       return
     }
 
     imageRemainingMs.value = getImageDurationSeconds(item) * 1000
+    playerStore.play()
     startImageTimer(token)
   }
   finally {
