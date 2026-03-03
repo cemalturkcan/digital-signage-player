@@ -1,6 +1,6 @@
 import type { RegistrationRequest, RegistrationResponse } from '@signage/contracts'
 import { mqttClientService } from '@/app/mqtt/client'
-import { postRegister } from '@/app/request/register'
+import { postDeviceRegistration } from '@/app/request/devices'
 import { useDeviceStore } from '@/app/stores/device/store'
 
 export interface BootstrapConfig {
@@ -67,7 +67,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<Bootstrap> 
   try {
     setState('registering')
     const payload = buildRegistrationPayload(deviceId)
-    registration = await postRegister({ payload })
+    registration = await postDeviceRegistration({ payload })
     deviceStore.registration = registration
 
     setState('registered')

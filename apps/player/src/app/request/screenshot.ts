@@ -7,7 +7,7 @@ export async function createScreenshot({
   payload: ScreenshotMetadata
 }): Promise<ScreenshotUploadResponse> {
   return postRequest<ScreenshotUploadResponse>({
-    url: '/api/screenshots',
+    url: '/screenshots',
     payload,
   })
 }

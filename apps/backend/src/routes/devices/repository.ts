@@ -1,4 +1,4 @@
-import type { DeviceRecord } from '@/routes/register/modal.js'
+import type { DeviceRecord } from '@/routes/devices/modal.js'
 import { randomBytes } from 'node:crypto'
 import { db } from '@/app/db/db.js'
 
@@ -37,11 +37,11 @@ export interface FindOrCreateResult {
   shouldProvision: boolean
 }
 
-export interface RegisterRepository {
+export interface DevicesRepository {
   findOrCreate: (device: Pick<DeviceRecord, 'deviceId'>) => Promise<FindOrCreateResult>
 }
 
-export const registerRepository: RegisterRepository = {
+export const devicesRepository: DevicesRepository = {
   async findOrCreate(device: Pick<DeviceRecord, 'deviceId'>): Promise<FindOrCreateResult> {
     const existingResult = await db.query<DeviceRow>(SELECT_DEVICE_BY_ID, [device.deviceId])
 

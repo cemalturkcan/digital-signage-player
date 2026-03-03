@@ -39,9 +39,11 @@ export async function createApp(): Promise<OpenAPIHono> {
   app.use('*', httpLogger())
   app.use('/public/*', serveStatic({ root: './' }))
 
-  registerApiRoutes(app)
+  const api = app.basePath('/api')
 
-  app.doc('/openapi.json', {
+  registerApiRoutes(api)
+
+  api.doc('/openapi.json', {
     openapi: '3.0.0',
     info: {
       title: 'Digital Signage API',
@@ -49,7 +51,7 @@ export async function createApp(): Promise<OpenAPIHono> {
     },
   })
 
-  app.get('/docs', swaggerUI({ url: '/openapi.json' }))
+  api.get('/docs', swaggerUI({ url: '/api/openapi.json' }))
 
   app.notFound((_c) => {
     return ErrorRes(new Err(ErrorCode.NOT_FOUND, getCodeMessage(ErrorCode.NOT_FOUND)))
