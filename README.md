@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/8395ac53-13da-462e-ae19-b47a896b2ef3
 
 <img width="1600" height="842" alt="Panel" src="https://github.com/user-attachments/assets/d1f27ebb-b219-4956-ac75-b100a9bde480" />
 
-## Description
+## Açıklama
 
 Bu projede Tizen implementasyonu yer alır.
 Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden farklı Smart TV platformlarına adapte edilebilir.
@@ -32,7 +32,7 @@ Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden fark
 - API: [https://signage.cemalturkcan.com/api](https://signage.cemalturkcan.com/api)
 - Swagger: [https://signage.cemalturkcan.com/api/docs](https://signage.cemalturkcan.com/api/docs)
 
-## Stack
+## Teknoloji Yığını
 
 - Runtime: Node.js 20, TypeScript
 - Player/Panel: Vue 3, Vite, Pinia, Axios
@@ -67,7 +67,7 @@ Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden fark
 
 ## WGT Build (Tizen)
 
-### Release links
+### Release linkleri
 
 - Son WGT release: [https://github.com/cemalturkcan/digital-signage-player/releases/latest](https://github.com/cemalturkcan/digital-signage-player/releases/latest)
 
@@ -77,12 +77,12 @@ Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden fark
 - Player frontend: [`ghcr.io/cemalturkcan/digital-signage-frontend:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-frontend)
 - Panel frontend: [`ghcr.io/cemalturkcan/digital-signage-panel:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-panel)
 
-### Tizen adapter note
+### Tizen adapter notu
 
 Platform bağımlı API'ler player platform katmanında izole edilmiştir (`apps/player/src/app/platform`).
 `createPlatformAdapter()` runtime'da Tizen veya web adapter'ını seçer; iş kuralları platformdan bağımsız kalır.
 
-### Local WGT build
+### Lokal WGT build
 
 Ön koşul: Tizen Studio CLI araçları (`tizen`, `sdb`) PATH içinde olmalıdır.
 
@@ -112,7 +112,7 @@ Sadece install (run etmeden):
 pnpm -C apps/player run wgt:install
 ```
 
-### WGT script flow
+### WGT script akışı
 
 `apps/player/package.json` altında Tizen script zinciri şöyle çalışır:
 
@@ -146,7 +146,7 @@ Environment dosyaları:
 
 ## MQTT
 
-### Topic structure
+### Topic yapısı
 
 ```text
 players/{deviceId}/commands
@@ -190,7 +190,7 @@ Bu projede `$share/...` shared subscription kullanılmıyor. Her backend instanc
 - Komut gönderimi `POST /api/commands` üzerinden backend command bus'a yapılır.
 - `screenshot` sonucu panelde preview olarak gösterilir; görüntü backend `public` path'i üzerinden alınır.
 
-## Payloads
+## Payload örnekleri
 
 Komut örneği:
 
@@ -239,7 +239,7 @@ Screenshot hata response örneği:
 
 Player tarafında kritik akışta kullanılan iki endpoint için örnek response body aşağıda:
 
-### `POST /api/devices/register` response
+### `POST /api/devices/register` response örneği
 
 ```json
 {
@@ -271,7 +271,7 @@ Player tarafında kritik akışta kullanılan iki endpoint için örnek response
 }
 ```
 
-### `GET /api/playlists?deviceId=<id>&page=1&pageSize=100` response
+### `GET /api/playlists?deviceId=<id>&page=1&pageSize=100` response örneği
 
 ```json
 {
@@ -311,7 +311,7 @@ Player tarafında kritik akışta kullanılan iki endpoint için örnek response
 }
 ```
 
-## Commands
+## Komutlar
 
 - `reload_playlist`
 - `restart_player`
@@ -327,7 +327,7 @@ Player tarafında kritik akışta kullanılan iki endpoint için örnek response
 - Playlist güncellemesi hash/version kontrolü ile yapılır.
 - MQTT kopmalarında reconnect stratejisi devrededir.
 
-## Local setup
+## Lokal kurulum
 
 Gereksinimler: Node.js 20+, pnpm 8+, Docker
 
@@ -337,7 +337,7 @@ docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
 pnpm dev
 ```
 
-Local endpoints:
+Lokal endpoint'ler:
 
 - Player dev: [http://localhost:5173](http://localhost:5173)
 - Panel dev: [http://localhost:5174](http://localhost:5174)
