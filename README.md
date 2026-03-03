@@ -1,152 +1,88 @@
 # Digital Signage Case Çalışması
 
+Bu repo, Tizen odaklı bir dijital signage çözümünü uçtan uca gösteren bir case çalışmasıdır. Player, panel ve backend birlikte çalışır; komut akışı MQTT üzerinden yürür, yönetim tarafı ise REST API ile ilerler. Player tarafındaki platform adapter yapısı sayesinde aynı mimariyi farklı Smart TV platformlarına taşımak mümkündür.
+
 ## Demo
 
-Aşağıda doğrudan demo videosu ve ekran görüntülerini bulabilirsiniz.
+Player uygulaması için canlı adres: [https://signage.cemalturkcan.com/](https://signage.cemalturkcan.com/). Panel için canlı adres: [https://signage.cemalturkcan.com/panel/](https://signage.cemalturkcan.com/panel/). API erişimi: [https://signage.cemalturkcan.com/api](https://signage.cemalturkcan.com/api). Swagger dokümantasyonu: [https://signage.cemalturkcan.com/api/docs](https://signage.cemalturkcan.com/api/docs).
 
-### Linkler
-
-- Player: <a href="https://signage.cemalturkcan.com/" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/</a>
-- Panel: <a href="https://signage.cemalturkcan.com/panel/" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/panel/</a>
-- API: <a href="https://signage.cemalturkcan.com/api" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/api</a>
-- Swagger: <a href="https://signage.cemalturkcan.com/api/docs" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/api/docs</a>
-
-### Demo Video
+Demo videosu:
 
 https://github.com/user-attachments/assets/8395ac53-13da-462e-ae19-b47a896b2ef3
 
-### Ekran Görüntüleri
-
-#### Player
+Player ekranı:
 
 <img width="1600" height="843" alt="Player" src="https://github.com/user-attachments/assets/75036b7d-d33a-4f4b-8e5b-caadf377388c" />
 
-#### Player (Playback)
+Player playback ekranı:
 
 <img width="1600" height="842" alt="Player Playback" src="https://github.com/user-attachments/assets/a7475e29-9490-46b5-b53b-ddb283717752" />
 
-#### Panel
+Panel ekranı:
 
 <img width="1600" height="842" alt="Panel" src="https://github.com/user-attachments/assets/d1f27ebb-b219-4956-ac75-b100a9bde480" />
 
-## Açıklama
+## Teknoloji Özeti
 
-Bu projede Tizen implementasyonu yer alır.
-Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden farklı Smart TV platformlarına adapte edilebilir.
+Runtime tarafında Node.js 20 ve TypeScript kullanıldı. Player ve panel Vue 3, Vite, Pinia ve Axios ile geliştirildi. Backend tarafında Hono, PostgreSQL ve Mosquitto (MQTT) bulunuyor. Altyapıda Docker, Docker Swarm, Traefik ve GitHub Actions kullanılıyor. Frontend ve backend arasındaki command, topic ve payload tipleri `packages/contracts` içinde ortak bir kaynaktan yönetiliyor.
 
-## Tech Stack
+## Mimari Yaklaşım
 
-- Runtime: Node.js 20, TypeScript
-- Player/Panel: Vue 3, Vite, Pinia, Axios
-- Backend: Hono, PostgreSQL, MQTT (Mosquitto)
-- Infra: Docker, Docker Swarm, Traefik, GitHub Actions
-- Shared contracts: `packages/contracts`
-- Logging: backend `pino`, player MQTT `events`
+Player yaşam döngüsü `bootstrap -> registration -> MQTT connect -> command handling -> playback` akışıyla ilerler. Player içinde `platform`, `mqtt`, `commands`, `runtime`, `cache`, `request` ve `stores` katmanları ayrıştırılmıştır. Backend tarafında REST API ve MQTT command bus birbirinden ayrıdır; panelden gelen `POST /api/commands` isteği backend içinde MQTT dispatch'e dönüştürülür. Panel doğrudan player ile konuşmaz, aktif cihazları `GET /api/devices/active` ile okur ve komutları `POST /api/commands` ile gönderir.
 
-## Mimari açıklama
+## Tasarım Kararları ve Trade-off'lar
 
-- Player tarafında lifecycle `bootstrap -> registration -> MQTT connect -> command handling -> playback` akışıyla ilerler.
-- Player katmanları ayrıdır: `platform adapter`, `mqtt`, `commands`, `runtime`, `cache`, `request`, `stores`.
-- Backend tarafında REST API ile MQTT command bus ayrıdır. REST `POST /api/commands` çağrısı backend içinde MQTT dispatch'e çevrilir.
-- Panel doğrudan player'a değil backend API'ye konuşur: aktif cihazları `/api/devices/active` ile okur, komutları `/api/commands` ile gönderir.
-- Shared contract modeli (`packages/contracts`) ile command/topic/payload tipleri frontend-backend arasında tek kaynaktan yönetilir.
-
-## Trade-off kararları
-
-- **QoS 1 seçimi:** command delivery için yeterli güvenilirlik sağlar; QoS 2'ye göre daha düşük latency/overhead.
-- **Panel polling (1s) seçimi:** implementasyonu basit ve stabil; WebSocket/SSE'ye göre operasyonel karmaşıklığı daha düşük.
-- **Presence için MQTT + DB seçimi:** instance-local memory yerine shared DB kullanımı multi-instance backend'de tutarlılık sağlar.
-- **Screenshot response yaklaşımı:** command sonucu korunur, panel tarafında görüntü preview için backend public path kullanılır; payload yönetimi sade kalır.
-- **Platform abstraction:** platforma bağlı kod adapter katmanında izole edildi, business logic tarafı sade kaldı.
+Komut tesliminde QoS 1 tercih edildi; bu seçim QoS 2'ye göre daha düşük gecikme ve daha az operasyonel yükle yeterli güvenilirlik sağlıyor. Panel tarafında cihaz listesi için 1 saniyelik polling modeli kullanıldı; WebSocket veya SSE'ye göre daha sade ve stabil bir işletim davranışı veriyor. Presence bilgisini yalnızca instance belleğinde tutmak yerine MQTT + shared DB yaklaşımı benimsendi; bu sayede multi-instance backend yapısında durum tutarlılığı korunuyor. Screenshot yanıtında görüntü verisi korunurken panel tarafında önizleme backend public path üzerinden servis ediliyor; payload yönetimi sade kalıyor. Platforma bağlı kod, adapter katmanında izole edilerek iş kurallarının platformdan bağımsız kalması sağlanıyor.
 
 ## Varsayımlar
 
-- Her cihazın stabil ve unique bir `deviceId` ile register olduğu varsayılır.
-- MQTT broker retained message + LWT destekler.
-- Tizen build/install için host ortamında `tizen` ve `sdb` CLI araçları erişilebilir durumdadır.
+Her cihazın stabil ve benzersiz bir `deviceId` ile kayıt olduğu, MQTT broker tarafında retained message ve LWT desteğinin bulunduğu, Tizen build ve kurulum akışı için host ortamında `tizen` ve `sdb` CLI araçlarının erişilebilir olduğu varsayılmıştır.
 
-## WGT Build (Tizen)
+## Tizen ve WGT Süreci
 
-### Release Links
+En güncel WGT release bağlantısı: [https://github.com/cemalturkcan/digital-signage-player/releases/latest](https://github.com/cemalturkcan/digital-signage-player/releases/latest).
 
-- Son WGT release: <a href="https://github.com/cemalturkcan/digital-signage-player/releases/latest" target="_blank" rel="noopener noreferrer">https://github.com/cemalturkcan/digital-signage-player/releases/latest</a>
+Docker imajları için backend: `ghcr.io/cemalturkcan/digital-signage-backend:latest`, player frontend: `ghcr.io/cemalturkcan/digital-signage-frontend:latest`, panel frontend: `ghcr.io/cemalturkcan/digital-signage-panel:latest`.
 
-### Docker latest build'leri
+Player tarafında platform bağımlı API'ler `apps/player/src/app/platform` altında izole edilmiştir. `createPlatformAdapter()` çalışma anında Tizen veya web adapter seçer ve iş kuralları platformdan bağımsız kalır.
 
-- Backend: <a href="https://github.com/users/cemalturkcan/packages/container/digital-signage-backend" target="_blank" rel="noopener noreferrer"><code>ghcr.io/cemalturkcan/digital-signage-backend:latest</code></a>
-- Player frontend: <a href="https://github.com/users/cemalturkcan/packages/container/digital-signage-frontend" target="_blank" rel="noopener noreferrer"><code>ghcr.io/cemalturkcan/digital-signage-frontend:latest</code></a>
-- Panel frontend: <a href="https://github.com/users/cemalturkcan/packages/container/digital-signage-panel" target="_blank" rel="noopener noreferrer"><code>ghcr.io/cemalturkcan/digital-signage-panel:latest</code></a>
-
-### Tizen adapter notu
-
-Platform bağımlı API'ler player platform katmanında izole edilmiştir (`apps/player/src/app/platform`).
-`createPlatformAdapter()` runtime'da Tizen veya web adapter'ını seçer; iş kuralları platformdan bağımsız kalır.
-
-### Local WGT Build
-
-Ön koşul: Tizen Studio CLI araçları (`tizen`, `sdb`) PATH içinde olmalıdır.
+Yerelde WGT almak için önce bağımlılıkların kurulması ve ardından paketleme adımının çalıştırılması yeterlidir.
 
 ```bash
 pnpm install
 pnpm wgt:build
 ```
 
-Çıktı: `apps/player/*.wgt`
+Bu akış sonunda çıktı `apps/player/*.wgt` olarak üretilir.
 
-Emulator kurulum/çalıştırma:
+Emülatör veya gerçek cihaz kurulumu için temel akış:
 
 ```bash
 sdb devices
 pnpm wgt:install:run
 ```
 
-Belirli bir `.wgt` dosyasını (ör. `Downloads`) kurmak için:
+İsterseniz belirli bir `.wgt` dosyasını doğrudan vererek de kurulum yapabilirsiniz:
 
 ```bash
 pnpm -C apps/player exec tsx scripts/install-emulator.ts "/home/<user>/Downloads/digital_signage_player_<build>.wgt"
 ```
 
-Sadece install (run etmeden):
+Script akışı `apps/player/package.json` altında `wgt:build`, `wgt:install`, `wgt:run` ve `wgt:install:run` komutlarıyla yönetilir. `package-wgt.ts`, `config.xml` sürümünü `package.json` ile senkronlar, Tizen build alır, gerekli signing profile işlemlerini yapar, paketi üretir ve çıktıyı `apps/player` altına taşır. `install-emulator.ts` hedef cihazı `sdb` üzerinden seçer, kurulum yapar ve olası sertifika hatalarında yeniden deneme/yeniden paketleme fallback'i uygular. `run-emulator.ts` uygulama kimliğini çözerek `app_launcher` ile uygulamayı başlatır.
+
+## Emülatör ve Cihaz İçin Ağ Planı
+
+Bu projeyi dev ortamından emülatör veya fiziksel TV ortamına taşırken zorunlu olarak değiştirmeniz gereken tek değer API adresidir. TV emülatörü veya cihaz üzerinde `localhost` cihazın kendisini işaret ettiği için backend'e erişim sağlamaz. Bu nedenle `apps/player/.env` dosyasındaki `VITE_API_BASE_URL` değeri, backend'i çalıştıran makinenin aynı ağdaki IP adresi ile ayarlanmalıdır.
 
 ```bash
-pnpm -C apps/player run wgt:install
+VITE_API_BASE_URL=http://192.168.1.4:3000/api
 ```
 
-### WGT Script Flow
+Yukarıdaki IP sadece örnektir; herkes kendi ağındaki gerçek IP'yi yazmalıdır. Prod veya demo ortamında ise bu değer `.env.prod` içindeki public API adresiyle yönetilir.
 
-`apps/player/package.json` altında Tizen script zinciri şöyle çalışır:
+## MQTT İletişimi
 
-- `pnpm wgt:build` -> `tsx scripts/package-wgt.ts`
-- `pnpm wgt:install` -> `tsx scripts/install-emulator.ts`
-- `pnpm wgt:run` -> `tsx scripts/run-emulator.ts`
-- `pnpm wgt:install:run` -> install + run
-
-`package-wgt.ts` adımları:
-
-- `config.xml` widget version değerini `apps/player/package.json` version ile sync eder.
-- `npx vite build --mode tizen` ile Tizen build alır.
-- Signing profile oluşturur/günceller (`tizen security-profiles`), gerekiyorsa author cert create eder.
-- `tizen package -t wgt -s <profile>` ile paketler.
-- Son oluşan `.wgt` dosyasını `digital_signage_player_<version>.wgt` adıyla `apps/player/` altına taşır.
-
-`install-emulator.ts` adımları:
-
-- `sdb devices` çıktısından hedef serial bekler/seçer.
-- WGT install eder; author mismatch veya signature validation hatasında retry/rebuild fallback uygular.
-
-`run-emulator.ts` adımları:
-
-- `config.xml` içinden app id çözer.
-- `sdb shell app_launcher -s <appId>` ile app'i başlatır.
-
-Environment dosyaları:
-
-- `.env.tizen`: `TIZEN_PROFILE`, `TIZEN_AUTHOR_CERT_PATH`, `TIZEN_AUTHOR_CERT_PASSWORD`, `VITE_RUNTIME_NAME`, `VITE_API_BASE_URL`
-- `.env.prod`: CI/prod build için API gibi runtime değerleri
-
-## MQTT
-
-### Topic yapısı
+Topic yapısı aşağıdaki gibidir:
 
 ```text
 players/{deviceId}/commands
@@ -155,44 +91,23 @@ players/{deviceId}/events
 players/{deviceId}/status
 ```
 
-### Reply topic ve correlationId akışı
+Komutlar `commandId` ile gönderilir ve response tarafında aynı değer `correlationId` olarak döner. Backend, `POST /api/commands` akışında payload'a `replyTopic` ekler ve `backend/<instance-id>/responses/#` pattern'ini dinleyerek doğru `correlationId` geldiğinde isteği tamamlar. Player tarafında `replyTopic` gelmezse varsayılan olarak `players/{deviceId}/responses` kullanılır.
 
-- Her command `commandId` ile gelir, response tarafında aynı değer `correlationId` olarak döner.
-- Backend `POST /api/commands` akışında command payload'ına `replyTopic` ekler:
-  - `backend/<instance-id>/responses/<commandId>`
-- Backend aynı anda `backend/<instance-id>/responses/#` pattern'ine subscribe olur ve doğru `correlationId` geldiğinde request'i tamamlar.
-- Player tarafında `replyTopic` yoksa fallback olarak `players/{deviceId}/responses` kullanılır.
-
-### QoS
-
-- Commands: QoS 1 (teslim garantisi + idempotent command handling)
-- Events/telemetry: QoS 0
-
-### Reconnect ve jitter
-
-Reconnect stratejisi exponential backoff + jitter:
+Komutlar QoS 1 ile gönderilir, event ve telemetry tarafında QoS 0 kullanılır. Reconnect stratejisi exponential backoff ve jitter kombinasyonu ile ilerler:
 
 ```text
 delay = min(30s, 1s * 2^attempt) + random(0-400ms)
 ```
 
-### Presence
+Player, retained presence bilgisini `.../status` topic'ine `online` veya `offline` olarak yayınlar. Backend bu bilgiyi tüketip cihaz durumunu veritabanına yazar. Bu projede `$share/...` shared subscription kullanılmaz; her backend instance durum topic'lerini dinler ve ortak veritabanına yazar.
 
-Player, `.../status` topic'ine retained `online/offline` bilgisi publish eder. Backend bu bilgiyi tüketip cihaz durumunu günceller.
+## Panel Çalışma Modeli
 
-### Multi-instance notu
+Panel, aktif cihaz listesini `GET /api/devices/active` endpoint'inden 1 saniye aralıkla çeker. Komut gönderimi `POST /api/commands` ile backend command bus'a yapılır. `screenshot` komutunun sonucu panelde önizleme olarak gösterilir ve görsel backend public path üzerinden alınır.
 
-Bu projede `$share/...` shared subscription kullanılmıyor. Her backend instance `status` topic pattern'ine ayrı subscribe olur ve presence bilgisini shared DB'ye yazar. Böylece state tek instance memory'sine bağlı kalmaz. (`$share` kullanılsaydı aynı message bir consumer group içinde tek instance'a düşerdi.)
+## Payload Örnekleri
 
-## Panel çalışma modeli
-
-- Panel, active devices listesini `GET /api/devices/active` ile 1 saniye aralıkla poll eder.
-- Komut gönderimi `POST /api/commands` üzerinden backend command bus'a yapılır.
-- `screenshot` sonucu panelde preview olarak gösterilir; görüntü backend `public` path'i üzerinden alınır.
-
-## Payload Examples
-
-Komut örneği:
+Komut payload örneği:
 
 ```json
 {
@@ -235,11 +150,9 @@ Screenshot hata response örneği:
 }
 ```
 
-## Önemli API response body örnekleri
+## API Response Örnekleri
 
-Player tarafında kritik akışta kullanılan iki endpoint için örnek response body aşağıda:
-
-### `POST /api/devices/register` response örneği
+Player kritik akışında kullanılan `POST /api/devices/register` endpoint'inin örnek dönüşü:
 
 ```json
 {
@@ -271,7 +184,7 @@ Player tarafında kritik akışta kullanılan iki endpoint için örnek response
 }
 ```
 
-### `GET /api/playlists?deviceId=<id>&page=1&pageSize=100` response örneği
+`GET /api/playlists?deviceId=<id>&page=1&pageSize=100` endpoint'inin örnek dönüşü:
 
 ```json
 {
@@ -311,25 +224,17 @@ Player tarafında kritik akışta kullanılan iki endpoint için örnek response
 }
 ```
 
-## Commands
+## Komut Seti
 
-- `reload_playlist`
-- `restart_player`
-- `play`
-- `pause`
-- `set_volume`
-- `screenshot`
+Sistemde desteklenen komutlar `reload_playlist`, `restart_player`, `play`, `pause`, `set_volume` ve `screenshot` olarak tanımlıdır.
 
-## Offline-first
+## Offline-first Davranışı
 
-- Playlist ve medya dosyaları lokal cache'e alınır.
-- Network kesildiğinde oynatma cache üzerinden devam eder.
-- Playlist güncellemesi hash/version kontrolü ile yapılır.
-- MQTT kopmalarında reconnect stratejisi devrededir.
+Playlist ve medya dosyaları local cache'e alınır. Ağ bağlantısı kesildiğinde oynatma cache üzerinden sürer. Playlist güncellemeleri hash veya versiyon kontrolü ile yapılır. MQTT bağlantısı düştüğünde reconnect stratejisi devreye girer.
 
-## Local Setup
+## Local Kurulum
 
-Gereksinimler: Node.js 20+, pnpm 8+, Docker
+Geliştirme ortamı için Node.js 20+, pnpm 8+ ve Docker gereklidir. Kurulum ve çalıştırma akışı aşağıdaki komutlarla tamamlanır:
 
 ```bash
 pnpm install
@@ -337,16 +242,8 @@ docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
 pnpm dev
 ```
 
-Local Endpoints:
-
-- Player dev: <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer">http://localhost:5173</a>
-- Panel dev: <a href="http://localhost:5174" target="_blank" rel="noopener noreferrer">http://localhost:5174</a>
-- Backend API: <a href="http://localhost:3000/api" target="_blank" rel="noopener noreferrer">http://localhost:3000/api</a>
-- Swagger: <a href="http://localhost:3000/api/docs" target="_blank" rel="noopener noreferrer">http://localhost:3000/api/docs</a>
+Local adresler sırasıyla player için [http://localhost:5173](http://localhost:5173), panel için [http://localhost:5174](http://localhost:5174), backend API için [http://localhost:3000/api](http://localhost:3000/api) ve Swagger için [http://localhost:3000/api/docs](http://localhost:3000/api/docs) şeklindedir.
 
 ## CI/CD
 
-- `tizen-release.yml`: signed WGT build + GitHub Release
-- `backend-pipeline.yml`: backend image build/push/deploy
-- `frontend-pipeline.yml`: player image build/push/deploy
-- `panel-pipeline.yml`: panel image build/push/deploy
+CI/CD tarafında `tizen-release.yml` signed WGT build ve GitHub Release sürecini, `backend-pipeline.yml` backend image build/push/deploy sürecini, `frontend-pipeline.yml` player image build/push/deploy sürecini, `panel-pipeline.yml` ise panel image build/push/deploy sürecini yönetir.
