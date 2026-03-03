@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env", "**/.env.prod", "**/.env.*local", "**/.env.tizen"],
+  "globalDependencies": ["**/.env.*local", "**/.env.tizen"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
