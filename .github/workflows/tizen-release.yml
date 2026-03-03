@@ -195,7 +195,7 @@ jobs:
         env:
           PLAYER_BUILD_ENV: prod
         run: |
-          pnpm turbo run wgt:build --filter=@signage/player...
+          pnpm turbo run wgt:build --filter=@signage/player
 
       - name: Prepare release assets
         id: assets
