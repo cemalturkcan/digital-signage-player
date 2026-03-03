@@ -6,7 +6,7 @@ Aşağıda doğrudan demo videosu ve ekran görüntülerini bulabilirsiniz.
 
 ### Demo Video
 
-<video src="<demo-video-url>" controls muted playsinline width="960"></video>
+<video src="https://example.com/demo.mp4" controls muted playsinline width="960"></video>
 
 ### Ekran Görüntüleri
 
@@ -16,19 +16,52 @@ Aşağıda doğrudan demo videosu ve ekran görüntülerini bulabilirsiniz.
 
 ## Description
 
-Tizen öncelikli Smart TV player, backend komut bus katmanı ve kontrol panelinden oluşan bir Digital Signage çözümü.
-Live links: Player https://signage.cemalturkcan.com/ , Panel https://signage.cemalturkcan.com/panel/ , API https://signage.cemalturkcan.com/api , Swagger https://signage.cemalturkcan.com/api/docs
+Bu projede Tizen implementasyonu yer alır.
+Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden farklı Smart TV platformlarına adapte edilebilir.
+
+- Player: [https://signage.cemalturkcan.com/](https://signage.cemalturkcan.com/)
+- Panel: [https://signage.cemalturkcan.com/panel/](https://signage.cemalturkcan.com/panel/)
+- API: [https://signage.cemalturkcan.com/api](https://signage.cemalturkcan.com/api)
+- Swagger: [https://signage.cemalturkcan.com/api/docs](https://signage.cemalturkcan.com/api/docs)
 
 ## Stack
 
-Bu projede Node.js 20 ve TypeScript kullanıldı. Player ve panel tarafı Vue 3 + Vite + Pinia ile, backend tarafı Hono + PostgreSQL + MQTT (Mosquitto) ile geliştirildi. Dağıtım tarafında Docker, Docker Swarm, Traefik ve GitHub Actions kullanılıyor. Shared types ve topic structure `packages/contracts` içinde tutuluyor. Logging backend'de `pino` ile yapılıyor, player ise operational events'i MQTT üzerinden publish ediyor.
+- Runtime: Node.js 20, TypeScript
+- Player/Panel: Vue 3, Vite, Pinia, Axios
+- Backend: Hono, PostgreSQL, MQTT (Mosquitto)
+- Infra: Docker, Docker Swarm, Traefik, GitHub Actions
+- Shared contracts: `packages/contracts`
+- Logging: backend `pino`, player MQTT `events`
+
+## Mimari açıklama
+
+- Player tarafında lifecycle `bootstrap -> registration -> MQTT connect -> command handling -> playback` akışıyla ilerler.
+- Player katmanları ayrıdır: `platform adapter`, `mqtt`, `commands`, `runtime`, `cache`, `request`, `stores`.
+- Backend tarafında REST API ile MQTT command bus ayrıdır. REST `POST /api/commands` çağrısı backend içinde MQTT dispatch'e çevrilir.
+- Panel doğrudan player'a değil backend API'ye konuşur: aktif cihazları `/api/devices/active` ile okur, komutları `/api/commands` ile gönderir.
+- Shared contract modeli (`packages/contracts`) ile command/topic/payload tipleri frontend-backend arasında tek kaynaktan yönetilir.
+
+## Trade-off kararları
+
+- **QoS 1 seçimi:** command delivery için yeterli güvenilirlik sağlar; QoS 2'ye göre daha düşük latency/overhead.
+- **Panel polling (1s) seçimi:** implementasyonu basit ve stabil; WebSocket/SSE'ye göre operasyonel karmaşıklığı daha düşük.
+- **Presence için MQTT + DB seçimi:** instance-local memory yerine shared DB kullanımı multi-instance backend'de tutarlılık sağlar.
+- **Screenshot response yaklaşımı:** command sonucu korunur, panel tarafında görüntü preview için backend public path kullanılır; payload yönetimi sade kalır.
+- **Platform abstraction:** platforma bağlı kod adapter katmanında izole edildi, business logic tarafı sade kaldı.
+
+## Varsayımlar
+
+- Her cihazın stabil ve unique bir `deviceId` ile register olduğu varsayılır.
+- MQTT broker retained message + LWT destekler.
+- Reverse proxy tarafında en az `/api` ve `/public` path routing açıktır.
+- Tizen build/install için host ortamında `tizen` ve `sdb` CLI araçları erişilebilir durumdadır.
+- Panel ile backend arasında saatlik değil, saniyelik polling trafiğini kaldırabilecek ağ/servis kapasitesi vardır.
 
 ## WGT Build (Tizen)
 
 ### Release links
 
-- Son WGT release: https://github.com/cemalturkcan/digital-signage-player/releases/latest
-- Tüm release'ler: https://github.com/cemalturkcan/digital-signage-player/releases
+- Son WGT release: [https://github.com/cemalturkcan/digital-signage-player/releases/latest](https://github.com/cemalturkcan/digital-signage-player/releases/latest)
 
 ### Docker latest build'leri
 
@@ -58,6 +91,50 @@ Emulator kurulum/çalıştırma:
 sdb devices
 pnpm wgt:install:run
 ```
+
+Belirli bir `.wgt` dosyasını (ör. `Downloads`) kurmak için:
+
+```bash
+pnpm -C apps/player exec tsx scripts/install-emulator.ts "/home/<user>/Downloads/digital_signage_player_<build>.wgt"
+```
+
+Sadece install (run etmeden):
+
+```bash
+pnpm -C apps/player run wgt:install
+```
+
+### WGT script flow
+
+`apps/player/package.json` altında Tizen script zinciri şöyle çalışır:
+
+- `pnpm wgt:build` -> `tsx scripts/package-wgt.ts`
+- `pnpm wgt:install` -> `tsx scripts/install-emulator.ts`
+- `pnpm wgt:run` -> `tsx scripts/run-emulator.ts`
+- `pnpm wgt:install:run` -> install + run
+
+`package-wgt.ts` adımları:
+
+- `config.xml` widget version değerini `apps/player/package.json` version ile sync eder.
+- `npx vite build --mode tizen` ile Tizen build alır.
+- Signing profile oluşturur/günceller (`tizen security-profiles`), gerekiyorsa author cert create eder.
+- `tizen package -t wgt -s <profile>` ile paketler.
+- Son oluşan `.wgt` dosyasını `digital_signage_player_<version>.wgt` adıyla `apps/player/` altına taşır.
+
+`install-emulator.ts` adımları:
+
+- `sdb devices` çıktısından hedef serial bekler/seçer.
+- WGT install eder; author mismatch veya signature validation hatasında retry/rebuild fallback uygular.
+
+`run-emulator.ts` adımları:
+
+- `config.xml` içinden app id çözer.
+- `sdb shell app_launcher -s <appId>` ile app'i başlatır.
+
+Environment dosyaları:
+
+- `.env.tizen`: `TIZEN_PROFILE`, `TIZEN_AUTHOR_CERT_PATH`, `TIZEN_AUTHOR_CERT_PASSWORD`, `VITE_RUNTIME_NAME`, `VITE_API_BASE_URL`
+- `.env.prod`: CI/prod build için API gibi runtime değerleri
 
 ## MQTT
 
@@ -131,6 +208,82 @@ Screenshot hata response örneği:
 }
 ```
 
+## Önemli API response body örnekleri
+
+Player tarafında kritik akışta kullanılan iki endpoint için örnek response body aşağıda:
+
+### `POST /api/devices/register` response
+
+```json
+{
+  "data": {
+    "mqtt": {
+      "host": "signage.cemalturkcan.com",
+      "port": 443,
+      "ssl": true,
+      "path": "/mqtt",
+      "clientId": "device-001",
+      "username": "device_device-001",
+      "password": "<device-password>",
+      "keepalive": 60,
+      "connectTimeout": 30000,
+      "reconnectPeriod": 5000,
+      "clean": true,
+      "will": {
+        "topic": "players/device-001/status",
+        "payload": "{\"type\":\"presence\",\"status\":\"offline\",\"reason\":\"lwt\"}",
+        "qos": 1,
+        "retain": true
+      }
+    }
+  },
+  "meta": {
+    "code": "200",
+    "message": "Success"
+  }
+}
+```
+
+### `GET /api/playlists?deviceId=<id>&page=1&pageSize=100` response
+
+```json
+{
+  "data": {
+    "size": 1,
+    "total": 1,
+    "currentPage": 1,
+    "totalPages": 1,
+    "content": [
+      {
+        "id": "1",
+        "loop": true,
+        "createdAt": 1700000000000,
+        "updatedAt": 1700000000000,
+        "items": [
+          {
+            "id": "1",
+            "type": "image",
+            "url": "https://example.com/image1.jpg",
+            "duration": 10,
+            "order": 1
+          },
+          {
+            "id": "2",
+            "type": "video",
+            "url": "https://example.com/video.mp4",
+            "order": 2
+          }
+        ]
+      }
+    ]
+  },
+  "meta": {
+    "code": "200",
+    "message": "Success"
+  }
+}
+```
+
 ## Commands
 
 - `reload_playlist`
@@ -159,10 +312,10 @@ pnpm dev
 
 Local endpoints:
 
-- Player dev: http://localhost:5173
-- Panel dev: http://localhost:5174
-- Backend API: http://localhost:3000/api
-- Swagger: http://localhost:3000/api/docs
+- Player dev: [http://localhost:5173](http://localhost:5173)
+- Panel dev: [http://localhost:5174](http://localhost:5174)
+- Backend API: [http://localhost:3000/api](http://localhost:3000/api)
+- Swagger: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
 ## CI/CD
 
