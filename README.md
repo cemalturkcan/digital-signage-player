@@ -4,6 +4,13 @@
 
 Aşağıda doğrudan demo videosu ve ekran görüntülerini bulabilirsiniz.
 
+### Linkler
+
+- Player: <a href="https://signage.cemalturkcan.com/" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/</a>
+- Panel: <a href="https://signage.cemalturkcan.com/panel/" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/panel/</a>
+- API: <a href="https://signage.cemalturkcan.com/api" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/api</a>
+- Swagger: <a href="https://signage.cemalturkcan.com/api/docs" target="_blank" rel="noopener noreferrer">https://signage.cemalturkcan.com/api/docs</a>
+
 ### Demo Video
 
 https://github.com/user-attachments/assets/8395ac53-13da-462e-ae19-b47a896b2ef3
@@ -27,12 +34,7 @@ https://github.com/user-attachments/assets/8395ac53-13da-462e-ae19-b47a896b2ef3
 Bu projede Tizen implementasyonu yer alır.
 Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden farklı Smart TV platformlarına adapte edilebilir.
 
-- Player: [https://signage.cemalturkcan.com/](https://signage.cemalturkcan.com/)
-- Panel: [https://signage.cemalturkcan.com/panel/](https://signage.cemalturkcan.com/panel/)
-- API: [https://signage.cemalturkcan.com/api](https://signage.cemalturkcan.com/api)
-- Swagger: [https://signage.cemalturkcan.com/api/docs](https://signage.cemalturkcan.com/api/docs)
-
-## Teknoloji Yığını
+## Tech Stack
 
 - Runtime: Node.js 20, TypeScript
 - Player/Panel: Vue 3, Vite, Pinia, Axios
@@ -61,28 +63,26 @@ Aynı player mimarisi ve command flow, platform adapter katmanı üzerinden fark
 
 - Her cihazın stabil ve unique bir `deviceId` ile register olduğu varsayılır.
 - MQTT broker retained message + LWT destekler.
-- Reverse proxy tarafında en az `/api` ve `/public` path routing açıktır.
 - Tizen build/install için host ortamında `tizen` ve `sdb` CLI araçları erişilebilir durumdadır.
-- Panel ile backend arasında saatlik değil, saniyelik polling trafiğini kaldırabilecek ağ/servis kapasitesi vardır.
 
 ## WGT Build (Tizen)
 
-### Release linkleri
+### Release Links
 
-- Son WGT release: [https://github.com/cemalturkcan/digital-signage-player/releases/latest](https://github.com/cemalturkcan/digital-signage-player/releases/latest)
+- Son WGT release: <a href="https://github.com/cemalturkcan/digital-signage-player/releases/latest" target="_blank" rel="noopener noreferrer">https://github.com/cemalturkcan/digital-signage-player/releases/latest</a>
 
 ### Docker latest build'leri
 
-- Backend: [`ghcr.io/cemalturkcan/digital-signage-backend:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-backend)
-- Player frontend: [`ghcr.io/cemalturkcan/digital-signage-frontend:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-frontend)
-- Panel frontend: [`ghcr.io/cemalturkcan/digital-signage-panel:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-panel)
+- Backend: <a href="https://github.com/users/cemalturkcan/packages/container/digital-signage-backend" target="_blank" rel="noopener noreferrer"><code>ghcr.io/cemalturkcan/digital-signage-backend:latest</code></a>
+- Player frontend: <a href="https://github.com/users/cemalturkcan/packages/container/digital-signage-frontend" target="_blank" rel="noopener noreferrer"><code>ghcr.io/cemalturkcan/digital-signage-frontend:latest</code></a>
+- Panel frontend: <a href="https://github.com/users/cemalturkcan/packages/container/digital-signage-panel" target="_blank" rel="noopener noreferrer"><code>ghcr.io/cemalturkcan/digital-signage-panel:latest</code></a>
 
 ### Tizen adapter notu
 
 Platform bağımlı API'ler player platform katmanında izole edilmiştir (`apps/player/src/app/platform`).
 `createPlatformAdapter()` runtime'da Tizen veya web adapter'ını seçer; iş kuralları platformdan bağımsız kalır.
 
-### Lokal WGT build
+### Local WGT Build
 
 Ön koşul: Tizen Studio CLI araçları (`tizen`, `sdb`) PATH içinde olmalıdır.
 
@@ -112,7 +112,7 @@ Sadece install (run etmeden):
 pnpm -C apps/player run wgt:install
 ```
 
-### WGT script akışı
+### WGT Script Flow
 
 `apps/player/package.json` altında Tizen script zinciri şöyle çalışır:
 
@@ -190,7 +190,7 @@ Bu projede `$share/...` shared subscription kullanılmıyor. Her backend instanc
 - Komut gönderimi `POST /api/commands` üzerinden backend command bus'a yapılır.
 - `screenshot` sonucu panelde preview olarak gösterilir; görüntü backend `public` path'i üzerinden alınır.
 
-## Payload örnekleri
+## Payload Examples
 
 Komut örneği:
 
@@ -311,7 +311,7 @@ Player tarafında kritik akışta kullanılan iki endpoint için örnek response
 }
 ```
 
-## Komutlar
+## Commands
 
 - `reload_playlist`
 - `restart_player`
@@ -327,7 +327,7 @@ Player tarafında kritik akışta kullanılan iki endpoint için örnek response
 - Playlist güncellemesi hash/version kontrolü ile yapılır.
 - MQTT kopmalarında reconnect stratejisi devrededir.
 
-## Lokal kurulum
+## Local Setup
 
 Gereksinimler: Node.js 20+, pnpm 8+, Docker
 
@@ -337,12 +337,12 @@ docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
 pnpm dev
 ```
 
-Lokal endpoint'ler:
+Local Endpoints:
 
-- Player dev: [http://localhost:5173](http://localhost:5173)
-- Panel dev: [http://localhost:5174](http://localhost:5174)
-- Backend API: [http://localhost:3000/api](http://localhost:3000/api)
-- Swagger: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+- Player dev: <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer">http://localhost:5173</a>
+- Panel dev: <a href="http://localhost:5174" target="_blank" rel="noopener noreferrer">http://localhost:5174</a>
+- Backend API: <a href="http://localhost:3000/api" target="_blank" rel="noopener noreferrer">http://localhost:3000/api</a>
+- Swagger: <a href="http://localhost:3000/api/docs" target="_blank" rel="noopener noreferrer">http://localhost:3000/api/docs</a>
 
 ## CI/CD
 
