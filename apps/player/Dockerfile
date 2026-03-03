@@ -14,8 +14,6 @@ COPY apps/player/public apps/player/public
 COPY apps/player/index.html apps/player/
 COPY apps/player/vite.config.ts apps/player/
 COPY apps/player/tsconfig.json apps/player/
-COPY apps/player/tsconfig.app.json apps/player/
-COPY apps/player/tsconfig.node.json apps/player/
 COPY apps/player/.env.prod apps/player/
 COPY tsconfig.json ./
 
