@@ -128,7 +128,6 @@ jobs:
           TIZEN_AUTHOR_CERT_PASSWORD: ${{ secrets.TIZEN_AUTHOR_CERT_PASSWORD }}
           TIZEN_PROFILE: ${{ vars.TIZEN_PROFILE }}
           VITE_MQTT_TOPIC_NAMESPACE: ${{ vars.VITE_MQTT_TOPIC_NAMESPACE }}
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
         run: |
           set -euo pipefail
@@ -151,7 +150,6 @@ jobs:
           PROFILE_BASE="${TIZEN_PROFILE:-SignageProfile}"
           PROFILE_NAME="${PROFILE_BASE}_${SHORT_SHA}"
           TOPIC_NAMESPACE="${VITE_MQTT_TOPIC_NAMESPACE:-players}"
-          API_BASE_URL="${VITE_API_BASE_URL:-https://signage.cemalturkcan.com/api}"
 
           cat > apps/player/.env.tizen <<EOF
           TIZEN_PROFILE="$PROFILE_NAME"
@@ -159,7 +157,6 @@ jobs:
           TIZEN_AUTHOR_CERT_PASSWORD="$TIZEN_AUTHOR_CERT_PASSWORD"
           VITE_RUNTIME_NAME=tizen
           VITE_MQTT_TOPIC_NAMESPACE="$TOPIC_NAMESPACE"
-          VITE_API_BASE_URL="$API_BASE_URL"
           EOF
 
       - name: Validate author certificate
@@ -195,7 +192,7 @@ jobs:
         env:
           PLAYER_BUILD_ENV: prod
         run: |
-          pnpm turbo run wgt:build --filter=@signage/player...
+          pnpm turbo run build --filter=@signage/player...
 
       - name: Prepare release assets
         id: assets
