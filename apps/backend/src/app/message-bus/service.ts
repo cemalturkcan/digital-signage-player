@@ -1,9 +1,13 @@
 import type { CommandEnvelope, CommandResultEnvelope, CommandType } from '@signage/contracts'
 import { connectBus, disconnectBus, generateId } from '@/app/message-bus/base.js'
 import { commandDispatcher } from '@/app/message-bus/dispatcher.js'
+import { devicePresenceTracker } from '@/app/message-bus/presence.js'
 import { deviceProvisioner } from '@/app/message-bus/provisioning.js'
 
-function createCommandEnvelope(command: CommandType, params?: Record<string, unknown>): CommandEnvelope {
+function createCommandEnvelope(
+  command: CommandType,
+  params?: Record<string, unknown>,
+): CommandEnvelope {
   return {
     type: 'command',
     commandId: generateId(),
@@ -26,7 +30,10 @@ export interface MessageBusService {
 }
 
 export const messageBusService: MessageBusService = {
-  connect: connectBus,
+  async connect(): Promise<void> {
+    await devicePresenceTracker.start()
+    await connectBus()
+  },
   disconnect: disconnectBus,
 
   provisionDevice(deviceId: string, username: string, password: string): Promise<void> {

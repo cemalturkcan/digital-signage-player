@@ -1,95 +1,95 @@
-# Digital Signage Player
+# Digital Signage Case Çalışması
 
-Tizen (öncelikli) ve Web'de çalışan production-grade bir digital signage çözümü. Node.js, TypeScript, Vue 3, Hono, MQTT ve Docker kullanılarak geliştirildi.
+## Demo
 
-- Player: https://signage.cemalturkcan.com/
-- API: https://signage.cemalturkcan.com/api
-- Swagger: https://signage.cemalturkcan.com/api/docs
+Aşağıda doğrudan demo videosu ve ekran görüntülerini bulabilirsiniz.
 
----
+### Demo Video
+
+<video src="<demo-video-url>" controls muted playsinline width="960"></video>
+
+### Ekran Görüntüleri
+
+![Player](docs/media/player.png)
+
+![Panel](docs/media/panel.png)
+
+## Description
+
+Tizen öncelikli Smart TV player, backend komut bus katmanı ve kontrol panelinden oluşan bir Digital Signage çözümü.
+Live links: Player https://signage.cemalturkcan.com/ , Panel https://signage.cemalturkcan.com/panel/ , API https://signage.cemalturkcan.com/api , Swagger https://signage.cemalturkcan.com/api/docs
 
 ## Stack
 
-Node.js 20, TypeScript, Vue 3, Vite, Pinia, Hono, PostgreSQL, MQTT (Mosquitto), Docker, Tizen Studio CLI
+Bu projede Node.js 20 ve TypeScript kullanıldı. Player ve panel tarafı Vue 3 + Vite + Pinia ile, backend tarafı Hono + PostgreSQL + MQTT (Mosquitto) ile geliştirildi. Dağıtım tarafında Docker, Docker Swarm, Traefik ve GitHub Actions kullanılıyor. Shared types ve topic structure `packages/contracts` içinde tutuluyor. Logging backend'de `pino` ile yapılıyor, player ise operational events'i MQTT üzerinden publish ediyor.
 
----
+## WGT Build (Tizen)
 
-## Repo Yapısı
+### Release links
 
+- Son WGT release: https://github.com/cemalturkcan/digital-signage-player/releases/latest
+- Tüm release'ler: https://github.com/cemalturkcan/digital-signage-player/releases
+
+### Docker latest build'leri
+
+- Backend: [`ghcr.io/cemalturkcan/digital-signage-backend:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-backend)
+- Player frontend: [`ghcr.io/cemalturkcan/digital-signage-frontend:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-frontend)
+- Panel frontend: [`ghcr.io/cemalturkcan/digital-signage-panel:latest`](https://github.com/users/cemalturkcan/packages/container/digital-signage-panel)
+
+### Tizen adapter note
+
+Platform bağımlı API'ler player platform katmanında izole edilmiştir (`apps/player/src/app/platform`).
+`createPlatformAdapter()` runtime'da Tizen veya web adapter'ını seçer; iş kuralları platformdan bağımsız kalır.
+
+### Local WGT build
+
+Ön koşul: Tizen Studio CLI araçları (`tizen`, `sdb`) PATH içinde olmalıdır.
+
+```bash
+pnpm install
+pnpm wgt:build
 ```
-apps/
-  player/     Vue 3 + Vite ile Tizen/Web player
-  backend/    REST API + MQTT komut yönlendirici (Hono)
-packages/
-  contracts/  Frontend ve backend arasında paylaşılan tipler, şemalar, topic factory
-docker/
-  docker-compose.yml
-  mosquitto/config/
-.github/workflows/
-  tizen-release.yml     WGT build + GitHub Release
-  backend-pipeline.yml  Backend CI + Docker image push
-  frontend-pipeline.yml
+
+Çıktı: `apps/player/*.wgt`
+
+Emulator kurulum/çalıştırma:
+
+```bash
+sdb devices
+pnpm wgt:install:run
 ```
-
----
-
-## Mimari
-
-### Katman Yapısı
-
-Player (`apps/player/src/app/`) şu katmanlardan oluşuyor:
-
-- `bootstrap/` — cihaz kaydı ve MQTT bağlantısı başlatma
-- `runtime/` — playlist fetch, komut handler'ları, network takibi
-- `mqtt/` — MQTT client (reconnect/backoff), event publisher, topic factory
-- `commands/` — CommandBus, CommandRegistry, idempotent dedup
-- `cache/` — playlist cache (localStorage), media cache (Cache API), hash kontrolü
-- `platform/` — PlatformAdapter interface'i ve Tizen/Browser implementasyonları
-- `request/` — API katmanı (axios)
-- `stores/` — Pinia store'ları (device, player, playlist, library)
-
-Backend (`apps/backend/src/`) şu şekilde organize edildi:
-
-- `routes/` — REST endpoint'leri (devices, playlist, command, health)
-- `app/message-bus/` — MQTT bağlantısı, komut dispatch, cihaz provisioning
-- `app/logger/` — pino logger (info/warn/error seviyeleri)
-
-### Temel Kararlar
-
-`createPlatformAdapter()` ortama göre Tizen ya da Browser adaptörünü döner. Volume API, screenshot gibi platform bağımlı her şey bu adaptörün arkasında; business logic platforma dokunmuyor.
-
-Komutlar `commandBus` üzerinden alınır, `validateCommandEnvelope` ile doğrulanır, `CommandHandlerRegistry` ile ilgili handler'a yönlendirilir.
-
-Playback event'leri store state'ini `watch` ile izleyerek MQTT'ye publish edilir; bileşenler birbirini doğrudan çağırmaz.
-
-`contracts` paketi tip ve validation fonksiyonlarını hem frontend hem backend'e sağlar. Tip uyumsuzluğu derleme zamanında yakalanır. `mqttClientService`, `eventPublisher` ve backend `logger` singleton olarak çalışır.
-
----
 
 ## MQTT
 
-### Broker
+### Topic structure
 
-Yerel ortamda Mosquitto, Docker üzerinden ayağa kalkar. Player tarayıcı ortamında çalıştığı için WebSocket (9001) kullanır, backend TCP (1883). Her cihaz kayıt sırasında kendine özel MQTT kullanıcısı ve ACL kuralı alır.
-
-### Topic Yapısı
-
-```
-players/{deviceId}/commands    Backend → Player  (komut gönder)
-players/{deviceId}/responses   Player → Backend  (komut sonucu)
-players/{deviceId}/events      Player → Backend  (durum olayları)
-players/{deviceId}/status      Player → Backend  (LWT / offline)
+```text
+players/{deviceId}/commands
+players/{deviceId}/responses
+players/{deviceId}/events
+players/{deviceId}/status
 ```
 
-`players` namespace'i `VITE_MQTT_TOPIC_NAMESPACE` env değişkeniyle değiştirilebilir.
+### QoS
 
-### QoS Tercihi
+- Commands: QoS 1 (teslim garantisi + idempotent command handling)
+- Events/telemetry: QoS 0
 
-Komutlar için **QoS 1** kullandım; iletilmesi garanti altında olmalı. Yinelenen mesajlar zaten `commandId` bazlı deduplication ile zararsız hale geliyor, QoS 2'nin getirdiği ek handshake maliyetine gerek yok. Event ve heartbeat'ler için **QoS 0** yeterli; telemetri kaybedilse de kritik değil.
+### Reconnect ve jitter
 
-### Örnek Payload'lar
+Reconnect stratejisi exponential backoff + jitter:
 
-Komut (Backend → Player):
+```text
+delay = min(30s, 1s * 2^attempt) + random(0-400ms)
+```
+
+### Presence
+
+Player, `.../status` topic'ine retained `online/offline` bilgisi publish eder. Backend bu bilgiyi tüketip cihaz durumunu günceller.
+
+## Payloads
+
+Komut örneği:
 
 ```json
 {
@@ -100,7 +100,7 @@ Komut (Backend → Player):
 }
 ```
 
-Başarılı komut sonucu (Player → Backend):
+Screenshot başarı response örneği:
 
 ```json
 {
@@ -110,13 +110,13 @@ Başarılı komut sonucu (Player → Backend):
   "status": "success",
   "timestamp": 1700000001000,
   "payload": {
-    "base64": "<BASE64_PNG_DATA>",
-    "mimeType": "image/png"
+    "format": "image/png",
+    "base64": "<BASE64_IMAGE_DATA>"
   }
 }
 ```
 
-Hata durumu:
+Screenshot hata response örneği:
 
 ```json
 {
@@ -124,199 +124,49 @@ Hata durumu:
   "command": "screenshot",
   "correlationId": "550e8400-e29b-41d4-a716-446655440000",
   "status": "error",
-  "timestamp": 1700000001000,
   "error": {
     "code": "SCREENSHOT_FAILED",
-    "message": "Screenshot capture unavailable"
+    "message": "Platform screenshot API not available"
   }
 }
 ```
 
-Event (Player → Backend):
+## Commands
 
-```json
-{
-  "type": "event",
-  "event": "network_status",
-  "timestamp": 1700000000000,
-  "payload": {
-    "reason": "heartbeat",
-    "online": true,
-    "mqttConnected": true
-  }
-}
-```
+- `reload_playlist`
+- `restart_player`
+- `play`
+- `pause`
+- `set_volume`
+- `screenshot`
 
-`set_volume` örneği:
+## Offline-first
 
-```json
-{
-  "type": "command",
-  "commandId": "abc-123",
-  "command": "set_volume",
-  "timestamp": 1700000000000,
-  "params": { "level": 75 }
-}
-```
+- Playlist ve medya dosyaları lokal cache'e alınır.
+- Network kesildiğinde oynatma cache üzerinden devam eder.
+- Playlist güncellemesi hash/version kontrolü ile yapılır.
+- MQTT kopmalarında reconnect stratejisi devrededir.
 
-### Desteklenen Komutlar
-
-- `reload_playlist` — playlist'i API'den yeniden çeker, cache'i günceller, oynatmayı güncel listeye göre sürdürür
-- `restart_player` — player'ı soft-restart eder; state temizlenir, playlist yeniden yüklenir (crash yok)
-- `play` — duraklatılmış içeriği devam ettirir
-- `pause` — oynatmayı duraklatır
-- `set_volume` — `params.level` (0–100) ile ses seviyesini ayarlar
-- `screenshot` — `html2canvas` ile ekran görüntüsü alır, base64 encode eder, MQTT üzerinden döner
-
-Tüm komutlar idempotent'tir. Aynı `commandId` ikinci kez gelirse sistem tekrar işlem yapmadan `{ duplicate: true }` döner.
-
-### Reconnect Stratejisi
-
-Bağlantı koptuğunda exponential backoff + jitter uygulanır:
-
-```
-delay = min(30s, 1s × 2^attempt) + random(0–400ms)
-```
-
-Her başarılı bağlantıda `attempt` sıfırlanır. Uygulamanın kendi başlattığı `disconnect()` çağrısında döngü durur.
-
----
-
-## Offline-First
-
-Açılışta önce localStorage'daki playlist cache'e bakılır. Cache varsa içerik hemen gösterilir (cold start, ağ beklenmez), arka planda ağdan yenileme yapılır. Cache yoksa ağdan yüklenir; ağ da yoksa hata gösterilir.
-
-Medya dosyaları Cache API'ye indirilir. Ağ kesildiğinde player bu cache'ten `blob URL` üretip oynatmaya devam eder. Bileşen unmount olduğunda `URL.revokeObjectURL` ile bellek serbest bırakılır.
-
-Hash bazlı invalidation: her playlist response'u hash'lenir. Ağdan gelen hash cache'tekiyle eşleşiyorsa UI ve medya cache'i güncellenmez. Değişiklik varsa media cache sıfırdan doldurulur.
-
----
-
-## Hata Yönetimi
-
-Uygulama şu senaryolarda crash etmez:
-
-- Ağ hatası / timeout → cache'ten devam edilir
-- Bozuk medya dosyası → `error` event'i yakalanır, bir sonraki öğeye geçilir
-- JSON parse hatası → MQTT'ye `INVALID_PAYLOAD` döner, loop bozulmaz
-- MQTT bağlantı kopması → exponential backoff ile yeniden bağlanır
-- Bilinmeyen komut → `UNSUPPORTED_COMMAND` kodu ile hata döner
-- Geçersiz komut şeması → `validateCommandEnvelope` ile erken yakalanır
-- Hızlı playlist geçişi (race condition) → `playbackToken` ile eski async işlemler iptal edilir
-
----
-
-## Logging
-
-Backend tarafında `pino` ile info/warn/error seviyeli structured logging var. Production'da JSON çıktısı, local'de pretty-print. Player tarafında oynatma olayları, ağ durumu ve komut sonuçları MQTT `events` topic'ine publish edilir; bu eventler merkezi bir log altyapısına yönlendirilebilir.
-
----
-
-## Local Kurulum
+## Local setup
 
 Gereksinimler: Node.js 20+, pnpm 8+, Docker
 
 ```bash
-# Servisleri başlat (PostgreSQL + Mosquitto + Backend)
-docker compose -f docker/docker-compose.yml --env-file docker/.env up -d postgres mosquitto backend
-
-# Bağımlılıkları yükle
 pnpm install
-
-# Geliştirme modunu başlat
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
 pnpm dev
 ```
 
-Player `http://localhost:5173`, Swagger `http://localhost:3000/api/docs` adresinde açılır.
+Local endpoints:
 
-Device control panel: `http://localhost:3000/`
-
-Player env değişkenleri (`apps/player/.env`):
-
-- `VITE_API_BASE_URL` — backend API root, varsayılan `http://localhost:3000`
-- `VITE_MQTT_TOPIC_NAMESPACE` — MQTT topic namespace, varsayılan `players`
-- `VITE_RUNTIME_NAME` — `tizen` veya `web`
-
-Gerçek cihaz ya da emulator kullanımında `VITE_API_BASE_URL`'i cihazın erişebileceği bir adrese güncelle.
-
----
-
-## Tizen Build ve Kurulum
-
-### Gereksinimler
-
-[Tizen Studio CLI](https://developer.tizen.org/development/tizen-studio/download) kurulu olmalı. Kurulumdan sonra `tizen` ve `sdb` araçlarını PATH'e ekle:
-
-```bash
-# Linux / macOS
-export PATH="$HOME/tizen-studio/tools/ide/bin:$HOME/tizen-studio/tools:$PATH"
-```
-
-Windows'ta aynı yolları System Environment Variables'a ekle (`C:\tizen-studio\tools\ide\bin`, `C:\tizen-studio\tools`).
-
-### Sertifika ve İmzalama
-
-`pnpm wgt:build` script'i sertifika yönetimini otomatik yapar. `apps/player/.env.tizen` dosyasını oluşturup profil adı ve şifresini ayarlamak yeterli:
-
-```bash
-# apps/player/.env.tizen
-TIZEN_PROFILE="SignageProfile"
-TIZEN_AUTHOR_CERT_PASSWORD="<şifre>"
-VITE_RUNTIME_NAME=tizen
-VITE_API_BASE_URL=https://signage.cemalturkcan.com/api
-```
-
-Script çalıştığında `~/tizen-studio-data/keystore/author/` altında sertifika arar. Bulamazsa sertifikayı kendisi oluşturmak isteyip istemediğini sorar. CI ortamında `TIZEN_AUTO_CREATE_AUTHOR_CERT=1` env değişkeni ile otomatik oluşturulur. Distributor sertifikası Tizen Studio'nun kendi `certificate-generator` klasöründen otomatik alınır, ayrıca bir şey yapman gerekmiyor.
-
-Mevcut bir `.p12` kullanmak istersen `TIZEN_AUTHOR_CERT_PATH` değişkeniyle yolu belirtebilirsin.
-
-### Build ve Kurulum
-
-```bash
-# Build + imzala → apps/player/digital_signage_player_0.1.0.wgt
-pnpm wgt:build
-
-# Emulator veya cihaz bağlantısını doğrula
-sdb devices
-
-# Kur ve çalıştır
-pnpm wgt:install:run
-```
-
-GitHub Releases'tan hazır WGT kullanmak için:
-
-```bash
-pnpm --filter @signage/player exec tsx scripts/install-emulator.ts <path-to.wgt>
-```
-
----
+- Player dev: http://localhost:5173
+- Panel dev: http://localhost:5174
+- Backend API: http://localhost:3000/api
+- Swagger: http://localhost:3000/api/docs
 
 ## CI/CD
 
-- `tizen-release.yml` — `main`'e her push'ta signed `.wgt` üretir ve GitHub Release olarak yayınlar. Tag push'larında stabil release çıkar.
-- `backend-pipeline.yml` — Backend image'ını build edip GHCR'ye push eder.
-- `frontend-pipeline.yml` — Frontend image'ı için aynı süreç.
-
-CI için gerekli GitHub secrets:
-
-- `TIZEN_AUTHOR_CERT_B64` — `.p12` dosyasının base64 encode'u
-- `TIZEN_AUTHOR_CERT_PASSWORD` — sertifika şifresi
-
-Container image'ları:
-
-- `ghcr.io/cemalturkcan/digital-signage-frontend:latest`
-- `ghcr.io/cemalturkcan/digital-signage-backend:latest`
-
----
-
-## API
-
-Tam dokümantasyon Swagger UI'da mevcut: `http://localhost:3000/api/docs`
-
-- `GET /api/health`
-- `GET /api/devices`
-- `POST /api/devices/register`
-- `GET /api/playlists`
-- `GET /api/playlists/{id}`
-- `POST /api/commands`
-
+- `tizen-release.yml`: signed WGT build + GitHub Release
+- `backend-pipeline.yml`: backend image build/push/deploy
+- `frontend-pipeline.yml`: player image build/push/deploy
+- `panel-pipeline.yml`: panel image build/push/deploy

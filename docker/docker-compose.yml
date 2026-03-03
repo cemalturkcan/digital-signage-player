@@ -85,3 +85,20 @@ services:
       mosquitto:
         condition: service_healthy
     restart: unless-stopped
+
+  panel:
+    build:
+      context: ..
+      dockerfile: apps/panel/Dockerfile
+      args:
+        PANEL_BASE_PATH: /
+        PANEL_API_BASE_URL: http://localhost:${PORT}/api
+        PANEL_PORT: ${PANEL_PORT}
+    ports:
+      - '${PANEL_PORT}:${PANEL_PORT}'
+    environment:
+      - PANEL_PORT=${PANEL_PORT}
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped

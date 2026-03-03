@@ -1,0 +1,33 @@
+services:
+  panel:
+    image: ${PANEL_IMAGE}
+    environment:
+      - PANEL_PORT=8080
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 20s
+        failure_action: rollback
+        order: start-first
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: pause
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.signage-panel.rule=Host(`signage.cemalturkcan.com`) && PathPrefix(`/panel`)
+        - traefik.http.routers.signage-panel.entrypoints=websecure
+        - traefik.http.routers.signage-panel.tls.certresolver=main
+        - traefik.http.routers.signage-panel.priority=120
+        - traefik.http.routers.signage-panel.middlewares=signage-panel-strip
+        - traefik.http.middlewares.signage-panel-strip.stripprefix.prefixes=/panel
+        - traefik.http.services.signage-panel.loadbalancer.server.port=8080

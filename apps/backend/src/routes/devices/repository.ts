@@ -6,6 +6,16 @@ interface DeviceRow {
   device_id: string
   mqtt_username: string
   mqtt_password: string
+  is_online: boolean
+  last_seen_at: Date | null
+  last_presence_reason: string | null
+}
+
+interface ActiveDeviceRow {
+  device_id: string
+  is_online: boolean
+  last_seen_at: Date | null
+  last_presence_reason: string | null
 }
 
 const SELECT_DEVICE_BY_ID = 'SELECT * FROM devices WHERE device_id = $1'
@@ -16,6 +26,18 @@ const UPDATE_DEVICE_WITH_CREDS = `UPDATE devices
 
 const INSERT_DEVICE = `INSERT INTO devices (device_id, mqtt_username, mqtt_password)
        VALUES ($1, $2, $3)`
+
+const UPDATE_DEVICE_PRESENCE = `UPDATE devices
+           SET is_online = $1,
+               last_seen_at = $2,
+               last_presence_reason = $3,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE device_id = $4`
+
+const SELECT_ACTIVE_DEVICES = `SELECT device_id, is_online, last_seen_at, last_presence_reason
+         FROM devices
+         WHERE is_online = TRUE
+         ORDER BY last_seen_at DESC NULLS LAST, device_id ASC`
 
 function generateCredentials(): { username: string, password: string } {
   return {
@@ -37,8 +59,22 @@ export interface FindOrCreateResult {
   shouldProvision: boolean
 }
 
+export interface ActiveDeviceRecord {
+  deviceId: string
+  isOnline: boolean
+  lastSeenAt: Date | null
+  lastPresenceReason: string | null
+}
+
 export interface DevicesRepository {
   findOrCreate: (device: Pick<DeviceRecord, 'deviceId'>) => Promise<FindOrCreateResult>
+  updatePresence: (
+    deviceId: string,
+    status: 'online' | 'offline',
+    reason: string | undefined,
+    lastSeenAt: Date,
+  ) => Promise<void>
+  listActiveDevices: () => Promise<ActiveDeviceRecord[]>
 }
 
 export const devicesRepository: DevicesRepository = {
@@ -83,5 +119,30 @@ export const devicesRepository: DevicesRepository = {
       device: mapRowToRecord(createdResult.rows[0]),
       shouldProvision: true,
     }
+  },
+
+  async updatePresence(
+    deviceId: string,
+    status: 'online' | 'offline',
+    reason: string | undefined,
+    lastSeenAt: Date,
+  ): Promise<void> {
+    await db.query(UPDATE_DEVICE_PRESENCE, [
+      status === 'online',
+      lastSeenAt,
+      reason ?? null,
+      deviceId,
+    ])
+  },
+
+  async listActiveDevices(): Promise<ActiveDeviceRecord[]> {
+    const result = await db.query<ActiveDeviceRow>(SELECT_ACTIVE_DEVICES)
+
+    return result.rows.map(row => ({
+      deviceId: row.device_id,
+      isOnline: row.is_online,
+      lastSeenAt: row.last_seen_at,
+      lastPresenceReason: row.last_presence_reason,
+    }))
   },
 }

@@ -1,0 +1,35 @@
+{
+  "name": "@signage/panel",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host --port 5174",
+    "build": "vite build --mode prod",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@signage/contracts": "workspace:*",
+    "@unocss/reset": "^66.6.2",
+    "axios": "^1.13.5",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
+    "vue": "^3.5.29",
+    "vue-i18n": "^11.2.8",
+    "vue-router": "^5.0.3"
+  },
+  "devDependencies": {
+    "@intlify/unplugin-vue-i18n": "^11.0.7",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "@types/node": "^25.3.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18",
+    "vue-tsc": "^3.2.5"
+  }
+}

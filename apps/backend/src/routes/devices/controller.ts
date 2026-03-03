@@ -6,6 +6,11 @@ import { getDeviceRegistrationDeviceId } from '@/routes/devices/modal.js'
 import { devicesService } from '@/routes/devices/service.js'
 
 export const devicesController = {
+  async getActiveDevices(_c: Context) {
+    const result = await devicesService.getActiveDevices()
+    return Res(result)
+  },
+
   async postRegisterDevice(c: Context) {
     const request = await c.req.json<RegistrationRequest>()
     const deviceId = getDeviceRegistrationDeviceId(request)

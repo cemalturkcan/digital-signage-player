@@ -82,6 +82,58 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.3.1)(tsx@4.21.0)
 
+  apps/panel:
+    dependencies:
+      '@signage/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@unocss/reset':
+        specifier: ^66.6.2
+        version: 66.6.2
+      axios:
+        specifier: ^1.13.5
+        version: 1.13.5
+      pinia:
+        specifier: ^3.0.4
+        version: 3.0.4(typescript@5.9.3)(vue@3.5.29)
+      pinia-plugin-persistedstate:
+        specifier: ^4.7.1
+        version: 4.7.1(pinia@3.0.4)
+      vue:
+        specifier: ^3.5.29
+        version: 3.5.29(typescript@5.9.3)
+      vue-i18n:
+        specifier: ^11.2.8
+        version: 11.2.8(vue@3.5.29)
+      vue-router:
+        specifier: ^5.0.3
+        version: 5.0.3(@vue/compiler-sfc@3.5.29)(pinia@3.0.4)(vue@3.5.29)
+    devDependencies:
+      '@intlify/unplugin-vue-i18n':
+        specifier: ^11.0.7
+        version: 11.0.7(eslint@10.0.2)(typescript@5.9.3)(vue-i18n@11.2.8)(vue@3.5.29)
+      '@types/node':
+        specifier: ^25.3.1
+        version: 25.3.1
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.4
+        version: 6.0.4(vite@7.3.1)(vue@3.5.29)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.1(@types/node@25.3.1)(tsx@4.21.0)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.3.1)(tsx@4.21.0)
+      vue-tsc:
+        specifier: ^3.2.5
+        version: 3.2.5(typescript@5.9.3)
+
   apps/player:
     dependencies:
       '@signage/contracts':

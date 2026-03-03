@@ -7,6 +7,10 @@ export function getClient(): MqttClient | null {
   return mqttClient
 }
 
+export interface MqttPublishOptions {
+  retain?: boolean
+}
+
 async function waitForConnect(client: MqttClient): Promise<void> {
   return new Promise((resolve, reject) => {
     let onConnect: () => void
@@ -25,7 +29,10 @@ async function waitForConnect(client: MqttClient): Promise<void> {
   })
 }
 
-export async function connectClient(brokerUrl: string, options?: mqtt.IClientOptions): Promise<void> {
+export async function connectClient(
+  brokerUrl: string,
+  options?: mqtt.IClientOptions,
+): Promise<void> {
   if (mqttClient?.connected)
     return
 
@@ -50,12 +57,18 @@ export async function disconnectClient(): Promise<void> {
   mqttClient = null
 }
 
-export async function mqttPublish(topic: string, payload: string, qos: 0 | 1 | 2 = 1): Promise<void> {
+export async function mqttPublish(
+  topic: string,
+  payload: string,
+  qos: 0 | 1 | 2 = 1,
+  options?: MqttPublishOptions,
+): Promise<void> {
   if (!mqttClient?.connected)
     throw new Error('MQTT client not connected')
 
   await new Promise<void>((resolve, reject) => {
-    mqttClient!.publish(topic, payload, { qos }, err => (err ? reject(err) : resolve()))
+    mqttClient!.publish(topic, payload, { qos, retain: options?.retain ?? false }, err =>
+      err ? reject(err) : resolve())
   })
 }
 

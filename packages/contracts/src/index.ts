@@ -1,5 +1,6 @@
 export * from './commands.js'
 export * from './mqtt-topics.js'
 export * from './playlist.js'
+export * from './presence.js'
 export * from './registration.js'
 export * from './screenshot.js'

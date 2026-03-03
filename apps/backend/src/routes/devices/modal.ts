@@ -6,6 +6,13 @@ export interface DeviceRecord {
   mqttPassword: string
 }
 
+export interface ActiveDevice {
+  deviceId: string
+  isOnline: boolean
+  lastSeenAt: string | null
+  lastPresenceReason: string | null
+}
+
 export function getDeviceRegistrationDeviceId(request: unknown): string | undefined {
   if (!request || typeof request !== 'object') {
     return undefined
@@ -52,5 +59,22 @@ export const DeviceRegistrationResponseSchema = z.object({
     connectTimeout: z.number(),
     reconnectPeriod: z.number(),
     clean: z.boolean(),
+    will: z
+      .object({
+        topic: z.string(),
+        payload: z.string(),
+        qos: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+        retain: z.boolean(),
+      })
+      .optional(),
   }),
 })
+
+export const ActiveDeviceSchema = z.object({
+  deviceId: z.string(),
+  isOnline: z.boolean(),
+  lastSeenAt: z.string().datetime().nullable(),
+  lastPresenceReason: z.string().nullable(),
+})
+
+export const ActiveDevicesResponseSchema = z.array(ActiveDeviceSchema)

@@ -1,9 +1,15 @@
-name: Backend Pipeline
+name: Panel Pipeline
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/panel/**'
+      - 'packages/contracts/**'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - '.github/workflows/panel-pipeline.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           OWNER_LOWER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REPO="ghcr.io/${OWNER_LOWER}/digital-signage-backend"
+          IMAGE_REPO="ghcr.io/${OWNER_LOWER}/digital-signage-panel"
           SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-8)"
 
           echo "image_repo=${IMAGE_REPO}" >> "$GITHUB_OUTPUT"
@@ -50,7 +56,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/backend/Dockerfile
+          file: apps/panel/Dockerfile
           push: true
           tags: |
             ${{ steps.meta.outputs.image_tag }}
@@ -61,7 +67,7 @@ jobs:
       - name: Publish image metadata artifact
         run: |
           set -euo pipefail
-          cat > backend-image.txt <<EOF
+          cat > panel-image.txt <<EOF
           image_repo=${{ steps.meta.outputs.image_repo }}
           image_tag=${{ steps.meta.outputs.image_tag }}
           image_latest=${{ steps.meta.outputs.image_latest }}
@@ -72,8 +78,8 @@ jobs:
       - name: Upload image metadata artifact
         uses: actions/upload-artifact@v4
         with:
-          name: backend-image-${{ steps.meta.outputs.short_sha }}
-          path: backend-image.txt
+          name: panel-image-${{ steps.meta.outputs.short_sha }}
+          path: panel-image.txt
 
   deploy:
     runs-on: ubuntu-latest
@@ -90,12 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           cat > ./envfile <<EOF
-          BACKEND_IMAGE=${{ needs.build-and-push-image.outputs.image_tag }}
-          CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
-          MQTT_USERNAME=${{ secrets.MQTT_USERNAME }}
-          MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
+          PANEL_IMAGE=${{ needs.build-and-push-image.outputs.image_tag }}
           EOF
 
       - name: Configure SSH key
@@ -126,4 +127,4 @@ jobs:
           set -a
           source ./envfile
           set +a
-          docker --context remote stack deploy --compose-file docker/docker-stack.yaml --with-registry-auth digital-signage
+          docker --context remote stack deploy --compose-file apps/panel/docker-stack.yaml --with-registry-auth digital-signage

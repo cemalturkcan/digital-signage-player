@@ -14,3 +14,7 @@ export function responseTopicFor(deviceId: string): string {
 export function eventTopicFor(deviceId: string): string {
   return topicFactory.eventTopicFor(deviceId)
 }
+
+export function statusTopicFor(deviceId: string): string {
+  return topicFactory.statusTopicFor(deviceId)
+}

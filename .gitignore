@@ -9,9 +9,7 @@ out/
 *.tsbuildinfo
 
 # Environment files
-.env
-.env.local
-.env.*.local
+
 
 # Allow docker/.env to be tracked (contains safe defaults)
 !docker/.env

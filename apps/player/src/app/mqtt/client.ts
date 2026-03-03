@@ -1,6 +1,7 @@
 import type { RegistrationResponse } from '@signage/contracts'
 import type { MqttClient } from 'mqtt'
 import type mqtt from 'mqtt'
+import type { MqttPublishOptions } from './base-client'
 import {
   connectClient,
   disconnectClient,
@@ -16,7 +17,12 @@ export interface MqttClientService {
   readonly connected: boolean
   connect: (config: RegistrationResponse) => Promise<void>
   disconnect: () => Promise<void>
-  publish: (topic: string, payload: unknown, qos?: 0 | 1 | 2) => Promise<void>
+  publish: (
+    topic: string,
+    payload: unknown,
+    qos?: 0 | 1 | 2,
+    options?: MqttPublishOptions,
+  ) => Promise<void>
   subscribe: (topic: string) => Promise<void>
   onMessage: (handler: MqttMessageHandler) => void
   offMessage: (handler: MqttMessageHandler) => void
@@ -69,9 +75,14 @@ class MqttClientImpl implements MqttClientService {
     this.emitConnectionState(false)
   }
 
-  async publish(topic: string, payload: unknown, qos: 0 | 1 | 2 = 1): Promise<void> {
+  async publish(
+    topic: string,
+    payload: unknown,
+    qos: 0 | 1 | 2 = 1,
+    options?: MqttPublishOptions,
+  ): Promise<void> {
     const message = typeof payload === 'string' ? payload : JSON.stringify(payload)
-    await mqttPublish(topic, message, qos)
+    await mqttPublish(topic, message, qos, options)
   }
 
   async subscribe(topic: string): Promise<void> {

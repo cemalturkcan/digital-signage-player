@@ -1,4 +1,4 @@
-import type { CommandEnvelope, MediaItem, Playlist } from '@signage/contracts'
+import type { CommandEnvelope, MediaItem, Playlist, PresenceEnvelope } from '@signage/contracts'
 import type { WatchStopHandle } from 'vue'
 import type { Bootstrap } from '@/app/bootstrap/bootstrap'
 import { watch } from 'vue'
@@ -11,7 +11,7 @@ import { CommandHandlerError, playerCommandRegistry } from '@/app/commands/regis
 import { translate } from '@/app/modules/i18n'
 import { mqttClientService } from '@/app/mqtt/client'
 import { eventPublisher } from '@/app/mqtt/event-publisher'
-import { commandTopicFor, responseTopicFor } from '@/app/mqtt/topics'
+import { commandTopicFor, responseTopicFor, statusTopicFor } from '@/app/mqtt/topics'
 import { createPlatformAdapter } from '@/app/platform/factory'
 import { getPlaylistsByDeviceId } from '@/app/request/playlist'
 import { useDeviceStore } from '@/app/stores/device/store'
@@ -56,6 +56,25 @@ function toMediaPayload(item: MediaItem): Record<string, unknown> {
 
 function publishNetworkStatus(reason: string): void {
   eventPublisher.publishNetworkStatus(reason)
+}
+
+async function publishPresenceStatus(status: 'online' | 'offline', reason: string): Promise<void> {
+  if (!currentDeviceId || !mqttClientService.connected)
+    return
+
+  const payload: PresenceEnvelope = {
+    type: 'presence',
+    status,
+    reason,
+    ts: Date.now(),
+  }
+
+  try {
+    await mqttClientService.publish(statusTopicFor(currentDeviceId), payload, 1, { retain: true })
+  }
+  catch {
+    // Presence publishing is best-effort
+  }
 }
 
 function stopPlaybackEventPublishing(): void {
@@ -147,6 +166,9 @@ function setupNetworkStatusTracking(): void {
 
   mqttConnectionHandler = (connected) => {
     publishNetworkStatus(connected ? 'mqtt_connected' : 'mqtt_disconnected')
+    if (connected) {
+      void publishPresenceStatus('online', 'mqtt_connected')
+    }
   }
 
   mqttClientService.onConnectionChange(mqttConnectionHandler)
@@ -438,6 +460,7 @@ export async function initializePlayerRuntime(bootstrapResult: Bootstrap): Promi
 
   if (bootstrapResult.registration) {
     await setupMqtt()
+    await publishPresenceStatus('online', 'connect')
     setupNetworkStatusTracking()
     eventPublisher.startHeartbeat()
   }
@@ -447,6 +470,7 @@ export async function initializePlayerRuntime(bootstrapResult: Bootstrap): Promi
 }
 
 export function disposePlayerRuntime(): void {
+  void publishPresenceStatus('offline', 'shutdown')
   stopPlaybackEventPublishing()
   stopNetworkStatusTracking()
   eventPublisher.stopHeartbeat()

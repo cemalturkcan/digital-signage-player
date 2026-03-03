@@ -161,7 +161,7 @@ services:
         window: 120s
       labels:
         - traefik.enable=true
-        - traefik.http.routers.signage-backend.rule=Host(`signage.cemalturkcan.com`) && PathPrefix(`/api`)
+        - traefik.http.routers.signage-backend.rule=Host(`signage.cemalturkcan.com`) && (PathPrefix(`/api`) || PathPrefix(`/public`))
         - traefik.http.routers.signage-backend.entrypoints=websecure
         - traefik.http.routers.signage-backend.tls.certresolver=main
         - traefik.http.routers.signage-backend.priority=150

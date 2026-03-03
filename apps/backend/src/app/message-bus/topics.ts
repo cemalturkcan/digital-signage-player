@@ -1,7 +1,8 @@
-import { createDeviceTopicFactory } from '@signage/contracts'
+import { createDeviceTopicFactory, normalizeTopicNamespace } from '@signage/contracts'
 import { MQTT_TOPIC_NAMESPACE } from '@/config.js'
 
 const topicFactory = createDeviceTopicFactory(MQTT_TOPIC_NAMESPACE)
+const normalizedNamespace = normalizeTopicNamespace(MQTT_TOPIC_NAMESPACE)
 
 export function commandTopicFor(deviceId: string): string {
   return topicFactory.commandTopicFor(deviceId)
@@ -17,4 +18,8 @@ export function eventTopicFor(deviceId: string): string {
 
 export function statusTopicFor(deviceId: string): string {
   return topicFactory.statusTopicFor(deviceId)
+}
+
+export function statusTopicPattern(): string {
+  return `${normalizedNamespace}/+/status`
 }
