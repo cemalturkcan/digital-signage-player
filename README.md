@@ -6,13 +6,15 @@ Aşağıda doğrudan demo videosu ve ekran görüntülerini bulabilirsiniz.
 
 ### Demo Video
 
-<video src="https://example.com/demo.mp4" controls muted playsinline width="960"></video>
+<video src="https://cdn.cemalturkcan.com/videos/screenrecording-2026-03-04_00-05-08_optimized.mp4" controls muted playsinline width="960"></video>
 
 ### Ekran Görüntüleri
 
-![Player](docs/media/player.png)
+![Player](<img width="1600" height="843" alt="1" src="https://github.com/user-attachments/assets/75036b7d-d33a-4f4b-8e5b-caadf377388c" />)
+![Player](<img width="1600" height="842" alt="2" src="https://github.com/user-attachments/assets/a7475e29-9490-46b5-b53b-ddb283717752" />)
 
-![Panel](docs/media/panel.png)
+
+![Panel](<img width="1600" height="842" alt="3" src="https://github.com/user-attachments/assets/d1f27ebb-b219-4956-ac75-b100a9bde480" />)
 
 ## Description
 
