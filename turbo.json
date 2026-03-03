@@ -21,6 +21,7 @@
       "dependsOn": ["^build"]
     },
     "wgt:build": {
+      "dependsOn": ["^build"],
       "outputs": ["*.wgt"]
     },
     "wgt:install": {
