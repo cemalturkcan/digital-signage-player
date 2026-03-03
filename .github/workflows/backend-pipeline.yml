@@ -4,6 +4,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/backend/**'
+      - 'packages/contracts/**'
+      - 'docker/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - 'tsconfig.json'
+      - '.github/workflows/backend-pipeline.yml'
   workflow_dispatch:
 
 jobs:

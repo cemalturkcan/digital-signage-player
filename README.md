@@ -4,7 +4,17 @@ Bu repo, Tizen odaklı bir dijital signage çözümünü uçtan uca gösteren bi
 
 ## Demo
 
-Player uygulaması için canlı adres: [https://signage.cemalturkcan.com/](https://signage.cemalturkcan.com/). Panel için canlı adres: [https://signage.cemalturkcan.com/panel/](https://signage.cemalturkcan.com/panel/). API erişimi: [https://signage.cemalturkcan.com/api](https://signage.cemalturkcan.com/api). Swagger dokümantasyonu: [https://signage.cemalturkcan.com/api/docs](https://signage.cemalturkcan.com/api/docs).
+Player uygulaması için canlı adres:
+[https://signage.cemalturkcan.com/](https://signage.cemalturkcan.com/)
+
+Panel için canlı adres:
+[https://signage.cemalturkcan.com/panel/](https://signage.cemalturkcan.com/panel/)
+
+API erişimi:
+[https://signage.cemalturkcan.com/api](https://signage.cemalturkcan.com/api)
+
+Swagger dokümantasyonu:
+[https://signage.cemalturkcan.com/api/docs](https://signage.cemalturkcan.com/api/docs)
 
 Demo videosu:
 
@@ -69,6 +79,30 @@ pnpm -C apps/player exec tsx scripts/install-emulator.ts "/home/<user>/Downloads
 ```
 
 Script akışı `apps/player/package.json` altında `wgt:build`, `wgt:install`, `wgt:run` ve `wgt:install:run` komutlarıyla yönetilir. `package-wgt.ts`, `config.xml` sürümünü `package.json` ile senkronlar, Tizen build alır, gerekli signing profile işlemlerini yapar, paketi üretir ve çıktıyı `apps/player` altına taşır. `install-emulator.ts` hedef cihazı `sdb` üzerinden seçer, kurulum yapar ve olası sertifika hatalarında yeniden deneme/yeniden paketleme fallback'i uygular. `run-emulator.ts` uygulama kimliğini çözerek `app_launcher` ile uygulamayı başlatır.
+
+## Tizen Ortam Ayarları
+
+Tizen tarafında ilk adım, `tizen` ve `sdb` komutlarının terminalden erişilebilir olmasıdır. Kurulumdan sonra kontrol için aşağıdaki komutları çalıştırabilirsiniz.
+
+```bash
+tizen version
+sdb version
+```
+
+`command not found` alırsanız Tizen Studio CLI dizinini PATH'e eklemeniz gerekir. Linux/macOS tarafında genelde `~/tizen-studio/tools/ide/bin` ve `~/tizen-studio/tools` dizinleri kullanılır. Windows tarafında aynı dizinler `tizen.bat` ve `sdb.exe` ile çalışır.
+
+Projede Tizen build için kullanılan ortam dosyası `apps/player/.env.tizen` dosyasıdır. Temel bir örnek içerik şu şekildedir:
+
+```bash
+TIZEN_PROFILE=SignageProfile
+TIZEN_AUTHOR_CERT_PASSWORD=signage1234
+VITE_RUNTIME_NAME=tizen
+VITE_MQTT_TOPIC_NAMESPACE=players
+```
+
+Eğer mevcut bir author certificate kullanacaksanız aynı dosyaya `TIZEN_AUTHOR_CERT_PATH` ekleyebilirsiniz. Sertifikayı script'in otomatik üretmesini isterseniz `TIZEN_AUTO_CREATE_AUTHOR_CERT=1` değeri kullanılabilir.
+
+Tizen ortamında API adresi `apps/player/.env` içinden okunur. Emülatör veya TV cihazı için bu dosyadaki `VITE_API_BASE_URL` değerinin LAN IP ile yazılması gerekir.
 
 ## Emülatör ve Cihaz İçin Ağ Planı
 
